@@ -1,0 +1,7 @@
+[
+  { "name": "type:feature", "color": "1d76db", "description": "Nouvelle fonctionnalité ou évolution" },
+  { "name": "type:bug", "color": "d73a4a", "description": "Comportement non conforme à la spec" },
+  { "name": "type:adr", "color": "5319e7", "description": "Décision d'architecture à trancher" },
+  { "name": "type:chore", "color": "c5def5", "description": "Outillage, configuration, maintenance" },
+  { "name": "needs-adr", "color": "fbca04", "description": "Bloqué en attente d'un ADR accepté" }
+]
