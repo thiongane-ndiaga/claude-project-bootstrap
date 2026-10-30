@@ -21,7 +21,7 @@ Constatés lors de la mise en place de référence (Claude Code 2.1.31x, OpenSpe
 - Les définitions de `.claude/agents/` et les plugins **ne sont chargés qu'au démarrage** : redémarrer après les avoir créés.
 - Les règles de permission `Bash(...)` et `PowerShell(...)` sont distinctes : déclarer les deux formes.
 - Hooks : forme exec (`"command": "node"`, `"args": [...]`) pour la portabilité ; `${CLAUDE_PROJECT_DIR}` est développé dans `args`.
-- Les **hooks de frontmatter d'un agent ne s'appliquent pas quand il tourne en teammate** : en équipe, seules les règles allow/ask du lead protègent. Les champs `tools`, `model` et le corps sont, eux, repris.
+- Les **hooks de frontmatter d'un agent ne sont pas garantis quand il tourne en teammate** : la documentation des agent teams n'en dit rien, et aucune vérification n'a été faite ici. En équipe, fais reposer la protection sur les règles allow/deny du lead, que les teammates in-process appliquent en direct. Sont repris : `tools`, `disallowedTools`, `model`, le corps ; `effort` en in-process seulement. Le champ `skills` n'est pas appliqué à un teammate.
 - Un teammate se lance en passant `name` à l'outil Agent (flag actif, session interactive) ; pas de teammates en `-p`.
 - Le classificateur du mode auto peut refuser `gh repo create --push` ou une installation de plugin : ne pas contourner, faire lancer la commande par l'utilisateur avec `!`.
 - Un hook « lecture seule » par liste blanche doit refuser sauts de ligne, guillemets, redirections, et les options abrégées (`git diff --outp=x`) : le modèle `read-only-bash.mjs` le fait.
