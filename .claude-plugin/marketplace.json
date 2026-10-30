@@ -1,0 +1,14 @@
+{
+  "name": "thiongane-ndiaga",
+  "description": "Plugins Claude Code personnels.",
+  "owner": {
+    "name": "Ndiaga Thiongane"
+  },
+  "plugins": [
+    {
+      "name": "project-bootstrap",
+      "source": "./",
+      "description": "Recrée l'outillage et le workflow issue → release d'un projet piloté par Claude Code, module par module."
+    }
+  ]
+}

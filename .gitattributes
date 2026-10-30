@@ -1,0 +1,8 @@
+# Normalise les fins de ligne : LF dans le dépôt et dans la copie de travail, sur Windows comme sur Linux.
+* text=auto eol=lf
+
+# Binaires
+*.xlsx binary
+*.png  binary
+*.jpg  binary
+*.pdf  binary
