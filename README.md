@@ -1,6 +1,6 @@
 # project-bootstrap
 
-Plugin Claude Code qui recrée, dans un nouveau dépôt, l'outillage et le workflow de développement assisté par IA mis au point sur fleetbook : Claude Code (CLAUDE.md, settings, hooks Node, agents), OpenSpec, Archgate (ADR exécutables), arc42, GitHub Free (formulaires, labels, CI, Projects) et release-please. Chaque brique est un module optionnel ; aucune stack applicative n'est choisie.
+Plugin Claude Code qui recrée, dans un nouveau dépôt, l'outillage et le workflow de développement assisté par IA : Claude Code (CLAUDE.md, settings, hooks Node, agents), OpenSpec, Archgate (ADR exécutables), arc42, GitHub Free (formulaires, labels, CI, Projects) et release-please. Chaque brique est un module optionnel ; aucune stack applicative n'est choisie.
 
 ## Installation
 
