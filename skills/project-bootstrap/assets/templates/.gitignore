@@ -1,0 +1,20 @@
+# Claude Code : réglages et mémoire locaux à la machine
+.claude/settings.local.json
+.claude/agent-memory-local/
+CLAUDE.local.md
+
+# OS / éditeurs
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# Fichiers temporaires Office
+~$*
+@@module:archgate
+
+# Archgate : types régénérés par la CLI
+.archgate/rules.d.ts
+docs/architecture/rules.d.ts
+@@end

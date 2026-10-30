@@ -1,0 +1,69 @@
+{
+  "modules": {
+    "core": { "requires": [], "default": true, "description": "git, .gitignore, .gitattributes, CLAUDE.md, docs/workflow.md (toujours inclus)" },
+    "claude": { "requires": [], "default": true, "description": "Claude Code : .claude/settings.json, hooks Node, agents du projet" },
+    "openspec": { "requires": [], "default": true, "description": "Spec-driven development avec OpenSpec (openspec init + conventions)" },
+    "archgate": { "requires": [], "default": true, "description": "ADR exécutables avec Archgate, rangés dans docs/architecture/adrs/" },
+    "archgate-plugin": { "requires": ["archgate", "claude"], "default": false, "description": "Plugin Claude Code d'Archgate (nécessite archgate login, compte Archgate)" },
+    "arc42": { "requires": [], "default": true, "description": "Squelette arc42 (12 sections, questions-guides) dans docs/architecture/arc42/" },
+    "github": { "requires": [], "default": true, "description": "Formulaires d'issues, template de PR, labels, CI (ci.yml), dépôt GitHub" },
+    "release": { "requires": ["github"], "default": true, "description": "release-please : changelog, version SemVer, tags et GitHub Releases" },
+    "projects": { "requires": ["github"], "default": true, "description": "Tableau GitHub Projects (Todo, In Progress, In Review, Done) lié au dépôt" },
+    "githooks": { "requires": ["claude"], "default": true, "description": "Hook pre-push Node qui rejoue le contrôle qualité (indispensable en dépôt privé)" },
+    "agent-teams": { "requires": ["claude"], "default": false, "description": "Active les agent teams (expérimental) dans .claude/settings.local.json" }
+  },
+  "files": [
+    { "path": ".gitattributes", "when": ["core"] },
+    { "path": ".gitignore", "when": ["core"] },
+    { "path": "CLAUDE.md", "when": ["core"] },
+    { "path": "docs/workflow.md", "when": ["core"] },
+
+    { "path": ".claude/hooks/quality-gate.mjs", "when": ["claude"] },
+    { "path": ".claude/hooks/read-only-bash.mjs", "when": ["claude"] },
+    { "path": ".claude/hooks/restrict-path.mjs", "when": ["claude", "arc42"] },
+    { "path": ".claude/agents/spec-reviewer.md", "when": ["claude", "openspec"] },
+    { "path": ".claude/agents/traceability-checker.md", "when": ["claude", "github"] },
+    { "path": ".claude/agents/architecture-explorer.md", "when": ["claude", "archgate"] },
+    { "path": ".claude/agents/arc42-keeper.md", "when": ["claude", "arc42"] },
+
+    { "path": ".archgate/config.json", "when": ["archgate"] },
+    { "path": ".archgate/lint/README.md", "when": ["archgate"] },
+    { "path": "docs/architecture/adrs/ARCH-001-documentation-d-architecture-arc42-et-adr.md", "when": ["archgate", "arc42"] },
+    { "path": "docs/architecture/adrs/ARCH-001-documentation-d-architecture-arc42-et-adr.rules.ts", "when": ["archgate", "arc42"] },
+    { "path": "docs/architecture/adrs/ARCH-002-workflow-spec-driven-avec-openspec.md", "when": ["archgate", "openspec"] },
+    { "path": "docs/architecture/adrs/ARCH-003-emplacement-et-format-des-adr.md", "when": ["archgate"] },
+    { "path": "docs/architecture/adrs/ARCH-003-emplacement-et-format-des-adr.rules.ts", "when": ["archgate"] },
+    { "path": "docs/architecture/adrs/ARCH-004-github-comme-forge-avec-actions-et-releases.md", "when": ["archgate", "github"] },
+    { "path": "docs/architecture/adrs/ARCH-004-github-comme-forge-avec-actions-et-releases.rules.ts", "when": ["archgate", "github"] },
+    { "path": "docs/architecture/adrs/ARCH-005-conventions-de-branches-commits-et-versionnement.md", "when": ["archgate", "github"] },
+
+    { "path": "docs/architecture/arc42/01-introduction-et-objectifs.md", "when": ["arc42"] },
+    { "path": "docs/architecture/arc42/02-contraintes.md", "when": ["arc42"] },
+    { "path": "docs/architecture/arc42/03-contexte-et-perimetre.md", "when": ["arc42"] },
+    { "path": "docs/architecture/arc42/04-strategie-de-solution.md", "when": ["arc42"] },
+    { "path": "docs/architecture/arc42/05-vue-en-briques.md", "when": ["arc42"] },
+    { "path": "docs/architecture/arc42/06-vue-d-execution.md", "when": ["arc42"] },
+    { "path": "docs/architecture/arc42/07-vue-de-deploiement.md", "when": ["arc42"] },
+    { "path": "docs/architecture/arc42/08-concepts-transverses.md", "when": ["arc42"] },
+    { "path": "docs/architecture/arc42/09-decisions-d-architecture.md", "when": ["arc42"] },
+    { "path": "docs/architecture/arc42/10-exigences-de-qualite.md", "when": ["arc42"] },
+    { "path": "docs/architecture/arc42/11-risques-et-dette-technique.md", "when": ["arc42"] },
+    { "path": "docs/architecture/arc42/12-glossaire.md", "when": ["arc42"] },
+
+    { "path": ".github/ISSUE_TEMPLATE/config.yml", "when": ["github"] },
+    { "path": ".github/ISSUE_TEMPLATE/feature.yml", "when": ["github"] },
+    { "path": ".github/ISSUE_TEMPLATE/bug.yml", "when": ["github"] },
+    { "path": ".github/ISSUE_TEMPLATE/architecture-decision.yml", "when": ["github", "archgate"] },
+    { "path": ".github/pull_request_template.md", "when": ["github"] },
+    { "path": ".github/labels.json", "when": ["github"] },
+    { "path": ".github/workflows/ci.yml", "when": ["github"] },
+    { "path": "scripts/sync-labels.mjs", "when": ["github"] },
+    { "path": "scripts/check-pr-title.mjs", "when": ["github"] },
+
+    { "path": ".github/workflows/release.yml", "when": ["release"] },
+    { "path": "release-please-config.json", "when": ["release"] },
+    { "path": ".release-please-manifest.json", "when": ["release"] },
+
+    { "path": ".githooks/pre-push", "when": ["githooks"] }
+  ]
+}

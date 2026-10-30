@@ -1,0 +1,66 @@
+name: ci
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # @@module:openspec
+  OPENSPEC_VERSION: {{OPENSPEC_VERSION}}
+  OPENSPEC_TELEMETRY: "0"
+  # @@end
+  # @@module:archgate
+  ARCHGATE_VERSION: {{ARCHGATE_VERSION}}
+  # @@end
+
+jobs:
+  # @@module:openspec|archgate
+  checks:
+    strategy:
+      matrix:
+        # Dépôt privé : ubuntu seul pour préserver le crédit Actions ; public : ubuntu + windows gratuits
+        os: {{CI_OS_MATRIX}}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@{{CHECKOUT_REF}}
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@{{SETUP_NODE_REF}}
+        with:
+          node-version: {{NODE_VERSION}}
+      # @@module:openspec
+      - name: OpenSpec validate
+        shell: bash
+        run: |
+          npm install -g "@fission-ai/openspec@${OPENSPEC_VERSION}"
+          openspec validate --all --strict --no-interactive
+      # @@end
+      # @@module:archgate
+      - name: Archgate check
+        shell: bash
+        run: |
+          npm install -g "archgate@${ARCHGATE_VERSION}"
+          archgate check --output github
+      # @@end
+
+  # @@end
+  pr-title:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@{{CHECKOUT_REF}}
+      - name: Conventional Commit title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: node scripts/check-pr-title.mjs
