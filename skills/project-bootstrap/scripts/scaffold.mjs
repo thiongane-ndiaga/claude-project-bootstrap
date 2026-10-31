@@ -52,7 +52,7 @@ const params = {
   CHECKOUT_REF: ref(config.actions?.checkout),
   SETUP_NODE_REF: ref(config.actions?.setupNode),
   RELEASE_PLEASE_REF: ref(config.actions?.releasePlease),
-  CI_OS_MATRIX: isPublic ? "[ubuntu-latest, windows-latest]" : "[ubuntu-latest]",
+  CI_OS_JSON: isPublic ? '["ubuntu-latest", "windows-latest"]' : '["ubuntu-latest"]',
   CI_OS_FR: isPublic ? "`ubuntu-latest` et `windows-latest` (gratuits en public)" : "`ubuntu-latest` uniquement (crédit Actions limité en privé)",
   CI_BLOCKING_NOTE: isPublic
     ? "oui si la protection de `main` exige le check"
@@ -102,17 +102,15 @@ function buildSettings() {
     allow.push(...both("archgate *"));
     for (const c of ["archgate login *", "archgate upgrade *", "archgate plugin *", "archgate telemetry *"]) ask.push(...both(c));
   }
-  if (active.has("openspec") || active.has("archgate")) allow.push(...both("node .claude/hooks/quality-gate.mjs"));
+  allow.push(...both("node .claude/hooks/quality-gate.mjs"));
   if (active.has("github")) {
     for (const g of ["auth status", "repo view", "issue list", "issue view", "pr list", "pr view", "pr diff", "pr checks", "run list", "run view", "release list", "release view", "label list"]) allow.push(...both(`gh ${g} *`));
     if (active.has("projects")) for (const g of ["project list", "project view", "project item-list"]) allow.push(...both(`gh ${g} *`));
   }
   const settings = { $schema: "https://json.schemastore.org/claude-code-settings.json", permissions: { allow, ask } };
-  if (active.has("openspec") || active.has("archgate")) {
-    settings.hooks = {
-      TaskCompleted: [{ hooks: [{ type: "command", command: "node", args: ["${CLAUDE_PROJECT_DIR}/.claude/hooks/quality-gate.mjs"] }] }],
-    };
-  }
+  settings.hooks = {
+    TaskCompleted: [{ hooks: [{ type: "command", command: "node", args: ["${CLAUDE_PROJECT_DIR}/.claude/hooks/quality-gate.mjs"] }] }],
+  };
   return JSON.stringify(settings, null, 2) + "\n";
 }
 

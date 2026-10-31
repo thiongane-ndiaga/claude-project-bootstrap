@@ -65,7 +65,9 @@ for (const c of cases) {
   }
   if (active.has("github")) {
     const ci = readFileSync(path.join(out, ".github", "workflows", "ci.yml"), "utf8");
-    check(`${c.name} : matrice CI selon la visibilité`, ci.includes(c.visibility === "public" ? "windows-latest" : "[ubuntu-latest]"));
+    const ciOs = JSON.parse(readFileSync(path.join(out, ".bootstrap", "checks.json"), "utf8")).ciOs;
+    check(`${c.name} : matrice CI selon la visibilité`, c.visibility === "public" ? ciOs.includes("windows-latest") : ciOs.length === 1 && ciOs[0] === "ubuntu-latest");
+    check(`${c.name} : la CI lit .bootstrap/checks.json`, ci.includes("run-checks.mjs --print-os") && ci.includes("node .bootstrap/run-checks.mjs"));
     check(`${c.name} : actions épinglées sur un SHA`, [...ci.matchAll(/uses:\s*(\S+)/g)].every((m) => /@[0-9a-f]{40}$/.test(m[1])));
   }
   // relance : rien de créé, tout identique
@@ -99,6 +101,39 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
   let exists = true;
   try { statSync(r.out); } catch { exists = false; }
   check("dry-run n'écrit rien", r.res.status === 0 && !exists);
+}
+// point d'extension .bootstrap/checks.json : une seule liste pour le contrôle local, le pre-push et la CI
+{
+  const { res, out } = run({ ...base, visibility: "public", modules: ["claude", "githooks", "github"] });
+  const checksFile = path.join(out, ".bootstrap", "checks.json");
+  const runner = path.join(out, ".bootstrap", "run-checks.mjs");
+  const gate = path.join(out, ".claude", "hooks", "quality-gate.mjs");
+  const prePush = path.join(out, ".githooks", "pre-push");
+  const node = (script, cwd = out) => spawnSync(process.execPath, [script], { cwd, encoding: "utf8" });
+  const write = (checks) => writeFileSync(checksFile, JSON.stringify({ ciOs: ["ubuntu-latest"], checks }));
+  const fail = `node -e "process.exit(1)"`;
+  const pass = `node -e "process.exit(0)"`;
+  check("checks.json : généré et valide", res.status === 0 && Array.isArray(JSON.parse(readFileSync(checksFile, "utf8")).checks));
+  check("checks.json vide : le contrôle qualité passe", node(gate).status === 0, node(gate).stderr);
+  write([{ name: "ok", command: pass }]);
+  check("commande en succès : contrôle qualité et run-checks à 0", node(gate).status === 0 && node(runner).status === 0);
+  write([{ name: "ko", command: fail }]);
+  const g = node(gate);
+  check("commande bloquante en échec : contrôle qualité à 2", g.status === 2 && /ko : échec/.test(g.stderr), g.stderr);
+  check("commande bloquante en échec : run-checks à 1 (CI)", node(runner).status === 1);
+  check("commande bloquante en échec : pre-push refuse", node(prePush).status === 1);
+  write([{ name: "souple", command: fail, blocking: false }]);
+  const soft = node(gate);
+  check("commande non bloquante : signalée sans bloquer", soft.status === 0 && /non bloquant/.test(soft.stderr), soft.stderr);
+  check("commande non bloquante : run-checks à 0", node(runner).status === 0);
+  const other = process.platform === "win32" ? "linux" : "windows";
+  write([{ name: "autre-os", command: fail, os: [other] }]);
+  check("commande réservée à un autre système : ignorée", node(gate).status === 0);
+  write([{ name: "mauvais-os", command: pass, os: ["beos"] }]);
+  check("checks.json invalide : contrôle qualité en échec", node(gate).status === 2 && node(runner).status === 1);
+  writeFileSync(checksFile, JSON.stringify({ ciOs: ["ubuntu-latest", "macos-latest"], checks: [] }));
+  const osOut = spawnSync(process.execPath, [runner, "--print-os"], { cwd: out, encoding: "utf8" });
+  check("--print-os : matrice de la CI", osOut.stdout.trim() === JSON.stringify(["ubuntu-latest", "macos-latest"]), osOut.stdout);
 }
 // agents en lecture seule : chaque commande citée dans leur modèle doit passer le hook read-only-bash.mjs
 {

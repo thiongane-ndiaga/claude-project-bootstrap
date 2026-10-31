@@ -23,12 +23,26 @@ env:
   # @@end
 
 jobs:
-  # @@module:openspec|archgate
+  # systèmes de la CI : « ciOs » de .bootstrap/checks.json
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      os: ${{ steps.os.outputs.os }}
+    steps:
+      - uses: actions/checkout@{{CHECKOUT_REF}}
+      - uses: actions/setup-node@{{SETUP_NODE_REF}}
+        with:
+          node-version: {{NODE_VERSION}}
+      - id: os
+        run: echo "os=$(node .bootstrap/run-checks.mjs --print-os)" >> "$GITHUB_OUTPUT"
+
   checks:
+    needs: plan
     strategy:
+      fail-fast: false
       matrix:
-        # Dépôt privé : ubuntu seul pour préserver le crédit Actions ; public : ubuntu + windows gratuits
-        os: {{CI_OS_MATRIX}}
+        os: ${{ fromJSON(needs.plan.outputs.os) }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:
@@ -52,8 +66,10 @@ jobs:
           npm install -g "archgate@${ARCHGATE_VERSION}"
           archgate check --output github
       # @@end
+      # Installer ici la chaîne d'outils de la stack choisie (langage, dépendances) avant les commandes du projet
+      - name: Commandes du projet (.bootstrap/checks.json)
+        run: node .bootstrap/run-checks.mjs
 
-  # @@end
   pr-title:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
