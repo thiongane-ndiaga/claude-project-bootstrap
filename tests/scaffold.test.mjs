@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { runMigrations } from "../skills/project-bootstrap/scripts/migrate.mjs";
+import { syncLabels } from "../skills/project-bootstrap/assets/templates/scripts/sync-labels.mjs";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const scaffold = path.join(root, "skills", "project-bootstrap", "scripts", "scaffold.mjs");
@@ -446,6 +447,175 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
   const ownUp2 = runScript(own2.script, ["--update", "--target", ownOut]);
   check("owned : personnalisé, jamais touché", read(ownOut, ".bootstrap/checks.json") === "[]\n" &&ownUp2.res.status === 0);
 
+  // labels natifs de la forge : formulaires, synchronisation non destructive, migration 0002 (#29)
+  {
+    const tpl = (rel) => readFileSync(path.join(root, "skills", "project-bootstrap", "assets", "templates", ...rel.split("/")), "utf8");
+    const modelLabels = JSON.parse(tpl(".github/labels.json"));
+    const names = modelLabels.map((l) => l.name);
+    check("labels : le modèle ne décrit que bug, enhancement, adr et chore (noms plats, sans needs-adr)", JSON.stringify(names) === JSON.stringify(["bug", "enhancement", "adr", "chore"]) && !names.some((n) => n.includes(":")));
+    check("labels : bug et enhancement sont natifs, adr et chore propres au plugin", modelLabels.filter((l) => l.native).map((l) => l.name).join() === "bug,enhancement");
+    const formLabels = ["bug", "feature", "architecture-decision"].map((f) => /^labels:\s*\["([^"]+)"\]/m.exec(tpl(`.github/ISSUE_TEMPLATE/${f}.yml`))?.[1]);
+    check("labels : formulaires bug -> bug, feature -> enhancement, décision -> adr", formLabels.join() === "bug,enhancement,adr", formLabels.join());
+    check("labels : chaque label posé par un formulaire figure dans labels.json", formLabels.every((l) => names.includes(l)));
+
+    // --- synchronisation (gh simulé)
+    const syncGh = (existing, opts = {}) => {
+      const calls = [];
+      const gh = (args) => {
+        calls.push(args.join(" "));
+        if (args[1] === "list") {
+          if (opts.listFails) throw new Error("non authentifié");
+          return JSON.stringify(existing.map((name) => ({ name })));
+        }
+        return "";
+      };
+      return { gh, calls };
+    };
+    const creates = (calls) => calls.filter((c) => c.startsWith("label create"));
+    const s1 = syncGh(["bug", "enhancement", "adr"]);
+    const r1 = syncLabels({ labels: modelLabels, gh: s1.gh });
+    check("sync : natifs existants intouchés, label du plugin existant mis à jour (--force), absent créé sans --force", r1.skipped.join() === "bug,enhancement" && r1.updated.join() === "adr" && r1.created.join() === "chore" && creates(s1.calls).every((c) => (c.startsWith("label create adr") ? c.includes("--force") : !c.includes("--force"))) && !creates(s1.calls).some((c) => /label create (bug|enhancement)/.test(c)), s1.calls.join(" | "));
+    const s2 = syncGh(["Bug", "ENHANCEMENT"]);
+    const r2 = syncLabels({ labels: modelLabels, gh: s2.gh });
+    check("sync : natif présent avec une autre casse -> pas de doublon, pas de modification", r2.skipped.join() === "bug,enhancement" && !creates(s2.calls).some((c) => /label create (bug|enhancement)/i.test(c)));
+    const s3 = syncGh([]);
+    const r3 = syncLabels({ labels: modelLabels, gh: s3.gh });
+    check("sync : natifs absents créés avec la couleur et la description du fichier, sans --force", r3.created.join() === "bug,enhancement,adr,chore" && creates(s3.calls).length === 4 && creates(s3.calls).every((c) => !c.includes("--force")) && creates(s3.calls)[0].includes("--color d73a4a"));
+    const s4 = syncGh([], { listFails: true });
+    let syncThrew = false;
+    try { syncLabels({ labels: modelLabels, gh: s4.gh }); } catch { syncThrew = true; }
+    check("sync : lecture des labels impossible -> erreur, aucune création", syncThrew && creates(s4.calls).length === 0);
+    const noGh = spawnSync(process.execPath, [path.join(root, "skills", "project-bootstrap", "assets", "templates", "scripts", "sync-labels.mjs")], { encoding: "utf8", env: { ...process.env, PATH: "", Path: "" } });
+    check("sync : script lancé sans gh -> code non nul", noGh.status === 1, noGh.stderr);
+
+    // --- moteur de migration : notes
+    const notesDir = mkdir("pb-notes-");
+    writeFileSync(path.join(notesDir, "0900-notes.mjs"), 'export const id = "0900-notes"; export const title = "t"; export const modules = ["github"];\nexport function plan() { return { actions: [{ description: "a", command: "c", run: () => { globalThis.__noteRan = true; } }], notes: ["information"] }; }\n');
+    const notesProj = path.join(mkdir("pb-notesproj-"), "repo");
+    run(cfg(["github"]), [], notesProj);
+    const withNotes = await runMigrations({ dir: notesDir, target: notesProj, repo: "o/r", gh: () => "" });
+    check("migration : plan { actions, notes } -> notes dans le résultat, rien d'exécuté en simulation", withNotes[0].notes.join() === "information" && withNotes[0].actions.length === 1 && globalThis.__noteRan !== true);
+    const only0001 = mkdir("pb-only1-");
+    cpSync(path.join(root, "skills", "project-bootstrap", "migrations", "0001-actions-pr-permission.mjs"), path.join(only0001, "0001-actions-pr-permission.mjs"));
+    const proj0001 = path.join(mkdir("pb-m1-"), "repo");
+    run(cfg(["github", "release"]), [], proj0001);
+    const sim0001 = await runMigrations({ dir: only0001, target: proj0001, repo: "o/r", gh: () => JSON.stringify({ can_approve_pull_request_reviews: false, default_workflow_permissions: "read" }) });
+    check("migration : 0001 (tableau) -> notes vides", Array.isArray(sim0001[0].notes) && sim0001[0].notes.length === 0);
+
+    // --- migration 0002 (gh simulé avec état)
+    const dir0002 = mkdir("pb-mig2dir-");
+    cpSync(path.join(root, "skills", "project-bootstrap", "migrations", "0002-native-labels.mjs"), path.join(dir0002, "0002-native-labels.mjs"));
+    const mkState = (labels, items) => ({
+      labels: new Map(labels.map(([n, c, d]) => [n, { color: c, description: d }])),
+      items: items.map(([number, ls]) => ({ number, labels: [...ls] })),
+      calls: [], events: [], posts: 0, failOnPost: 0, failList: null,
+    });
+    const repoGh = (st) => (args) => {
+      const a = args.join(" ");
+      st.calls.push(a);
+      const f = {};
+      args.forEach((x, i) => { if (x === "-f") { const [k, ...v] = args[i + 1].split("="); f[k] = v.join("="); } });
+      const method = args.includes("-X") ? args[args.indexOf("-X") + 1] : "GET";
+      const route = args.find((x) => x.startsWith("repos/")) ?? "";
+      if (method === "GET" && route.endsWith("/labels?per_page=100")) return [...st.labels].map(([n, v]) => JSON.stringify([n, v.color, v.description])).join("\n");
+      if (method === "GET" && route.endsWith("/issues")) {
+        if (st.failList && f.labels.toLowerCase() === st.failList) throw new Error("API indisponible");
+        return st.items.filter((i) => i.labels.some((l) => l.toLowerCase() === f.labels.toLowerCase())).map((i) => JSON.stringify([i.number, i.labels])).join("\n");
+      }
+      const post = /\/issues\/(\d+)\/labels$/.exec(route);
+      if (method === "POST" && !post && route.endsWith("/labels")) { st.labels.set(f.name, { color: f.color, description: f.description }); st.events.push(`create:${f.name}`); return ""; }
+      if (method === "POST" && post) {
+        st.posts++;
+        if (st.failOnPost && st.posts === st.failOnPost) throw new Error("échec de la pose");
+        st.items.find((i) => i.number === Number(post[1])).labels.push(f["labels[]"]);
+        st.events.push(`post:${post[1]}:${f["labels[]"]}`);
+        return "";
+      }
+      const del = /\/labels\/(.+)$/.exec(route);
+      if (method === "DELETE" && del) {
+        const name = decodeURIComponent(del[1]);
+        st.labels.delete(name);
+        for (const i of st.items) i.labels = i.labels.filter((l) => l !== name);
+        st.events.push(`delete:${name}`);
+        return "";
+      }
+      throw new Error("appel inattendu : " + a);
+    };
+    const oldLabels = () => [["bug", "d73a4a", "Something isn't working"], ["enhancement", "a2eeef", "New feature or request"], ["type:bug", "d73a4a", "x"], ["type:feature", "1d76db", "y"], ["type:adr", "5319e7", "Décision"], ["type:chore", "c5def5", "Maintenance"], ["needs-adr", "fbca04", "z"]];
+    const newProj = () => { const d = path.join(mkdir("pb-m2-"), "repo"); run(cfg(["github"]), [], d); return d; };
+    const m2 = (target, st, opts = {}) => runMigrations({ dir: dir0002, target, repo: "o/r", gh: repoGh(st), ...opts });
+    const manifestMigrations = (d) => JSON.parse(read(d, ".bootstrap/manifest.json")).migrations;
+
+    // simulation
+    const st1 = mkState(oldLabels(), [[1, ["type:bug"]], [2, ["type:feature"]], [3, ["type:chore"]], [4, ["type:chore", "type:feature"]]]);
+    const p1 = newProj();
+    const sim2 = await m2(p1, st1);
+    check("0002 : simulation -> actions listées avec les comptes, aucune écriture", sim2.length === 1 && sim2[0].applied === false && sim2[0].actions.some((a) => /sur 2 élément\(s\)/.test(a.description) && a.description.includes("type:chore")) && st1.events.length === 0 && st1.calls.every((c) => !/-X (POST|DELETE)/.test(c)), sim2[0].actions.map((a) => a.description).join(" / "));
+    check("0002 : chaque commande vise le dépôt reçu", st1.calls.every((c) => c.includes("repos/o/r")), st1.calls.find((c) => !c.includes("repos/o/r")));
+    // application
+    const st2 = mkState(oldLabels(), [[1, ["type:bug"]], [2, ["type:feature"]], [3, ["type:chore"]], [4, ["type:chore", "type:feature"]], [5, ["type:adr"]]]);
+    const p2 = newProj();
+    const app2 = await m2(p2, st2, { apply: true });
+    const orderOk = ["bug", "enhancement", "chore", "adr"].every((n) => {
+      const del = st2.events.findIndex((e) => e === `delete:type:${n === "enhancement" ? "feature" : n}`);
+      const lastPost = Math.max(...st2.events.map((e, i) => (e.endsWith(`:${n}`) && e.startsWith("post") ? i : -1)));
+      return del > lastPost && lastPost >= 0;
+    });
+    check("0002 : application -> nouveaux labels posés sur chaque élément, anciens supprimés, ordre poser puis supprimer", app2[0].applied === true && orderOk && st2.items.find((i) => i.number === 4).labels.sort().join() === "chore,enhancement" && ![...st2.labels.keys()].some((n) => n.startsWith("type:")), st2.events.join(" "));
+    check("0002 : label de remplacement existant (bug, enhancement) non recréé ni modifié", !st2.events.includes("create:bug") && !st2.events.includes("create:enhancement") && st2.labels.get("bug").description === "Something isn't working");
+    check("0002 : adr et chore créés avec la couleur et la description de l'ancien label", st2.labels.get("adr").color === "5319e7" && st2.labels.get("chore").description === "Maintenance");
+    check("0002 : needs-adr inutilisé supprimé, migration consignée au manifeste", !st2.labels.has("needs-adr") && manifestMigrations(p2).includes("0002-native-labels"));
+    // idempotence : plan sur l'état après application
+    const after = await runMigrations({ dir: dir0002, target: newProj(), repo: "o/r", gh: repoGh(st2) });
+    check("0002 : état après application -> aucune action", after[0].actions.length === 0 && after[0].notes.length === 0);
+    // natifs absents
+    const st3 = mkState([["type:bug", "d73a4a", ""], ["type:feature", "1d76db", ""]], [[1, ["type:bug"]]]);
+    await m2(newProj(), st3, { apply: true });
+    check("0002 : natifs absents créés avec les valeurs de GitHub", st3.labels.get("bug")?.color === "d73a4a" && st3.labels.get("bug")?.description === "Something isn't working" && st3.labels.get("enhancement")?.color === "a2eeef");
+    // casse
+    const st4 = mkState([["Bug", "d73a4a", "Something isn't working"], ["type:bug", "d73a4a", ""]], [[1, ["type:bug"]]]);
+    await m2(newProj(), st4, { apply: true });
+    check("0002 : natif présent avec une autre casse -> pas de doublon créé", !st4.events.includes("create:bug") && st4.events.includes("post:1:bug"));
+    // plus de 1000 éléments
+    const many = Array.from({ length: 1500 }, (_, i) => [i + 1, ["type:bug"]]);
+    const st5 = mkState([["bug", "d73a4a", "x"], ["type:bug", "d73a4a", ""]], many);
+    await m2(newProj(), st5, { apply: true });
+    check("0002 : plus de mille éléments -> tous relabellisés avant la suppression", st5.items.every((i) => i.labels.join() === "bug") && st5.events.at(-1) === "delete:type:bug");
+    // élément qui est une PR : même chemin (issues et PR partagent l'API)
+    check("0002 : les éléments sont posés par l'API des issues (valable pour les PR)", st2.calls.some((c) => /issues\/\d+\/labels/.test(c)) && !st2.calls.some((c) => c.includes("gh pr")));
+    // lecture incomplète : pas de suppression
+    const st6 = mkState([["bug", "d73a4a", "x"], ["type:bug", "d73a4a", ""]], [[1, ["type:bug"]]]);
+    st6.failList = "type:bug";
+    let listThrew = false;
+    try { await m2(newProj(), st6, { apply: true }); } catch { listThrew = true; }
+    check("0002 : lecture des éléments en échec -> erreur, aucune suppression", listThrew && !st6.events.some((e) => e.startsWith("delete")));
+    // échec en cours de pose, puis reprise
+    const st7 = mkState([["bug", "d73a4a", "x"], ["type:bug", "d73a4a", ""]], [[1, ["type:bug"]], [2, ["type:bug"]], [3, ["type:bug"]]]);
+    st7.failOnPost = 2;
+    const p7 = newProj();
+    let failed = false;
+    try { await m2(p7, st7, { apply: true }); } catch { failed = true; }
+    check("0002 : échec pendant l'application -> ancien label conservé, éléments encore étiquetés, migration non consignée", failed && st7.labels.has("type:bug") && st7.items.every((i) => i.labels.includes("type:bug")) && !manifestMigrations(p7).includes("0002-native-labels"));
+    st7.failOnPost = 0;
+    const resume = await m2(p7, st7);
+    check("0002 : relance -> seules les actions restantes (pose sur les éléments sans le nouveau label, puis suppression)", resume[0].actions.some((a) => /sur 2 élément\(s\)/.test(a.description)) && !resume[0].actions.some((a) => a.description.startsWith("Créer")), resume[0].actions.map((a) => a.description).join(" / "));
+    await m2(p7, st7, { apply: true });
+    check("0002 : reprise terminée -> tout posé, ancien label supprimé", st7.items.every((i) => i.labels.join() === "bug" || i.labels.sort().join() === "bug") && !st7.labels.has("type:bug"));
+    // needs-adr
+    const st8 = mkState([["needs-adr", "fbca04", "z"]], [[1, ["needs-adr"]], [2, ["needs-adr"]]]);
+    const p8 = newProj();
+    const r8 = await m2(p8, st8, { apply: true });
+    check("0002 : needs-adr seul et utilisé -> aucune action, note avec le compte, non consignée", r8[0].actions.length === 0 && /2 élément\(s\)/.test(r8[0].notes.join()) && r8[0].applied === false && !manifestMigrations(p8).includes("0002-native-labels") && st8.labels.has("needs-adr"));
+    const st9 = mkState([["bug", "d73a4a", "x"], ["type:bug", "d73a4a", ""], ["needs-adr", "fbca04", "z"]], [[1, ["type:bug", "needs-adr"]]]);
+    const r9 = await m2(newProj(), st9, { apply: true });
+    check("0002 : needs-adr utilisé avec d'autres anciens labels -> conservé et signalé, le reste migré", st9.labels.has("needs-adr") && !st9.labels.has("type:bug") && r9[0].notes.length === 1);
+    // aucun ancien label
+    const st10 = mkState([["bug", "d73a4a", "x"], ["enhancement", "a2eeef", "y"]], []);
+    const r10 = await m2(newProj(), st10);
+    check("0002 : aucun ancien label -> aucune action", r10[0].actions.length === 0 && r10[0].notes.length === 0);
+    check("0002 : ignorée si le module github est absent", (await m2((() => { const d = path.join(mkdir("pb-m2x-"), "repo"); run(cfg(["claude"]), [], d); return d; })(), mkState([], []))).length === 0);
+  }
+
   // action de préparation propre au projet, appelée par ci.yml (#82)
   {
     const ACTION = ".github/actions/project-setup/action.yml";
@@ -520,7 +690,9 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
   const ad2 = runScript(v1.script, ["--update", "--target", adopted]);
   check("adoption : relance sans effet", ad2.res.status === 0 && ad2.report.created.length === 0 && ad2.report.manifest === undefined && ad2.report.customized.includes("CLAUDE.md"));
 
-  // migrations hors fichiers
+  // migrations hors fichiers : 0001 seule (dossier dédié), 0002 plus bas
+  const dir0001 = mkdir("pb-mig-dir-");
+  cpSync(path.join(root, "skills", "project-bootstrap", "migrations", "0001-actions-pr-permission.mjs"), path.join(dir0001, "0001-actions-pr-permission.mjs"));
   const mig = path.join(mkdir("pb-mig-"), "repo");
   run(cfg(["github", "release"]), [], mig);
   const calls = [];
@@ -528,18 +700,18 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
     calls.push(args.join(" "));
     return args.includes("PUT") ? "" : JSON.stringify({ can_approve_pull_request_reviews: state, default_workflow_permissions: "read" });
   };
-  const sim = await runMigrations({ target: mig, repo: "o/r", gh: fakeGh(false) });
+  const sim = await runMigrations({ dir: dir0001, target: mig, repo: "o/r", gh: fakeGh(false) });
   check("migration : simulation proposée sans rien modifier", sim.length === 1 && sim[0].id === "0001-actions-pr-permission" && sim[0].actions.length === 1 && sim[0].applied === false && !calls.some((c) => c.includes("PUT")));
-  const ok = await runMigrations({ target: mig, repo: "o/r", gh: fakeGh(true), apply: true });
+  const ok = await runMigrations({ dir: dir0001, target: mig, repo: "o/r", gh: fakeGh(true), apply: true });
   check("migration : réglage déjà conforme, rien à faire", ok.length === 1 && ok[0].actions.length === 0 && ok[0].applied === false && !calls.some((c) => c.includes("PUT")));
-  const applied = await runMigrations({ target: mig, repo: "o/r", gh: fakeGh(false), apply: true });
+  const applied = await runMigrations({ dir: dir0001, target: mig, repo: "o/r", gh: fakeGh(false), apply: true });
   check("migration : appliquée et consignée dans le manifeste", applied[0].applied === true && calls.some((c) => c.includes("PUT") && c.includes("can_approve_pull_request_reviews=true")) && JSON.parse(read(mig, ".bootstrap/manifest.json")).migrations.includes("0001-actions-pr-permission"));
-  check("migration : déjà consignée, non rejouée", (await runMigrations({ target: mig, repo: "o/r", gh: fakeGh(false) })).length === 0);
+  check("migration : déjà consignée, non rejouée", (await runMigrations({ dir: dir0001, target: mig, repo: "o/r", gh: fakeGh(false) })).length === 0);
   const noRelease = path.join(mkdir("pb-mig2-"), "repo");
   run(cfg(["github"]), [], noRelease);
-  check("migration : ignorée si le module concerné est absent", (await runMigrations({ target: noRelease, repo: "o/r", gh: fakeGh(false) })).length === 0);
+  check("migration : ignorée si le module concerné est absent", (await runMigrations({ dir: dir0001, target: noRelease, repo: "o/r", gh: fakeGh(false) })).length === 0);
   let threw = false;
-  try { await runMigrations({ target: path.join(mkdir("pb-mig3-"), "x"), repo: "o/r", gh: fakeGh(false) }); } catch { threw = true; }
+  try { await runMigrations({ dir: dir0001, target: path.join(mkdir("pb-mig3-"), "x"), repo: "o/r", gh: fakeGh(false) }); } catch { threw = true; }
   check("migration : projet sans manifeste refusé", threw);
 }
 // dry-run : n'écrit rien

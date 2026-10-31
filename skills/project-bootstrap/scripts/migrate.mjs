@@ -24,8 +24,11 @@ export async function runMigrations({ target, repo, apply = false, gh, dir = def
   for (const name of names) {
     const m = await import(pathToFileURL(path.join(dir, name)).href);
     if (done.has(m.id) || !m.modules.every((x) => modules.has(x))) continue;
-    const actions = m.plan({ gh, repo, target, manifest });
-    const entry = { id: m.id, title: m.title, actions: actions.map(({ description, command }) => ({ description, command })), applied: false };
+    // plan renvoie un tableau d'actions, ou { actions, notes } (notes : informations à présenter, jamais exécutées)
+    const planned = await m.plan({ gh, repo, target, manifest });
+    const actions = Array.isArray(planned) ? planned : (planned.actions ?? []);
+    const notes = Array.isArray(planned) ? [] : (planned.notes ?? []);
+    const entry = { id: m.id, title: m.title, actions: actions.map(({ description, command }) => ({ description, command })), notes, applied: false };
     if (apply && actions.length > 0) {
       for (const a of actions) a.run();
       done.add(m.id);
