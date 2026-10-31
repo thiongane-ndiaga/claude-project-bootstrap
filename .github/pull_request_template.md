@@ -7,5 +7,5 @@ Closes #
 
 ## Checklist
 - [ ] `node tests/scaffold.test.mjs` passe
-- [ ] Version de `.claude-plugin/plugin.json` incrémentée si un modèle ou un script change
+- [ ] Type de commit adapté (`feat` ou `fix` pour une release, `docs`/`chore` sinon)
 - [ ] Aucun nom de projet extérieur dans les fichiers, la description ou les commits
