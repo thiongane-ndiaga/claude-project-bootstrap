@@ -47,6 +47,7 @@ const cases = [
   { name: "core seul", visibility: "private", modules: [] },
   { name: "claude + openspec", visibility: "public", modules: ["claude", "openspec"] },
   { name: "archgate + arc42 sans github", visibility: "private", modules: ["archgate", "arc42"] },
+  { name: "github seul", visibility: "public", modules: ["github"] },
 ];
 
 for (const c of cases) {
@@ -68,6 +69,7 @@ for (const c of cases) {
     const ciOs = JSON.parse(readFileSync(path.join(out, ".bootstrap", "checks.json"), "utf8")).ciOs;
     check(`${c.name} : matrice CI selon la visibilité`, c.visibility === "public" ? ciOs.includes("windows-latest") : ciOs.length === 1 && ciOs[0] === "ubuntu-latest");
     check(`${c.name} : la CI lit .bootstrap/checks.json`, ci.includes("run-checks.mjs --print-os") && ci.includes("node .bootstrap/run-checks.mjs"));
+    check(`${c.name} : ci.yml sans clé « env: » vide`, !/^env:[ \t]*\n(\s*\n)*(?=\S)(?!\s)/m.test(ci), "env: sans contenu (rejeté par GitHub)");
     check(`${c.name} : actions épinglées sur un SHA`, [...ci.matchAll(/uses:\s*(\S+)/g)].every((m) => /@[0-9a-f]{40}$/.test(m[1])));
   }
   // relance : rien de créé, tout identique

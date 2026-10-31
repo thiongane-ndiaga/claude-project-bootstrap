@@ -13,6 +13,7 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# @@module:openspec|archgate
 env:
   # @@module:openspec
   OPENSPEC_VERSION: {{OPENSPEC_VERSION}}
@@ -21,6 +22,7 @@ env:
   # @@module:archgate
   ARCHGATE_VERSION: {{ARCHGATE_VERSION}}
   # @@end
+# @@end
 
 jobs:
   # systèmes de la CI : « ciOs » de .bootstrap/checks.json
