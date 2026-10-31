@@ -9,12 +9,11 @@ rules: false
 
 ## Statut
 
-Accepté.
+Accepté. Les décisions 3 à 5 ont été précisées après essais et mesures (voir « Suites »).
 
 ## Context
 
-Le plugin génère des fichiers que les projets modifient ensuite (`CLAUDE.md`, `docs/workflow.md`, `ci.yml`, formulaires d'issues…). Quand un modèle change, `scaffold.mjs --update` ne sait aujourd'hui que :
-remplacer un fichier resté tel que généré, laisser un fichier personnalisé dont le modèle n'a pas changé, ou signaler un conflit sans rien proposer (code 3).
+Le plugin génère des fichiers que les projets modifient ensuite (`CLAUDE.md`, `docs/workflow.md`, `ci.yml`, formulaires d'issues…). Quand un modèle change, `scaffold.mjs --update` ne sait que : remplacer un fichier resté tel que généré, laisser un fichier personnalisé dont le modèle n'a pas changé, ou signaler un conflit sans rien proposer (code 3).
 Un projet qui a seulement ajouté une ligne à côté du contenu géré se retrouve donc en conflit à chaque évolution du modèle.
 
 Trois approches ont été comparées (issue #73, trois explorations indépendantes) :
@@ -25,22 +24,25 @@ Trois approches ont été comparées (issue #73, trois explorations indépendant
 | Zones gérées (marqueurs dans le fichier) | les parties balisées | découpage fin nécessaire (6 à 10 paires par fichier), texte hors zone figé, fragile aux formateurs |
 | Séparation en fichiers (géré / propre au projet) | `CLAUDE.md`, `ci.yml` | inadaptée à `docs/workflow.md` ; migration des fichiers existants |
 
-Aucune ne suffit seule. La fusion à trois voies exige une **base** : ce que le plugin avait généré. Les sources possibles sont l'étiquette git du plugin (réseau requis, ne correspond pas aux versions non publiées), le cache du plugin (purgé 14 jours après une mise à jour) ou une copie conservée dans le projet.
+La fusion à trois voies exige une **base** : ce que le plugin avait généré. Sources possibles : l'étiquette git du plugin (réseau requis, absente pour une version non publiée), le cache du plugin (purgé 14 jours après une mise à jour) ou une copie conservée dans le projet.
 
 Contraintes : aucune dépendance npm, Node ≥ 20.19, Windows, Linux et macOS, jamais d'écrasement silencieux, relecture obligatoire de ce qui s'exécute (CI, hooks), idempotence.
 
 ## Decision
 
-1. **La base est conservée dans le projet**, dans `.bootstrap/base/<chemin du fichier>.base` (suffixe neutre, voir l'addendum), versionnée avec le reste. Elle est écrite à chaque génération ou mise à jour, pour les seuls fichiers susceptibles d'être fusionnés. Son empreinte doit égaler `files[<fichier>].generated` du manifeste ; sinon la base est ignorée.
-2. **La fusion à trois voies s'applique à tout fichier généré** modifié par le projet dont le modèle a changé, par `git merge-file -p` sur des copies normalisées en LF (git est déjà requis pour les diffs), style de conflit fixé explicitement. Une fusion propre est écrite et consignée ; un conflit n'est **jamais écrit dans le fichier** : la proposition figure dans le rapport (`diffs`). Base absente ou invalide : comportement actuel (conflit).
-3. **Les fichiers `CLAUDE.md` et `ci.yml` sont séparés** en une partie gérée par le plugin (fichier entier, mis à jour sans conflit) et une partie propre au projet (`owned`) : le contenu géré de `CLAUDE.md` va dans `.claude/rules/project-bootstrap.md` ; `ci.yml` reste géré et appelle une action composite locale `project-setup`, propre au projet. Cette décision est **conditionnée** à la vérification du chargement de `.claude/rules/` et de l'action composite sous les trois systèmes (voir Risks).
-4. **`docs/workflow.md`** : le choix entre zones gérées et fichier séparé est renvoyé à l'issue dédiée, à trancher après la séparation de `CLAUDE.md` et `ci.yml`. Aucun marqueur n'est introduit par cet ADR.
-5. **Les projets antérieurs au manifeste** sont traités par une table d'empreintes des versions publiées, embarquée dans le plugin (issue dédiée), indépendante des points 1 à 4.
-6. **`date` est figée** dans la configuration enregistrée au manifeste : `{{DATE}}` rend sinon la régénération non reproductible.
+1. **Base conservée dans le projet** : `.bootstrap/base/<chemin>.base` (suffixe neutre), versionnée, pour les fichiers fusionnables. Ignorée si son empreinte diffère de `generated` au manifeste.
+2. **Fusion à trois voies** (`git merge-file`, copies LF) de tout fichier généré modifié dont le modèle a changé. Fusion propre : écrite, statut `reconciled`. Conflit : jamais écrit, proposition dans `diffs`. Base absente ou invalide : conflit comme avant.
+3. **`ci.yml` entièrement géré**, avec une action locale `project-setup` propre au projet (`owned`) pour installer sa chaîne d'outils. `CLAUDE.md` n'est pas séparé : la fusion suffit.
+4. **`docs/workflow.md`** : aucun mécanisme en plus de la fusion, aucun marqueur de zone.
+5. **Projets sans manifeste** : pas de table d'empreintes ; tout fichier divergent est adopté comme personnalisé.
+6. **`date` figée** dans la configuration du manifeste.
 
-### Addendum (#81, revue du changement OpenSpec)
+### Suites (2026-10-31)
 
-Les copies de la base reprenaient l'extension d'origine (`.ts`, `.mjs`, `.md`…) : des outils du projet (compilateur, linter, formateur, lanceur de tests) pouvaient les traiter comme du code, et un formateur qui les réécrit invalide leur empreinte. Le suffixe `.base` est donc ajouté au nom complet du fichier. Une base présente mais invalide est signalée dans le rapport (`baseInvalid`) au lieu d'un simple conflit.
+- **Suffixe `.base`** (revue de #81) : les copies d'origine reprenaient l'extension d'origine, et des outils du projet pouvaient les traiter comme du code ; une base invalide est signalée sous `baseInvalid`.
+- **Point 3** : un essai en sessions neuves montre que `.claude/rules/*.md` est chargé par la session, les sous-agents et les teammates, mais que la priorité face à `CLAUDE.md` n'est pas fixée par l'outil (le teammate a retenu `CLAUDE.md`, le sous-agent les règles). Séparer `CLAUDE.md` retirerait au projet le moyen d'ajuster une règle gérée. Le gain est déjà couvert par la fusion (#82).
+- **Point 4** : dans ce dépôt, `docs/workflow.md` ne diffère du modèle que par 6 modifications d'une ligne, que la fusion absorbe (#83, option A).
+- **Point 5** : le contenu d'un fichier dépend de la configuration du projet, donc une table d'empreintes ne reconnaîtrait rien ; `fleetbook` n'est d'ailleurs pas une sortie du plugin (#84).
 
 ## Do's and Don'ts
 
@@ -50,12 +52,13 @@ Les copies de la base reprenaient l'extension d'origine (`.ts`, `.mjs`, `.md`…
 - Retomber sur le conflit actuel dès que la base manque, que son empreinte diffère ou que la fusion échoue.
 - Relire (et faire relire) tout fichier exécutable fusionné, `ci.yml` en tête.
 - Rendre la mise à jour idempotente : la deuxième exécution ne change rien.
+- Garder le contenu géré cohérent avec celui du projet : aucune règle gérée ne doit contredire une règle du projet.
 
 ### Don't
 
 - Ne pas écrire de marqueurs de conflit dans un fichier du projet.
 - Ne pas dépendre du réseau ni du cache du plugin pour fusionner.
-- Ne pas introduire de marqueurs de zone dans les modèles sans décision explicite (issue dédiée).
+- Ne pas introduire de marqueurs de zone dans les modèles sans nouvelle décision explicite.
 - Ne pas supprimer un fichier que le modèle ne produit plus : le signaler.
 
 ## Consequences
@@ -69,31 +72,24 @@ Les copies de la base reprenaient l'extension d'origine (`.ts`, `.mjs`, `.md`…
 
 ### Negative
 
-- Quelques fichiers de plus dans chaque projet généré (`.bootstrap/base/`, `.claude/rules/project-bootstrap.md`, `project-setup`).
-- Le contenu géré de `CLAUDE.md` devient moins visible à l'ouverture du fichier.
-- Les projets existants demandent une migration ponctuelle (diff manuel une fois, sans la table d'empreintes).
+- Quelques fichiers de plus dans chaque projet généré (`.bootstrap/base/`, `project-setup`).
+- Un projet qui modifie la même ligne que le modèle obtient un conflit, à résoudre à la main.
+- Un `ci.yml` déjà modifié pour y installer des outils produit un conflit une fois, à résoudre en déplaçant l'étape dans l'action.
 
 ### Risks
 
 - Une fusion « propre » peut produire un YAML invalide ou une étape en double : d'où la relecture obligatoire de `ci.yml`.
-- `git merge-file` dépend de la version de git et de ses réglages : à tester sous Windows, Linux et macOS.
-- Établi par la documentation de Claude Code (page « memory », lue le 2026-10-31) : un fichier `.claude/rules/*.md` sans `paths` est chargé au démarrage « with the same priority as .claude/CLAUDE.md » ; les règles du projet sont reprises par les sous-agents, sauf Explore et Plan ou `omitClaudeMd: true`. Les fichiers de règles comptent chacun pour l'avertissement de longueur (cible de 200 lignes) ; la limite dure est de 4 MiB par fichier.
-- **Non établi**, à vérifier par un essai avant de réaliser le point 3 :
-  - l'ordre de priorité entre les règles et le `CLAUDE.md` racine (la documentation ne le dit pas : les deux sont concaténés, et en cas de contradiction Claude peut suivre l'un ou l'autre) ;
-  - le chargement des règles chez les teammates des agent teams (la documentation cite `CLAUDE.md`, pas `.claude/rules/`) ;
-  - le retrait des commentaires HTML dans les règles et les fichiers importés (la documentation vise « CLAUDE.md files »), ce qui conditionne l'usage de marqueurs dans `docs/workflow.md` (issue dédiée) ;
-  - le comportement quand un fichier importé par `@` est absent.
-- **Vérifié le 2026-10-31 (PR #87)** : une action composite locale quasi vide (`./.github/actions/project-setup`, une étape `shell: bash`) s'exécute sur ubuntu, windows et macos ; les journaux de la CI montrent son message sur les trois systèmes, et les noms des checks restent `checks (<système>)`. La règle Archgate d'épinglage a dû accepter les actions locales.
-- Non vérifié : comportement des formateurs sur d'éventuels marqueurs (sans objet tant qu'aucun marqueur n'est introduit).
-- Si ces vérifications échouent, le point 3 est revu ; les points 1, 2, 5 et 6 restent valables. Le contenu géré de `CLAUDE.md` ne doit pas contredire celui du projet : les deux sont chargés ensemble sans priorité garantie.
+- `git merge-file` dépend de la version de git et de ses réglages : testé sous Windows, Linux et macOS par la CI.
+- Vérifié le 2026-10-31 (PR #87) : l'action composite locale s'exécute sur ubuntu, windows et macos, et les noms des checks sont inchangés. La règle Archgate d'épinglage a dû accepter les actions locales.
+- Vérifié le 2026-10-31 (essai en sessions neuves) : les règles de `.claude/rules/` et les commentaires HTML retirés valent pour la session, les sous-agents et les teammates ; la priorité entre règles et `CLAUDE.md` est laissée au jugement de chaque agent.
 
 ## Compliance and Enforcement
 
-Tests de `tests/scaffold.test.mjs` : mise à jour N → N+1 avec fichiers modifiés (voisins et éloignés), base absente ou invalide, CRLF/LF, idempotence. Pas de règle Archgate : l'état des projets générés n'est pas une donnée du dépôt du plugin que `archgate check` peut lire.
+Tests de `tests/scaffold.test.mjs` : mise à jour N → N+1 avec fichiers modifiés (voisins et éloignés), base absente ou invalide, CRLF/LF, idempotence, `project-setup`. Pas de règle Archgate : l'état des projets générés n'est pas une donnée du dépôt du plugin que `archgate check` peut lire.
 
 ## References
 
-- Issue #73 et sous-issues (base et fusion à trois voies, séparation de `CLAUDE.md` et `ci.yml`, `docs/workflow.md`, table d'empreintes).
+- Issue #73 et sous-issues #81 (base et fusion), #82 (`ci.yml`), #83 (`docs/workflow.md`), #84 (table d'empreintes).
 - Issues #44 et #27.
 - https://git-scm.com/docs/git-merge-file
 - https://code.claude.com/docs/en/memory
