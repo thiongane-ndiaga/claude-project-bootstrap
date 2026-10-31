@@ -100,6 +100,29 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
   try { statSync(r.out); } catch { exists = false; }
   check("dry-run n'écrit rien", r.res.status === 0 && !exists);
 }
+// agents en lecture seule : chaque commande citée dans leur modèle doit passer le hook read-only-bash.mjs
+{
+  const tpl = path.join(root, "skills", "project-bootstrap", "assets", "templates", ".claude");
+  const hook = path.join(tpl, "hooks", "read-only-bash.mjs");
+  const agentsDir = path.join(tpl, "agents");
+  const verdict = (command) =>
+    spawnSync(process.execPath, [hook], { input: JSON.stringify({ tool_input: { command } }), encoding: "utf8" }).status;
+  check("hook lecture seule : commande autorisée acceptée", verdict("git log main..HEAD --oneline") === 0);
+  check("hook lecture seule : caractère % refusé", verdict("git log main..HEAD --format=%s") === 2);
+  for (const file of readdirSync(agentsDir)) {
+    const text = readFileSync(path.join(agentsDir, file), "utf8");
+    if (!text.includes("read-only-bash.mjs")) continue;
+    const refused = [];
+    for (const line of text.split("\n")) {
+      if (/pas d[eu' ]|n'exécute aucune/i.test(line)) continue; // consigne d'interdiction, pas une commande à lancer
+      for (const [, cmd] of line.matchAll(/`((?:git|gh|openspec|archgate) [^`]+)`/g)) {
+        const command = cmd.replace(/<([^>]+)>/g, "$1").replace(/ N\b/g, " 1");
+        if (verdict(command) !== 0) refused.push(command);
+      }
+    }
+    check(`${file} : commandes citées acceptées par le hook`, refused.length === 0, refused.join(" | "));
+  }
+}
 
 console.log(failed ? `\n${failed} échec(s)` : "\nTous les tests passent");
 process.exit(failed ? 1 : 0);

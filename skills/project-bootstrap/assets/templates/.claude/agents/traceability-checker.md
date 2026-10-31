@@ -24,7 +24,7 @@ Vérifie :
 @@module:archgate
 - Chaque ADR cité existe (`archgate adr show <id>`).
 @@end
-- Commits au format Conventional Commits (`git log main..HEAD --format=%s`).
+- Commits au format Conventional Commits (`git log main..HEAD --oneline`).
 - PR éventuelle (`gh pr view --json title,body,statusCheckRollup`) : titre Conventional Commits,
   `Closes #<issue>` dans le corps, checklist du template remplie, checks verts.
 - Le contrôle qualité passe (mêmes commandes que `.claude/hooks/quality-gate.mjs`).
