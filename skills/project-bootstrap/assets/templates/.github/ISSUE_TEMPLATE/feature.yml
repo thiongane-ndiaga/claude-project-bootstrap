@@ -1,7 +1,7 @@
 name: Fonctionnalité
 description: Un besoin nouveau ou une évolution de comportement
 title: "[feat] "
-labels: ["type:feature"]
+labels: ["enhancement"]
 body:
   - type: textarea
     id: besoin

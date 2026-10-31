@@ -48,6 +48,7 @@ export const title = "…";
 export const modules = ["release"];          // modules du projet qui la rendent utile
 export function plan({ gh, repo, target, manifest }) {
   // vérifie l'état réel ; renvoie [] s'il est déjà conforme, sinon [{ description, command, run }]
+  // ou { actions, notes } : les notes sont des informations à présenter, jamais exécutées
 }
 ```
 

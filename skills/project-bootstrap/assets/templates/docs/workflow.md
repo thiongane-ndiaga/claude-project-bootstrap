@@ -24,7 +24,7 @@ Chaque couche a un rôle :
 ## Étapes
 
 @@module:github
-- **Issue** via un formulaire : *Fonctionnalité*, *Bug* ou *Décision d'architecture* (label `type:*` posé par le template).
+- **Issue** via un formulaire : *Fonctionnalité*, *Bug* ou *Décision d'architecture* (label posé par le template : `bug`, `enhancement` ou `adr`).
 @@end
 @@module:projects
   Elle arrive dans le Project en *Todo* (auto-add) ; la carte passe en *In Progress* à la création de la branche, en *In Review* à l'ouverture de la PR.
