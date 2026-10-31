@@ -8,6 +8,8 @@ Entrée de `scripts/scaffold.mjs`. Fusionne la sortie de `scripts/resolve-versio
   "description": "Une phrase sur ce que le projet doit faire.",
   "visibility": "private",
   "docLanguageName": "Français",
+  "stack": "Node.js 24, modules ES",
+  "keep": ["CLAUDE.md", ".github/pull_request_template.md"],
   "modules": ["claude", "openspec", "archgate", "arc42", "github", "release", "projects", "githooks"],
   "date": "2027-01-15",
   "actionsCreditNote": "12 $ de crédit par mois, 0,006 $/min sous Linux",
@@ -25,6 +27,8 @@ Entrée de `scripts/scaffold.mjs`. Fusionne la sortie de `scripts/resolve-versio
 | `projectName`, `description`, `visibility` | toujours | titre de CLAUDE.md, ADR ARCH-004, matrice CI (`public` → ubuntu + windows) |
 | `modules` | toujours | `core` est ajouté d'office ; dépendances vérifiées |
 | `docLanguageName` | — | nom affiché de la langue (défaut « Français ») |
+| `stack` | — | stack déjà connue, en une ligne ; absente, `CLAUDE.md` dit que la stack n'est pas choisie |
+| `keep` | — | fichiers du modèle que le projet gère lui-même : jamais créés, modifiés ni signalés en conflit, consignés dans le manifeste |
 | `date` | — | date de vérification des conditions GitHub (défaut : aujourd'hui) |
 | `actionsCreditNote` | archgate + github + privé | chiffres **relevés dans la doc du jour**, jamais de mémoire |
 | `versions.openspec` | openspec | épinglage CI et doc |

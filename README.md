@@ -19,7 +19,7 @@ skills/project-bootstrap/
   SKILL.md               procédure par phases avec points d'arrêt
   assets/modules.json    catalogue des modules, dépendances, fichiers
   assets/templates/      modèles (blocs @@module:… et paramètres {{…}})
-  scripts/scaffold.mjs   génère les fichiers, n'écrase jamais rien
+  scripts/scaffold.mjs   génère, met à jour et fusionne les fichiers (manifeste .bootstrap/manifest.json), n'écrase jamais un fichier modifié
   scripts/resolve-versions.mjs  dernières versions CLI ; SHA d'actions publiés depuis ≥ 14 jours
   references/            pièges connus, configuration, GitHub, vérification
 tests/scaffold.test.mjs  tests du générateur (node tests/scaffold.test.mjs)

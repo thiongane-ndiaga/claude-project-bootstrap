@@ -2,8 +2,13 @@
 
 {{PROJECT_DESCRIPTION}}
 
+@@module:stack-chosen
+**Stack** : {{STACK}}.
+@@end
+@@module:stack-open
 **La stack n'est pas choisie** : aucun langage, framework, base de données ni cible de déploiement
 tant qu'une décision d'architecture ne l'a pas fixé. Node.js n'est qu'un prérequis d'outillage.
+@@end
 
 ## Langue
 - {{DOC_LANGUAGE_NAME}} : documentation, issues, descriptions de PR, artefacts de spec.
@@ -59,8 +64,10 @@ Le détail est dans `docs/workflow.md`.
 - Les commandes `gh` qui écrivent (issue/pr/release create, merge) demandent toujours l'accord de l'utilisateur.
 @@end
 @@module:claude
+@@module:openspec|github|archgate|arc42
 
 ## Agents du projet
 Voir `.claude/agents/`. Les agents « lecture seule » le sont par un hook qui ne s'applique pas quand
 ils tournent en teammates (agent teams) : en équipe, seules les règles allow/ask du dépôt protègent.
+@@end
 @@end

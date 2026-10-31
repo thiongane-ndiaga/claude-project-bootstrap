@@ -1,6 +1,6 @@
 ---
 name: project-bootstrap
-description: Met en place, dans un dépôt neuf ou presque vide, un outillage de développement assisté par IA complet et modulaire — Claude Code (CLAUDE.md, settings, hooks Node, agents), OpenSpec (spec-driven), Archgate (ADR exécutables), arc42, GitHub Free (formulaires d'issues, template de PR, labels, CI, Projects) et release-please — avec un workflow documenté de l'issue à la release, portable Windows/Linux, sans choisir de stack. À utiliser dès que l'utilisateur veut démarrer un nouveau projet avec ce workflow, initialiser/bootstrapper un dépôt avec ce workflow, recréer cette configuration ailleurs, ou ajouter une de ces briques (OpenSpec, Archgate, arc42, release-please, agents de revue) à un dépôt qui ne l'a pas encore — même s'il ne nomme pas le skill.
+description: Met en place, dans un dépôt neuf ou déjà existant, un outillage de développement assisté par IA complet et modulaire — Claude Code (CLAUDE.md, settings, hooks Node, agents), OpenSpec (spec-driven), Archgate (ADR exécutables), arc42, GitHub Free (formulaires d'issues, template de PR, labels, CI, Projects) et release-please — avec un workflow documenté de l'issue à la release, portable Windows/Linux, sans choisir de stack. À utiliser dès que l'utilisateur veut démarrer un nouveau projet avec ce workflow, initialiser/bootstrapper un dépôt avec ce workflow, recréer cette configuration ailleurs, ajouter une de ces briques (OpenSpec, Archgate, arc42, release-please, agents de revue) à un dépôt qui ne l'a pas encore, ou reconfigurer / compléter un dépôt déjà bootstrappé (ajouter un module, changer la configuration) — même s'il ne nomme pas le skill.
 ---
 
 # project-bootstrap
@@ -31,11 +31,30 @@ Le catalogue fait foi : `assets/modules.json` (dépendances `requires`, incompat
 
 Les agents générés dépendent des modules : `spec-reviewer` (openspec), `traceability-checker` (github), `architecture-explorer` (archgate), `arc42-keeper` (arc42).
 
+## Dépôt existant ou déjà bootstrappé
+
+`scaffold.mjs` écrit `.bootstrap/manifest.json` (version du plugin, modules, réponses de la phase 0 et empreinte de chaque fichier généré) : il se commite avec le reste. Sur un dépôt qui a déjà du contenu, les mêmes phases s'appliquent, avec ces règles :
+
+| Situation du fichier | Action |
+|---|---|
+| absent | créé |
+| identique au modèle | rien |
+| resté tel que généré (empreinte du manifeste) | remplacé par le modèle actuel (ex. `ci.yml` quand on ajoute un module) |
+| `.gitignore`, `.gitattributes`, `.claude/settings.json`, `.archgate/config.json` | **fusionné** avec l'existant : règles ajoutées, clés et tableaux réunis, rien retiré |
+| modifié par le projet, ou déjà présent sans manifeste | **conflit** signalé (code 3), diff avec `--diff`, jamais écrasé |
+| listé dans `keep` de `bootstrap.json` | conservé tel quel et consigné |
+
+- **Ajouter un module** : relance avec `modules` complété ; seuls les fichiers du module sont créés, les fichiers non modifiés sont mis à jour, les fichiers personnalisés restent intacts. Le retrait d'un module n'est pas géré (suppression de fichiers : à faire à la main).
+- **Dépôt déjà équipé** (CI, linter, `CLAUDE.md`, formulaires) : pour chaque conflit, propose conserver (`keep`), remplacer ou fusionner à la main, et consigne la décision dans `keep`. Ne duplique pas une CI existante : propose de brancher les commandes du projet dans `.bootstrap/checks.json`.
+- **Phase 1 [STOP]** obligatoire avant de modifier un fichier existant : présente le dry-run (`--dry-run --diff`) fichier par fichier.
+- La mise à jour d'un projet vers une nouvelle version du plugin (migrations hors fichiers, table d'empreintes des versions antérieures) relève de #44.
+
 ## Phase 0 — Cadrage
 
-1. Inspecte le dossier cible : dépôt git ? fichiers existants (ils ne seront jamais écrasés) ? données sensibles (elles pèsent sur le choix public/privé) ?
+1. Inspecte le dossier cible avec `node scripts/scaffold.mjs --detect --target <dépôt>` (aucune écriture) : dépôt git ? déjà bootstrappé (manifeste) ? code, CI ou `.claude/` déjà présents ? données sensibles (elles pèsent sur le choix public/privé) ? Voir « Dépôt existant ou déjà bootstrappé » ci-dessous.
 2. Pose les questions (AskUserQuestion), recommandation en premier :
    - nom et description en une phrase ;
+   - stack : déjà connue (la décrire en une ligne, elle remplace « la stack n'est pas choisie » dans `CLAUDE.md`) ou à décider plus tard ;
    - visibilité : **privé** si des données réelles ou sensibles sont présentes, sinon public (CI Windows gratuite et protection de branche disponible) ;
    - modules (multi-sélection, défauts de `modules.json`) ; ne propose pas deux modules incompatibles (colonne « Incompatible avec ») ;
    - langue de la documentation (modèles fournis en français) ;
@@ -47,7 +66,7 @@ Les agents générés dépendent des modules : `spec-reviewer` (openspec), `trac
 
 1. `node scripts/resolve-versions.mjs` → dernières versions stables des CLI ; SHA des actions publiées depuis ≥ 14 jours (le filtre d'ancienneté protège les actions épinglées, pas les CLI).
 2. Écris `bootstrap.json` dans le scratchpad (schéma : `references/bootstrap-config.md`).
-3. `node scripts/scaffold.mjs --config bootstrap.json --target <dépôt> --dry-run` : liste des fichiers créés et des conflits.
+3. `node scripts/scaffold.mjs --config bootstrap.json --target <dépôt> --dry-run --diff` : fichiers créés, mis à jour, fusionnés, conservés et en conflit (avec le diff de chacun).
 4. Présente : modules et dépendances, fichiers à créer, conflits, commandes globales à approuver, actions GitHub prévues, ce qui restera manuel. **[STOP]**
 
 ## Phase 2 — Mise en place
@@ -56,7 +75,7 @@ Un commit Conventional Commits par étape (anglais). Demande l'accord avant chaq
 
 1. **git** : `git init -b main` si besoin ; vérifie `user.name`/`user.email` (ne les invente pas : demande).
 2. **CLI** (accord requis) : `npm install -g @fission-ai/openspec@<v> archgate@<v>` aux versions de `bootstrap.json`. Avant, vérifie que le préfixe npm (`npm config get prefix`) est inscriptible par l'utilisateur (test d'écriture dans `<préfixe>/lib/node_modules`, ou dans `<préfixe>` sous Windows). S'il ne l'est pas (typiquement `/usr` sous Linux), propose `npm install -g --prefix ~/.local …` après avoir vérifié que `~/.local/bin` est dans le `PATH` (sinon, indique la ligne à ajouter au profil du shell, sans la modifier toi-même). Ne lance jamais `sudo` sans demande explicite de l'utilisateur. `gh` s'installe avec winget (élévation requise sous Windows) ou le gestionnaire de paquets Linux.
-3. **Génération** : `scaffold.mjs` sans `--dry-run`. Code de sortie 3 = conflits : montre-les, ne les écrase pas. Si la langue n'est pas le français, traduis ensuite les fichiers générés (sauf identifiants, commandes et marqueurs techniques).
+3. **Génération** : `scaffold.mjs` sans `--dry-run`. Code de sortie 3 = conflits : montre-les (`--diff`), ne les écrase pas. Si la langue n'est pas le français, traduis ensuite les fichiers générés (sauf identifiants, commandes et marqueurs techniques).
 4. **openspec** : `openspec init --tools claude --language <code> --no-animation`, puis complète `openspec/config.yaml` avec `references/openspec-config.md`. Ne touche jamais `.claude/skills/openspec-*` ni `.claude/commands/opsx/`.
 5. **archgate** : **ne lance pas `archgate init`** (voir pièges) ; les fichiers générés suffisent. `archgate check` doit passer et génère `docs/architecture/rules.d.ts` (ignoré par git).
 6. **archgate-plugin** (accord requis) : `archgate login` (flux device, l'utilisateur valide dans son navigateur), puis, en portée `local` (limitée au clone, sans effet sur les autres projets de la machine), `claude plugin marketplace add https://plugins.archgate.dev/archgate.git` et `claude plugin install archgate@archgate --scope local`. N'utilise pas `archgate plugin install --editor claude` : il installe en portée `user`. Ensuite, retire tout `"agent": "archgate:developer"` de `.claude/settings.local.json` et aligne les `Skill(archgate:…)` autorisés sur les skills réellement fournis (`claude plugin details archgate@archgate`).

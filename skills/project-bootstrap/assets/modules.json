@@ -13,8 +13,8 @@
     "agent-teams": { "requires": ["claude"], "default": false, "description": "Active les agent teams (expérimental) dans .claude/settings.local.json" }
   },
   "files": [
-    { "path": ".gitattributes", "when": ["core"] },
-    { "path": ".gitignore", "when": ["core"] },
+    { "path": ".gitattributes", "when": ["core"], "merge": "lines" },
+    { "path": ".gitignore", "when": ["core"], "merge": "lines" },
     { "path": "CLAUDE.md", "when": ["core"] },
     { "path": "docs/workflow.md", "when": ["core"] },
     { "path": ".bootstrap/checks.json", "when": ["core"] },
@@ -28,7 +28,7 @@
     { "path": ".claude/agents/architecture-explorer.md", "when": ["claude", "archgate"] },
     { "path": ".claude/agents/arc42-keeper.md", "when": ["claude", "arc42"] },
 
-    { "path": ".archgate/config.json", "when": ["archgate"] },
+    { "path": ".archgate/config.json", "when": ["archgate"], "merge": "json" },
     { "path": ".archgate/lint/README.md", "when": ["archgate"] },
     { "path": "docs/architecture/adrs/ARCH-001-documentation-d-architecture-arc42-et-adr.md", "when": ["archgate", "arc42"] },
     { "path": "docs/architecture/adrs/ARCH-001-documentation-d-architecture-arc42-et-adr.rules.ts", "when": ["archgate", "arc42"] },
