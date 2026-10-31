@@ -42,7 +42,7 @@ Contraintes : aucune dépendance npm, Node ≥ 20.19, Windows, Linux et macOS, j
 - **Suffixe `.base`** (revue de #81) : les copies d'origine reprenaient l'extension d'origine, et des outils du projet pouvaient les traiter comme du code ; une base invalide est signalée sous `baseInvalid`.
 - **Point 3** : un essai en sessions neuves montre que `.claude/rules/*.md` est chargé par la session, les sous-agents et les teammates, mais que la priorité face à `CLAUDE.md` n'est pas fixée par l'outil (le teammate a retenu `CLAUDE.md`, le sous-agent les règles). Séparer `CLAUDE.md` retirerait au projet le moyen d'ajuster une règle gérée. Le gain est déjà couvert par la fusion (#82).
 - **Point 4** : dans ce dépôt, `docs/workflow.md` ne diffère du modèle que par 6 modifications d'une ligne, que la fusion absorbe (#83, option A).
-- **Point 5** : le contenu d'un fichier dépend de la configuration du projet, donc une table d'empreintes ne reconnaîtrait rien ; `fleetbook` n'est d'ailleurs pas une sortie du plugin (#84).
+- **Point 5** : le contenu d'un fichier dépend de la configuration du projet, donc une table d'empreintes ne reconnaîtrait rien ; le projet de référence privé mesuré n'est d'ailleurs pas une sortie du plugin (#84).
 
 ## Do's and Don'ts
 
