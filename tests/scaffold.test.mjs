@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Tests de scaffold.mjs sur plusieurs combinaisons de modules. Usage : node tests/scaffold.test.mjs
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, writeFileSync, readFileSync, readdirSync, statSync, rmSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { mkdirSync, mkdtempSync, writeFileSync, readFileSync, readdirSync, statSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -115,6 +116,105 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
   check("conflicts : conflit avec un module requis refusé", sel(["a", "b"], catalog({ a: { requires: [] }, b: { requires: ["a"], conflicts: ["a"] } })).res.status === 1);
   check("conflicts : dépendance non satisfaite refusée (code 1)", sel(["c"], ok).res.status === 1);
   check("conflicts : le catalogue réel n'a aucune incompatibilité interne", Object.entries(manifest.modules).every(([m, d]) => (d.conflicts ?? []).every((c) => manifest.modules[c] && c !== m)));
+}
+// manifeste, projet existant, ajout de module, fusion de fichiers partagés (#27)
+{
+  const cfg = (modules, extra = {}) => ({ ...base, visibility: "private", modules, ...extra });
+  const sha = (text) => createHash("sha256").update(text).digest("hex");
+  const read = (out, rel) => readFileSync(path.join(out, ...rel.split("/")), "utf8");
+  const manifestOf = (out) => JSON.parse(read(out, ".bootstrap/manifest.json"));
+  const pluginVersion = JSON.parse(readFileSync(path.join(root, ".claude-plugin", "plugin.json"), "utf8")).version;
+  const exists = (out, rel) => {
+    try { statSync(path.join(out, ...rel.split("/"))); return true; } catch { return false; }
+  };
+
+  // manifeste écrit par le scaffold : version du plugin, modules, empreinte de chaque fichier
+  {
+    const r = run(cfg(["claude", "github"]));
+    const m = manifestOf(r.out);
+    check("manifeste : écrit avec la version du plugin et les modules", m.schema === 1 && m.plugin.version === pluginVersion && m.modules.includes("github") && m.modules.includes("core"));
+    check("manifeste : empreinte de chaque fichier généré", Object.entries(m.files).every(([rel, f]) => f.sha256 === sha(read(r.out, rel)) && f.status === "created") && "CLAUDE.md" in m.files);
+    check("manifeste : réponses de la phase 0 conservées", m.config.projectName === "Test" && m.config.versions.node === "24");
+    const dry = run(cfg(["claude"]), ["--dry-run"]);
+    check("manifeste : pas écrit en dry-run", !exists(dry.out, ".bootstrap/manifest.json"));
+    rmSync(r.dir, { recursive: true, force: true });
+  }
+
+  // ajout d'un module sur un dépôt bootstrappé : fichiers personnalisés intacts, fichiers non modifiés mis à jour
+  {
+    const first = run(cfg(["claude", "github"]));
+    writeFileSync(path.join(first.out, "CLAUDE.md"), "# Mon CLAUDE.md personnalisé\n");
+    const again = run(cfg(["claude", "github", "openspec"]), [], first.out);
+    check("ajout de module : fichier personnalisé conservé et signalé (code 3)", again.res.status === 3 && again.report.conflicts.includes("CLAUDE.md") && read(first.out, "CLAUDE.md") === "# Mon CLAUDE.md personnalisé\n");
+    check("ajout de module : fichiers du nouveau module créés", again.report.created.includes(".claude/agents/spec-reviewer.md") && exists(first.out, ".claude/agents/spec-reviewer.md"));
+    check("ajout de module : fichier non modifié remplacé par le modèle à jour", again.report.updated.includes(".github/workflows/ci.yml") && /OpenSpec validate/.test(read(first.out, ".github/workflows/ci.yml")));
+    const m = manifestOf(first.out);
+    check("ajout de module : manifeste à jour, empreinte du fichier personnalisé inchangée", m.modules.includes("openspec") && m.files["CLAUDE.md"].sha256 !== sha("# Mon CLAUDE.md personnalisé\n"));
+    // idempotence : relancer sans rien changer ne touche à rien
+    writeFileSync(path.join(first.out, "CLAUDE.md"), read(first.out, "CLAUDE.md"));
+    const same = run(cfg(["claude", "github", "openspec"]), [], first.out);
+    check("idempotence : deuxième exécution sans effet", same.report.created.length === 0 && same.report.updated.length === 0 && same.report.merged.length === 0 && same.report.manifest === undefined, JSON.stringify(same.report));
+    rmSync(first.dir, { recursive: true, force: true });
+  }
+
+  // dépôt existant non bootstrappé : fichiers partagés fusionnés, fichiers du projet conservés
+  {
+    const dir = mkdtempSync(path.join(tmpdir(), "pb-exist-"));
+    const out = path.join(dir, "repo");
+    mkdirSync(path.join(out, ".claude"), { recursive: true });
+    writeFileSync(path.join(out, ".gitignore"), "node_modules/\ndist/\n");
+    writeFileSync(path.join(out, ".claude", "settings.json"), JSON.stringify({ model: "sonnet", permissions: { allow: ["Bash(npm test)"], deny: ["Bash(rm *)"] } }));
+    writeFileSync(path.join(out, "CLAUDE.md"), "# Projet existant\n");
+    const r = run(cfg(["claude"], { keep: ["CLAUDE.md"] }), [], out);
+    const gi = read(out, ".gitignore");
+    check("dépôt existant : .gitignore fusionné sans perte", r.report.merged.includes(".gitignore") && gi.startsWith("node_modules/\ndist/\n") && gi.includes(".claude/settings.local.json"), gi);
+    const settings = JSON.parse(read(out, ".claude/settings.json"));
+    check("dépôt existant : settings.json fusionné par clé", r.report.merged.includes(".claude/settings.json") && settings.model === "sonnet" && settings.permissions.allow.includes("Bash(npm test)") && settings.permissions.allow.includes("Bash(git status *)") && settings.permissions.deny[0] === "Bash(rm *)" && Array.isArray(settings.hooks.TaskCompleted));
+    check("dépôt existant : fichier listé dans keep intact (code 0)", r.res.status === 0 && r.report.kept.includes("CLAUDE.md") && read(out, "CLAUDE.md") === "# Projet existant\n", JSON.stringify(r.report));
+    const again = run(cfg(["claude"], { keep: ["CLAUDE.md"] }), [], out);
+    check("dépôt existant : fusion idempotente", again.report.merged.length === 0 && again.report.created.length === 0 && again.report.manifest === undefined, JSON.stringify(again.report));
+    // JSON invalide dans l'existant : conflit, jamais d'écrasement
+    writeFileSync(path.join(out, ".claude", "settings.json"), "{ pas du json");
+    const broken = run(cfg(["claude"], { keep: ["CLAUDE.md"] }), [], out);
+    check("dépôt existant : settings.json illisible signalé, non écrasé", broken.res.status === 3 && broken.report.conflicts.includes(".claude/settings.json") && read(out, ".claude/settings.json") === "{ pas du json");
+    rmSync(dir, { recursive: true, force: true });
+  }
+
+  // diff proposé pour un fichier personnalisé
+  {
+    const first = run(cfg(["claude"]));
+    writeFileSync(path.join(first.out, "CLAUDE.md"), "perso-unique-xyz\n");
+    const again = run(cfg(["claude"]), ["--diff"], first.out);
+    check("--diff : diff fourni pour le fichier en conflit", again.res.status === 3 && /perso-unique-xyz/.test(again.report.diffs?.["CLAUDE.md"] ?? ""), JSON.stringify(again.report.diffs));
+    rmSync(first.dir, { recursive: true, force: true });
+  }
+
+  // détection de l'état du dépôt cible
+  {
+    const detect = (target) => JSON.parse(spawnSync(process.execPath, [scaffold, "--detect", "--target", target], { encoding: "utf8" }).stdout);
+    const first = run(cfg(["claude", "github"]));
+    const d = detect(first.out);
+    check("--detect : dépôt bootstrappé reconnu", d.bootstrapped === true && d.manifest.plugin.version === pluginVersion && d.manifest.modules.includes("github") && d.claude === true && d.ci.includes("ci.yml") && d.sharedFiles.includes("CLAUDE.md"), JSON.stringify(d));
+    const dir = mkdtempSync(path.join(tmpdir(), "pb-detect-"));
+    writeFileSync(path.join(dir, "package.json"), "{}");
+    const e = detect(dir);
+    check("--detect : dépôt existant non bootstrappé", e.exists === true && e.bootstrapped === false && e.packageJson === true && e.topLevel.includes("package.json"), JSON.stringify(e));
+    check("--detect : dossier absent", detect(path.join(dir, "absent")).exists === false);
+    rmSync(first.dir, { recursive: true, force: true });
+    rmSync(dir, { recursive: true, force: true });
+  }
+
+  // modèles qui ne citent que ce qui est généré
+  {
+    const claudeOnly = run(cfg(["claude"]));
+    const withSpec = run(cfg(["claude", "openspec"], { stack: "Node.js 24, modules ES" }));
+    check("CLAUDE.md : stack non choisie par défaut", /La stack n'est pas choisie/.test(read(claudeOnly.out, "CLAUDE.md")));
+    check("CLAUDE.md : stack connue citée", /\*\*Stack\*\* : Node\.js 24, modules ES\./.test(read(withSpec.out, "CLAUDE.md")) && !/n'est pas choisie/.test(read(withSpec.out, "CLAUDE.md")));
+    check("CLAUDE.md : section Agents absente sans agent généré", !/Agents du projet/.test(read(claudeOnly.out, "CLAUDE.md")) && /Agents du projet/.test(read(withSpec.out, "CLAUDE.md")));
+    check("workflow.md : mention « optionnel » seulement s'il y a une étape optionnelle", !/marquées « optionnel »/.test(read(claudeOnly.out, "docs/workflow.md")) && /marquées « optionnel »/.test(read(withSpec.out, "docs/workflow.md")));
+    rmSync(claudeOnly.dir, { recursive: true, force: true });
+    rmSync(withSpec.dir, { recursive: true, force: true });
+  }
 }
 // dry-run : n'écrit rien
 {

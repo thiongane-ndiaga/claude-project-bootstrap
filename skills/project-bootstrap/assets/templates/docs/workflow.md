@@ -108,7 +108,9 @@ Claude Code utilise `gh` en lecture sans demander ; `gh issue create`, `gh pr cr
 
 ## Nouveau poste (Windows natif ou Linux)
 
+@@module:openspec|archgate|archgate-plugin|agent-teams
 Les étapes marquées « optionnel » ne sont pas nécessaires au fonctionnement du dépôt.
+@@end
 
 1. **Prérequis** : Node.js ≥ 20.19 et git.
 @@module:github
