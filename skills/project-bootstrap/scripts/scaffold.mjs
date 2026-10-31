@@ -21,24 +21,48 @@ const assets = path.join(here, "..", "assets");
 const args = Object.fromEntries(
   process.argv.slice(2).reduce((acc, a, i, all) => (a.startsWith("--") ? [...acc, [a.slice(2), all[i + 1]?.startsWith("--") || all[i + 1] === undefined ? true : all[i + 1]]] : acc), []),
 );
-if (!args.target || (!args.config && args.detect !== true)) {
-  console.error("Usage : node scaffold.mjs --config <bootstrap.json> --target <dossier> [--dry-run] [--diff] [--catalog <modules.json>]\n        node scaffold.mjs --detect --target <dossier>");
+if (!args.target || (!args.config && args.detect !== true && args.update !== true)) {
+  console.error(
+    "Usage : node scaffold.mjs --config <bootstrap.json> --target <dossier> [--dry-run] [--diff] [--adopt] [--catalog <modules.json>]\n" +
+      "        node scaffold.mjs --update --target <dossier> [--dry-run] [--diff] [--adopt]   (configuration lue dans le manifeste)\n" +
+      "        node scaffold.mjs --detect --target <dossier>",
+  );
   process.exit(1);
 }
 const manifest = JSON.parse(readFileSync(typeof args.catalog === "string" ? args.catalog : path.join(assets, "modules.json"), "utf8"));
 const target = path.resolve(args.target);
+
+// --- manifeste du projet (.bootstrap/manifest.json) et version du plugin en cours d'exécution ---
+const MANIFEST = ".bootstrap/manifest.json";
+const manifestPath = path.join(target, ...MANIFEST.split("/"));
+const sha256 = (text) => createHash("sha256").update(text).digest("hex");
+const readText = (file) => readFileSync(file, "utf8").replace(/\r\n/g, "\n");
+let pluginVersion = "unknown";
+try {
+  pluginVersion = JSON.parse(readFileSync(path.join(here, "..", "..", "..", ".claude-plugin", "plugin.json"), "utf8")).version;
+} catch {
+  // plugin lancé hors de son arborescence : version inconnue
+}
+let previous = null;
+if (existsSync(manifestPath)) {
+  try {
+    previous = JSON.parse(readFileSync(manifestPath, "utf8"));
+  } catch {
+    if (args.detect !== true) {
+      console.error(`${MANIFEST} illisible : corrige-le ou supprime-le avant de relancer`);
+      process.exit(1);
+    }
+  }
+}
 
 // --- détection : le dépôt cible existe-t-il, est-il déjà bootstrappé ? (aucune écriture) ---
 if (args.detect === true) {
   const has = (p) => existsSync(path.join(target, ...p.split("/")));
   let recorded = null;
   if (has(".bootstrap/manifest.json")) {
-    try {
-      const m = JSON.parse(readFileSync(path.join(target, ".bootstrap", "manifest.json"), "utf8"));
-      recorded = { plugin: m.plugin, modules: m.modules, files: Object.keys(m.files ?? {}).length };
-    } catch {
-      recorded = { error: "manifeste illisible" };
-    }
+    recorded = previous
+      ? { plugin: previous.plugin, modules: previous.modules, files: Object.keys(previous.files ?? {}).length, migrations: previous.migrations ?? [] }
+      : { error: "manifeste illisible" };
   }
   console.log(
     JSON.stringify(
@@ -48,6 +72,8 @@ if (args.detect === true) {
         git: has(".git"),
         bootstrapped: recorded !== null,
         manifest: recorded,
+        pluginVersion,
+        updateAvailable: previous?.plugin?.version !== undefined && previous.plugin.version !== pluginVersion,
         claude: has(".claude"),
         packageJson: has("package.json"),
         ci: has(".github/workflows") ? readdirSync(path.join(target, ".github", "workflows")).sort() : [],
@@ -61,7 +87,12 @@ if (args.detect === true) {
   process.exit(0);
 }
 
-const config = JSON.parse(readFileSync(args.config, "utf8"));
+// --update : la configuration est celle du manifeste (--config la remplace, par exemple pour relever des versions épinglées)
+if (args.update === true && !previous && !args.config) {
+  console.error(`--update exige ${MANIFEST} (projet sans manifeste : utilise --config avec --adopt)`);
+  process.exit(1);
+}
+const config = typeof args.config === "string" ? JSON.parse(readFileSync(args.config, "utf8")) : previous?.config;
 const dryRun = args["dry-run"] === true;
 
 // --- modules sélectionnés et dépendances ---
@@ -189,27 +220,6 @@ try {
 }
 if (active.has("claude")) outputs.push({ rel: ".claude/settings.json", merge: "json", content: buildSettings() });
 
-// --- manifeste (.bootstrap/manifest.json) : modules, version du plugin et empreinte de chaque fichier généré ---
-const MANIFEST = ".bootstrap/manifest.json";
-const manifestPath = path.join(target, ...MANIFEST.split("/"));
-const sha256 = (text) => createHash("sha256").update(text).digest("hex");
-const readText = (file) => readFileSync(file, "utf8").replace(/\r\n/g, "\n");
-let previous = null;
-if (existsSync(manifestPath)) {
-  try {
-    previous = JSON.parse(readFileSync(manifestPath, "utf8"));
-  } catch {
-    console.error(`${MANIFEST} illisible : corrige-le ou supprime-le avant de relancer`);
-    process.exit(1);
-  }
-}
-let pluginVersion = "unknown";
-try {
-  pluginVersion = JSON.parse(readFileSync(path.join(here, "..", "..", "..", ".claude-plugin", "plugin.json"), "utf8")).version;
-} catch {
-  // plugin lancé hors de son arborescence : version inconnue
-}
-
 function diffText(currentPath, proposed) {
   const tmp = path.join(mkdtempSync(path.join(tmpdir(), "pb-diff-")), "propose");
   writeFileSync(tmp, proposed);
@@ -217,16 +227,36 @@ function diffText(currentPath, proposed) {
   return res.error ? "(git requis pour afficher le diff)" : res.stdout;
 }
 
+// Chaque entrée du manifeste : { sha256 (fichier tel qu'écrit), generated (empreinte du contenu produit par le modèle), status }.
+// status : created (fichier du modèle) | merged (fusionné avec l'existant) | kept (géré par le projet) | adopted (existant repris tel quel).
+//
 // Règles, dans l'ordre, pour chaque fichier du modèle :
 //   listé dans config.keep            -> conservé tel quel, jamais touché ;
 //   absent                            -> créé ;
 //   identique au modèle               -> rien ;
-//   inchangé depuis sa génération     -> remplacé par le modèle actuel (l'empreinte du manifeste le prouve) ;
+//   resté tel que généré              -> remplacé par le modèle actuel (l'empreinte du manifeste le prouve) ;
+//   modèle inchangé depuis la génération -> rien : la personnalisation du projet n'est pas un conflit (« customized ») ;
 //   fichier partagé (merge)           -> fusionné avec l'existant ;
+//   --adopt                           -> repris tel quel, consigné « adopted » (le modèle actuel devient la référence) ;
 //   sinon                             -> conflit signalé (diff avec --diff), jamais d'écrasement.
 const keep = new Set(config.keep ?? []);
 const files = { ...(previous?.files ?? {}) };
-const report = { target, modules: [...selected], bootstrapped: previous !== null, created: [], updated: [], merged: [], identical: [], kept: [], conflicts: [] };
+const report = {
+  target,
+  modules: [...selected],
+  bootstrapped: previous !== null,
+  fromVersion: previous?.plugin?.version ?? null,
+  toVersion: pluginVersion,
+  created: [],
+  updated: [],
+  merged: [],
+  identical: [],
+  customized: [],
+  adopted: [],
+  kept: [],
+  retired: [],
+  conflicts: [],
+};
 const diffs = {};
 const put = (dest, text) => {
   if (dryRun) return;
@@ -236,28 +266,33 @@ const put = (dest, text) => {
 
 for (const { rel, content, merge } of outputs) {
   const dest = path.join(target, ...rel.split("/"));
+  const generated = sha256(content);
+  const before = previous?.files?.[rel];
   if (keep.has(rel)) {
     report.kept.push(rel);
-    if (existsSync(dest)) files[rel] = { sha256: sha256(readText(dest)), status: "kept" };
+    if (existsSync(dest)) files[rel] = { sha256: sha256(readText(dest)), generated, status: "kept" };
     continue;
   }
   if (!existsSync(dest)) {
     put(dest, content);
     report.created.push(rel);
-    files[rel] = { sha256: sha256(content), status: "created" };
+    files[rel] = { sha256: generated, generated, status: "created" };
     continue;
   }
   const current = readText(dest);
   if (current === content) {
     report.identical.push(rel);
-    files[rel] = { sha256: sha256(content), status: files[rel]?.status ?? "created" };
+    files[rel] = { sha256: generated, generated, status: before?.status === "merged" ? "merged" : "created" };
     continue;
   }
-  const before = previous?.files?.[rel];
   if (before?.status === "created" && sha256(current) === before.sha256) {
     put(dest, content);
     report.updated.push(rel);
-    files[rel] = { sha256: sha256(content), status: "created" };
+    files[rel] = { sha256: generated, generated, status: "created" };
+    continue;
+  }
+  if (before && before.status !== "kept" && before.generated === generated) {
+    report.customized.push(rel);
     continue;
   }
   if (merge) {
@@ -268,13 +303,22 @@ for (const { rel, content, merge } of outputs) {
         put(dest, merged);
         report.merged.push(rel);
       }
-      files[rel] = { sha256: sha256(merged), status: "merged" };
+      files[rel] = { sha256: sha256(merged), generated, status: "merged" };
       continue;
     }
+  }
+  if (args.adopt === true) {
+    report.adopted.push(rel);
+    files[rel] = { sha256: sha256(current), generated, status: "adopted" };
+    continue;
   }
   report.conflicts.push(rel);
   if (args.diff === true) diffs[rel] = diffText(dest, content);
 }
+
+// fichiers suivis par le manifeste que le modèle ne produit plus : signalés, jamais supprimés
+const produced = new Set(outputs.map((o) => o.rel));
+for (const rel of Object.keys(previous?.files ?? {})) if (!produced.has(rel)) report.retired.push(rel);
 
 const manifestOut =
   JSON.stringify(
@@ -284,6 +328,7 @@ const manifestOut =
       modules: [...selected],
       config,
       files: Object.fromEntries(Object.entries(files).sort(([a], [b]) => a.localeCompare(b))),
+      migrations: previous?.migrations ?? [],
     },
     null,
     2,

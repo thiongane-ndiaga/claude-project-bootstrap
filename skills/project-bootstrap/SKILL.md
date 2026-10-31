@@ -1,6 +1,6 @@
 ---
 name: project-bootstrap
-description: Met en place, dans un dépôt neuf ou déjà existant, un outillage de développement assisté par IA complet et modulaire — Claude Code (CLAUDE.md, settings, hooks Node, agents), OpenSpec (spec-driven), Archgate (ADR exécutables), arc42, GitHub Free (formulaires d'issues, template de PR, labels, CI, Projects) et release-please — avec un workflow documenté de l'issue à la release, portable Windows/Linux, sans choisir de stack. À utiliser dès que l'utilisateur veut démarrer un nouveau projet avec ce workflow, initialiser/bootstrapper un dépôt avec ce workflow, recréer cette configuration ailleurs, ajouter une de ces briques (OpenSpec, Archgate, arc42, release-please, agents de revue) à un dépôt qui ne l'a pas encore, ou reconfigurer / compléter un dépôt déjà bootstrappé (ajouter un module, changer la configuration) — même s'il ne nomme pas le skill.
+description: Met en place, dans un dépôt neuf ou déjà existant, un outillage de développement assisté par IA complet et modulaire — Claude Code (CLAUDE.md, settings, hooks Node, agents), OpenSpec (spec-driven), Archgate (ADR exécutables), arc42, GitHub Free (formulaires d'issues, template de PR, labels, CI, Projects) et release-please — avec un workflow documenté de l'issue à la release, portable Windows/Linux, sans choisir de stack. À utiliser dès que l'utilisateur veut démarrer un nouveau projet avec ce workflow, initialiser/bootstrapper un dépôt avec ce workflow, recréer cette configuration ailleurs, ajouter une de ces briques (OpenSpec, Archgate, arc42, release-please, agents de revue) à un dépôt qui ne l'a pas encore, ou reconfigurer / compléter / mettre à jour un dépôt déjà bootstrappé (ajouter un module, changer la configuration, passer à une nouvelle version du plugin) — même s'il ne nomme pas le skill.
 ---
 
 # project-bootstrap
@@ -47,7 +47,7 @@ Les agents générés dépendent des modules : `spec-reviewer` (openspec), `trac
 - **Ajouter un module** : relance avec `modules` complété ; seuls les fichiers du module sont créés, les fichiers non modifiés sont mis à jour, les fichiers personnalisés restent intacts. Le retrait d'un module n'est pas géré (suppression de fichiers : à faire à la main).
 - **Dépôt déjà équipé** (CI, linter, `CLAUDE.md`, formulaires) : pour chaque conflit, propose conserver (`keep`), remplacer ou fusionner à la main, et consigne la décision dans `keep`. Ne duplique pas une CI existante : propose de brancher les commandes du projet dans `.bootstrap/checks.json`.
 - **Phase 1 [STOP]** obligatoire avant de modifier un fichier existant : présente le dry-run (`--dry-run --diff`) fichier par fichier.
-- La mise à jour d'un projet vers une nouvelle version du plugin (migrations hors fichiers, table d'empreintes des versions antérieures) relève de #44.
+- La mise à jour d'un projet vers une nouvelle version du plugin : phase 5.
 
 ## Phase 0 — Cadrage
 
@@ -102,3 +102,23 @@ Les ADR d'outillage générés sont au statut **Proposé** : l'utilisateur les r
 5. PR `docs(adr): accept tooling ADRs` avec `Closes #<n>`, puis squash merge. Un titre `docs:` ne déclenche pas de release.
 
 Propose ensuite de rédiger arc42 §1 à §3, puis d'ouvrir la première issue « Décision d'architecture » pour la stack.
+
+## Phase 5 — Mise à jour d'un projet déjà bootstrappé
+
+À lancer quand le plugin a été mis à jour (`claude plugin update project-bootstrap@thiongane-ndiaga`, puis redémarrage) ou quand l'utilisateur demande de « mettre à jour le bootstrap ». Politique de version et ce qu'une release change pour les projets : `references/versioning.md`.
+
+1. **Détecter** : `node scripts/scaffold.mjs --detect --target <dépôt>` ; `updateAvailable: true` si la version du manifeste diffère de celle du plugin. Sans manifeste (projet antérieur) : adoption, voir plus bas.
+2. **Simuler** : `node scripts/scaffold.mjs --update --target <dépôt> --dry-run --diff`. La configuration est lue dans le manifeste. Pour relever aussi les versions épinglées des CLI et des actions, relance `scripts/resolve-versions.mjs`, fusionne le résultat dans une copie de la configuration du manifeste et passe-la avec `--config` au lieu de `--update`.
+3. **Présenter** [STOP], en citant `fromVersion` → `toVersion` :
+   - `created` : nouveaux fichiers du modèle, ajoutés après accord ;
+   - `updated` : fichiers restés tels que générés, remplacés par le nouveau modèle ;
+   - `merged` : fichiers partagés fusionnés ;
+   - `conflicts` : fichiers modifiés par le projet **dont le modèle a changé**, avec leur diff (jamais écrasés) ;
+   - `customized` : fichiers modifiés dont le modèle n'a pas changé (rien à faire) ;
+   - `retired` : fichiers que le modèle ne produit plus (jamais supprimés automatiquement).
+   Ces fichiers contiennent du code qui s'exécute (hooks, CI, `pre-push`) : l'utilisateur relit le diff avant d'appliquer.
+4. **Appliquer** : même commande sans `--dry-run`, un commit pour la mise à jour (`chore: update project-bootstrap to <version>`), le manifeste inclus. Pour chaque conflit, l'utilisateur fusionne à la main le nouveau modèle dans son fichier ; relance ensuite avec `--update --adopt` pour le consigner (il ne sera plus signalé tant que le modèle ne change pas).
+5. **Migrations hors fichiers** (réglages côté forge) : `node scripts/migrate.mjs --target <dépôt>` simule et liste les actions ; **accord explicite** de l'utilisateur, puis `--apply`. Chaque migration vérifie l'état réel et ne propose rien s'il est déjà conforme ; celles appliquées sont consignées dans le manifeste.
+6. **Contrôle** : `node .claude/hooks/quality-gate.mjs` renvoie 0, puis PR comme d'habitude. Relancer la mise à jour sur un projet à jour ne change rien.
+
+**Projet sans manifeste** : `node scripts/scaffold.mjs --config bootstrap.json --target <dépôt> --adopt` crée les fichiers absents, fusionne les fichiers partagés, consigne comme `adopted` chaque fichier existant qui diffère du modèle (traité comme personnalisé) et écrit le manifeste. La reconnaissance automatique des fichiers non modifiés d'une version antérieure du plugin n'existe pas : tout fichier qui diffère est adopté tel quel.
