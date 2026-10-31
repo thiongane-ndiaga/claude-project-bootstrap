@@ -488,6 +488,11 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
     const noGh = spawnSync(process.execPath, [path.join(root, "skills", "project-bootstrap", "assets", "templates", "scripts", "sync-labels.mjs")], { encoding: "utf8", env: { ...process.env, PATH: "", Path: "" } });
     check("sync : script lancé sans gh -> code non nul", noGh.status === 1, noGh.stderr);
 
+    // --- documentation du skill (exigences documentaires de la spec forge-labels)
+    const skillMd = readFileSync(path.join(root, "skills", "project-bootstrap", "SKILL.md"), "utf8");
+    check("skill : le principe « réutiliser avant de créer » est énoncé, pour les modules de forge ou de suivi", /Réutiliser avant de créer/.test(skillMd) && /module de forge ou de suivi/.test(skillMd));
+    check("skill : les notes d'une migration sont à présenter à l'utilisateur", /notes/.test(skillMd) && /présente-les à l'utilisateur/.test(skillMd));
+
     // --- moteur de migration : notes
     const notesDir = mkdir("pb-notes-");
     writeFileSync(path.join(notesDir, "0900-notes.mjs"), 'export const id = "0900-notes"; export const title = "t"; export const modules = ["github"];\nexport function plan() { return { actions: [{ description: "a", command: "c", run: () => { globalThis.__noteRan = true; } }], notes: ["information"] }; }\n');
