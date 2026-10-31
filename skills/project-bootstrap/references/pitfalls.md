@@ -31,6 +31,10 @@ Constatés lors de la mise en place de référence (Claude Code 2.1.31x, OpenSpe
 - `Set-Content -NoNewline` peut échouer selon la version de PowerShell : préférer `[IO.File]::WriteAllText`.
 - Ne jamais partager un même clone entre Windows et WSL.
 
+## Linux
+- `npm install -g` échoue (`The operation was rejected by your operating system`) quand le préfixe npm est `/usr`, qui appartient à root. → Détecter avec `npm config get prefix` et un test d'écriture, puis `npm install -g --prefix ~/.local …` avec `~/.local/bin` dans le `PATH`. Pas de `sudo` sans demande de l'utilisateur.
+- Le `--prefix` n'est pas mémorisé : les mises à jour ultérieures de ces CLI doivent le répéter.
+
 ## GitHub
 - En **privé sur Free** : ni branches protégées ni rulesets → le blocage se fait en local (`pre-push`).
 - `gh` ne remplit pas les formulaires d'issue YAML en mode non interactif : reproduire leurs sections dans `--body-file`.
