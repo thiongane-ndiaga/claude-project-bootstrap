@@ -19,6 +19,9 @@ Un changement de **modèle** (`assets/templates/`), du **catalogue** (`assets/mo
 | fichier modifié, modèle changé | **conflit** : diff proposé, jamais écrasé |
 | fichier que le modèle ne produit plus | signalé (`retired`), jamais supprimé |
 
+## Fichiers propres au projet
+Une entrée du catalogue (`assets/modules.json`) marquée `"owned": true` est créée à la première génération, puis appartient au projet : jamais remplacée, fusionnée ni signalée en conflit, consignée `kept` dans le manifeste. C'est le cas de `.bootstrap/checks.json` (commandes de tests et systèmes de la CI). Pas besoin de la lister dans `keep`.
+
 ## Migrations hors fichiers
 Ce qui n'est pas un fichier (réglage du dépôt, labels, protection de branche) se corrige par une migration dans `migrations/`, un module `.mjs` par migration, numéroté (`0001-…`) :
 
