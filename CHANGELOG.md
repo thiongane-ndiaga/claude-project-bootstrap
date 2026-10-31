@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.5](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.4...v0.1.5) (2026-10-31)
+
+
+### Features
+
+* **migrations:** native forge labels, non-destructive label sync and migration 0002 ([#91](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/91)) ([7e17132](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/7e17132fb89882f9bc279739eb231d8b74afed06))
+
 ## [0.1.4](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.3...v0.1.4) (2026-10-31)
 
 
