@@ -83,7 +83,8 @@ Les copies de la base reprenaient l'extension d'origine (`.ts`, `.mjs`, `.md`…
   - le chargement des règles chez les teammates des agent teams (la documentation cite `CLAUDE.md`, pas `.claude/rules/`) ;
   - le retrait des commentaires HTML dans les règles et les fichiers importés (la documentation vise « CLAUDE.md files »), ce qui conditionne l'usage de marqueurs dans `docs/workflow.md` (issue dédiée) ;
   - le comportement quand un fichier importé par `@` est absent.
-- Non vérifié non plus : validité d'une action composite locale quasi vide sous les trois systèmes, comportement des formateurs sur d'éventuels marqueurs.
+- **Vérifié le 2026-10-31 (PR #87)** : une action composite locale quasi vide (`./.github/actions/project-setup`, une étape `shell: bash`) s'exécute sur ubuntu, windows et macos ; les journaux de la CI montrent son message sur les trois systèmes, et les noms des checks restent `checks (<système>)`. La règle Archgate d'épinglage a dû accepter les actions locales.
+- Non vérifié : comportement des formateurs sur d'éventuels marqueurs (sans objet tant qu'aucun marqueur n'est introduit).
 - Si ces vérifications échouent, le point 3 est revu ; les points 1, 2, 5 et 6 restent valables. Le contenu géré de `CLAUDE.md` ne doit pas contredire celui du projet : les deux sont chargés ensemble sans priorité garantie.
 
 ## Compliance and Enforcement

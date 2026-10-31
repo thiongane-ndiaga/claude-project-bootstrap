@@ -13,7 +13,7 @@
 
 ## 3. Vérification en CI
 
-- [ ] 3.1 Pousser la branche : la CI de la PR exécute `project-setup` sur ubuntu, windows et macos et les trois checks `checks (<système>)` sont verts ; consigner le résultat dans ARCH-006 (Risks) et dans #82.
+- [x] 3.1 Pousser la branche : la CI de la PR exécute `project-setup` sur ubuntu, windows et macos et les trois checks `checks (<système>)` sont verts ; consigner le résultat dans ARCH-006 (Risks) et dans #82.
 
 ## Workflow follow-up
 - `/opsx:archive` dans la PR, avant le merge. PR avec `Refs #82` : le reste de #82 (`CLAUDE.md`, `--detect`) demeure ouvert.
