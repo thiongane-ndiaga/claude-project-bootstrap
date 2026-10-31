@@ -58,7 +58,9 @@ jobs:
         run: |
           npm install -g "archgate@${ARCHGATE_VERSION}"
           archgate check --output github
-      # Installer ici la chaîne d'outils de la stack choisie (langage, dépendances) avant les commandes du projet
+      # Chaîne d'outils de la stack (langage, dépendances) : à installer dans .github/actions/project-setup/action.yml, pas ici
+      - name: Chaîne d'outils du projet (.github/actions/project-setup)
+        uses: ./.github/actions/project-setup
       - name: Commandes du projet (.bootstrap/checks.json)
         run: node .bootstrap/run-checks.mjs
 

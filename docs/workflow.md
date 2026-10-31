@@ -57,7 +57,7 @@ Les commandes propres à la stack se déclarent **à un seul endroit**, `.bootst
 
 - `os` (facultatif) restreint la commande à certains systèmes ; `blocking: false` la signale sans bloquer.
 - `ciOs` fixe les systèmes de la matrice de la CI (noms de runners GitHub).
-- Pour les commandes qui exigent une chaîne d'outils (langage, dépendances), ajouter l'étape d'installation dans `ci.yml`, avant l'étape « Commandes du projet ».
+- Pour les commandes qui exigent une chaîne d'outils (langage, dépendances), ajouter l'étape d'installation dans `.github/actions/project-setup/action.yml` (action propre au projet, appelée par `ci.yml` avant l'étape « Commandes du projet ») : `ci.yml` reste géré par le plugin.
 - Ce fichier est propre au projet : une mise à jour du plugin ne l'écrase pas (`owned` dans le catalogue).
 
 Claude Code utilise `gh` en lecture sans demander ; `gh issue create`, `gh pr create`, `gh pr merge`, `gh release create` demandent toujours une approbation.

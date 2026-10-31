@@ -1,0 +1,76 @@
+name: ci
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  OPENSPEC_VERSION: 1.16.0
+  OPENSPEC_TELEMETRY: "0"
+  ARCHGATE_VERSION: 0.61.0
+
+jobs:
+  # systèmes de la CI : « ciOs » de .bootstrap/checks.json
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      os: ${{ steps.os.outputs.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - id: os
+        run: echo "os=$(node .bootstrap/run-checks.mjs --print-os)" >> "$GITHUB_OUTPUT"
+
+  checks:
+    needs: plan
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJSON(needs.plan.outputs.os) }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: OpenSpec validate
+        shell: bash
+        run: |
+          npm install -g "@fission-ai/openspec@${OPENSPEC_VERSION}"
+          openspec validate --all --strict --no-interactive
+      - name: Archgate check
+        shell: bash
+        run: |
+          npm install -g "archgate@${ARCHGATE_VERSION}"
+          archgate check --output github
+      # Chaîne d'outils de la stack (langage, dépendances) : à installer dans .github/actions/project-setup/action.yml, pas ici
+      - name: Chaîne d'outils du projet (.github/actions/project-setup)
+        uses: ./.github/actions/project-setup
+      - name: Commandes du projet (.bootstrap/checks.json)
+        run: node .bootstrap/run-checks.mjs
+
+  pr-title:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Conventional Commit title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: node scripts/check-pr-title.mjs
