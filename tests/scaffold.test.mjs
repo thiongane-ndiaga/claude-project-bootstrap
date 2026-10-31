@@ -918,6 +918,21 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
       check("piège : préfixe npm non inscriptible -> écart avec --prefix ~/.local, sans sudo", process.getuid?.() === 0 || (by(w6, "poste-npm")?.statut === "ecart" && /--prefix ~\/\.local/.test(by(w6, "poste-npm").correction) && !/sudo/.test(by(w6, "poste-npm").correction)));
     }
 
+    // --- codes de sortie réels du script (processus, CLI et gh réels, sans réseau)
+    const auditScript = path.join(root, "skills", "project-bootstrap", "scripts", "audit.mjs");
+    const proc = (args) => spawnSync(process.execPath, [auditScript, ...args], { encoding: "utf8" });
+    const light = mkProject(["claude", "github", "githooks"]);
+    const px0 = proc(["--target", light]);
+    check("audit : processus -> projet sain, code 0 et résumé lisible", px0.status === 0 && /Résumé : \d+ ok, 0 écart/.test(px0.stdout), px0.stdout + px0.stderr);
+    git(light, "config", "--unset", "core.hooksPath");
+    const px1 = proc(["--target", light]);
+    check("audit : processus -> un écart, code 1 et la correction affichée", px1.status === 1 && /git config core\.hooksPath \.githooks/.test(px1.stdout), px1.stdout + px1.stderr);
+    const pxj = proc(["--target", light, "--json"]);
+    check("audit : processus --json -> objet JSON avec le compte par statut", (() => { try { const j = JSON.parse(pxj.stdout); return j.summary.ecart === 1 && Array.isArray(j.results); } catch { return false; } })());
+    const px2 = proc([]);
+    check("audit : processus -> erreur d'usage, code 2", px2.status === 2 && /--target est obligatoire/.test(px2.stderr), px2.stderr);
+    check("audit : processus -> --repo invalide, code 2 sans rien lancer", proc(["--target", light, "--forge", "--repo", "a/../b"]).status === 2);
+
     // --- documentation du skill (exigence « Intégration au skill »)
     const skillText = readFileSync(path.join(root, "skills", "project-bootstrap", "SKILL.md"), "utf8");
     const phase3 = skillText.slice(skillText.indexOf("## Phase 3"), skillText.indexOf("## Phase 4"));
