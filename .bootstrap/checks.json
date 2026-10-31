@@ -1,0 +1,6 @@
+{
+  "ciOs": ["ubuntu-latest", "windows-latest", "macos-latest"],
+  "checks": [
+    { "name": "tests", "command": "node tests/scaffold.test.mjs" }
+  ]
+}
