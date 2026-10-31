@@ -31,12 +31,16 @@ Contraintes : aucune dépendance npm, Node ≥ 20.19, Windows, Linux et macOS, j
 
 ## Decision
 
-1. **La base est conservée dans le projet**, dans `.bootstrap/base/<chemin du fichier>`, versionnée avec le reste. Elle est écrite à chaque génération ou mise à jour, pour les seuls fichiers susceptibles d'être fusionnés. Son empreinte doit égaler `files[<fichier>].generated` du manifeste ; sinon la base est ignorée.
+1. **La base est conservée dans le projet**, dans `.bootstrap/base/<chemin du fichier>.base` (suffixe neutre, voir l'addendum), versionnée avec le reste. Elle est écrite à chaque génération ou mise à jour, pour les seuls fichiers susceptibles d'être fusionnés. Son empreinte doit égaler `files[<fichier>].generated` du manifeste ; sinon la base est ignorée.
 2. **La fusion à trois voies s'applique à tout fichier généré** modifié par le projet dont le modèle a changé, par `git merge-file -p` sur des copies normalisées en LF (git est déjà requis pour les diffs), style de conflit fixé explicitement. Une fusion propre est écrite et consignée ; un conflit n'est **jamais écrit dans le fichier** : la proposition figure dans le rapport (`diffs`). Base absente ou invalide : comportement actuel (conflit).
 3. **Les fichiers `CLAUDE.md` et `ci.yml` sont séparés** en une partie gérée par le plugin (fichier entier, mis à jour sans conflit) et une partie propre au projet (`owned`) : le contenu géré de `CLAUDE.md` va dans `.claude/rules/project-bootstrap.md` ; `ci.yml` reste géré et appelle une action composite locale `project-setup`, propre au projet. Cette décision est **conditionnée** à la vérification du chargement de `.claude/rules/` et de l'action composite sous les trois systèmes (voir Risks).
 4. **`docs/workflow.md`** : le choix entre zones gérées et fichier séparé est renvoyé à l'issue dédiée, à trancher après la séparation de `CLAUDE.md` et `ci.yml`. Aucun marqueur n'est introduit par cet ADR.
 5. **Les projets antérieurs au manifeste** sont traités par une table d'empreintes des versions publiées, embarquée dans le plugin (issue dédiée), indépendante des points 1 à 4.
 6. **`date` est figée** dans la configuration enregistrée au manifeste : `{{DATE}}` rend sinon la régénération non reproductible.
+
+### Addendum (#81, revue du changement OpenSpec)
+
+Les copies de la base reprenaient l'extension d'origine (`.ts`, `.mjs`, `.md`…) : des outils du projet (compilateur, linter, formateur, lanceur de tests) pouvaient les traiter comme du code, et un formateur qui les réécrit invalide leur empreinte. Le suffixe `.base` est donc ajouté au nom complet du fichier. Une base présente mais invalide est signalée dans le rapport (`baseInvalid`) au lieu d'un simple conflit.
 
 ## Do's and Don'ts
 

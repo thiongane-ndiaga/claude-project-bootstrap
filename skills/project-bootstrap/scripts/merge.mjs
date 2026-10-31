@@ -3,6 +3,32 @@
 // - mergeJson  : fichiers JSON (.claude/settings.json). Objets fusionnés par clé, tableaux réunis sans doublon,
 //                valeurs scalaires de l'existant conservées.
 
+// - mergeThreeWay : fusion à trois voies d'un fichier modifié par le projet (ARCH-006), via `git merge-file`.
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+
+// current (fichier du projet), base (ce que le plugin avait généré) et proposed (nouveau modèle) sont en LF.
+// Renvoie { status: "clean", text } (aucun conflit), { status: "conflict", text } (text contient les marqueurs, à ne
+// jamais écrire dans un fichier du projet) ou { status: "error" } (git absent, interrompu ou en échec).
+// env : environnement du processus git (les tests y retirent git du PATH).
+export function mergeThreeWay(current, base, proposed, env = process.env) {
+  const dir = mkdtempSync(path.join(tmpdir(), "pb-merge-"));
+  try {
+    const [c, b, p] = ["projet", "base", "modele"].map((n) => path.join(dir, n));
+    writeFileSync(c, current);
+    writeFileSync(b, base);
+    writeFileSync(p, proposed);
+    const res = spawnSync("git", ["merge-file", "-p", "--diff3", "-L", "projet", "-L", "base", "-L", "modele", c, b, p], { encoding: "utf8", env });
+    if (res.error || res.status === null || res.status < 0 || res.status > 127) return { status: "error" };
+    const text = (res.stdout ?? "").replace(/\r\n/g, "\n");
+    return res.status === 0 ? { status: "clean", text } : { status: "conflict", text };
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
 // Blocs séparés par une ligne vide : un bloc n'est ajouté (avec ses commentaires) que s'il apporte au moins une règle absente.
 export function mergeLines(existing, generated) {
   const have = new Set(existing.split("\n").map((l) => l.trim()).filter(Boolean));

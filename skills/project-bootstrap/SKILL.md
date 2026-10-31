@@ -113,7 +113,8 @@ Propose ensuite de rédiger arc42 §1 à §3, puis d'ouvrir la première issue �
    - `created` : nouveaux fichiers du modèle, ajoutés après accord ;
    - `updated` : fichiers restés tels que générés, remplacés par le nouveau modèle ;
    - `merged` : fichiers partagés fusionnés ;
-   - `conflicts` : fichiers modifiés par le projet **dont le modèle a changé**, avec leur diff (jamais écrasés) ;
+   - `reconciled` : fichiers modifiés par le projet, fusionnés avec le nouveau modèle à partir de leur base (`.bootstrap/base/`) ; à relire, surtout `ci.yml` et les hooks ;
+   - `conflicts` : fichiers modifiés par le projet **dont le modèle a changé** et qui n'ont pas pu être fusionnés ; avec `--diff`, `diffs` contient la proposition de fusion avec marqueurs (jamais écrite dans le fichier) ; `baseInvalid` liste les bases altérées ;
    - `customized` : fichiers modifiés dont le modèle n'a pas changé (rien à faire) ;
    - `retired` : fichiers que le modèle ne produit plus (jamais supprimés automatiquement).
    Ces fichiers contiennent du code qui s'exécute (hooks, CI, `pre-push`) : l'utilisateur relit le diff avant d'appliquer.
