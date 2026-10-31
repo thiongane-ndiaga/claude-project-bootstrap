@@ -74,4 +74,12 @@ Suis `references/verification.md` : chaîne issue → spec → PR → CI rouge p
 
 ## Phase 4 — Suite
 
-Les ADR d'outillage générés sont au statut **Proposé** : l'utilisateur les relit, les passe à « Accepté », puis merge. Propose ensuite de rédiger arc42 §1 à §3, puis d'ouvrir la première issue « Décision d'architecture » pour la stack.
+Les ADR d'outillage générés sont au statut **Proposé** : l'utilisateur les relit, puis les passe à « Accepté ». Sur un dépôt dont `main` est protégée, l'acceptation passe par une issue et une PR (accord requis pour chaque action GitHub) :
+
+1. Issue de type `type:adr` (formulaire `architecture-decision`, ou son texte reproduit dans `--body-file`).
+2. Branche `docs/<n>-accept-tooling-adrs`.
+3. Dans chaque ADR, remplace le contenu de `## Statut` par « Accepté (issue #<n>) » : ARCH-003 demande d'y citer l'issue.
+4. `node .claude/hooks/quality-gate.mjs` renvoie 0.
+5. PR `docs(adr): accept tooling ADRs` avec `Closes #<n>`, puis squash merge. Un titre `docs:` ne déclenche pas de release.
+
+Propose ensuite de rédiger arc42 §1 à §3, puis d'ouvrir la première issue « Décision d'architecture » pour la stack.
