@@ -72,7 +72,7 @@ for (const c of cases) {
     check(`${c.name} : matrice CI selon la visibilité`, c.visibility === "public" ? ciOs.includes("windows-latest") : ciOs.length === 1 && ciOs[0] === "ubuntu-latest");
     check(`${c.name} : la CI lit .bootstrap/checks.json`, ci.includes("run-checks.mjs --print-os") && ci.includes("node .bootstrap/run-checks.mjs"));
     check(`${c.name} : ci.yml sans clé « env: » vide`, !/^env:[ \t]*\n(\s*\n)*(?=\S)(?!\s)/m.test(ci), "env: sans contenu (rejeté par GitHub)");
-    check(`${c.name} : actions épinglées sur un SHA`, [...ci.matchAll(/uses:\s*(\S+)/g)].every((m) => /@[0-9a-f]{40}$/.test(m[1])));
+    check(`${c.name} : actions épinglées sur un SHA`, [...ci.matchAll(/uses:\s*(\S+)/g)].every((m) => m[1].startsWith("./") || /@[0-9a-f]{40}$/.test(m[1])));
   }
   // relance : rien de créé, tout identique
   const again = run({ ...base, visibility: c.visibility, modules: c.modules }, [], out);
@@ -142,7 +142,7 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
     const r = run(cfg(["claude", "github"]));
     const m = manifestOf(r.out);
     check("manifeste : écrit avec la version du plugin et les modules", m.schema === 1 && m.plugin.version === pluginVersion && m.modules.includes("github") && m.modules.includes("core"));
-    check("manifeste : empreinte de chaque fichier généré", Object.entries(m.files).every(([rel, f]) => f.sha256 === sha(read(r.out, rel)) && f.status === (rel === ".bootstrap/checks.json" ? "kept" : "created")) && "CLAUDE.md" in m.files);
+    check("manifeste : empreinte de chaque fichier généré", Object.entries(m.files).every(([rel, f]) => f.sha256 === sha(read(r.out, rel)) && f.status === ([".bootstrap/checks.json", ".github/actions/project-setup/action.yml"].includes(rel) ? "kept" : "created")) && "CLAUDE.md" in m.files);
     check("manifeste : réponses de la phase 0 conservées", m.config.projectName === "Test" && m.config.versions.node === "24");
     const dry = run(cfg(["claude"]), ["--dry-run"]);
     check("manifeste : pas écrit en dry-run", !exists(dry.out, ".bootstrap/manifest.json"));
@@ -445,6 +445,70 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
   writeFileSync(path.join(ownOut, ".bootstrap", "checks.json"), "[]\n");
   const ownUp2 = runScript(own2.script, ["--update", "--target", ownOut]);
   check("owned : personnalisé, jamais touché", read(ownOut, ".bootstrap/checks.json") === "[]\n" &&ownUp2.res.status === 0);
+
+  // action de préparation propre au projet, appelée par ci.yml (#82)
+  {
+    const ACTION = ".github/actions/project-setup/action.yml";
+    const o1 = plugin("9.8.0");
+    const o2 = plugin("9.9.0", (skill) => {
+      const f = path.join(skill, "assets", "templates", ...ACTION.split("/"));
+      writeFileSync(f, readFileSync(f, "utf8") + "# modèle v9.9\n");
+    });
+    const out = path.join(mkdir("pb-setup-"), "repo");
+    runScript(o1.script, ["--config", withConfig(cfg(["claude", "github"])), "--target", out]);
+    const action = read(out, ACTION);
+    check("project-setup : action composite créée, étape bash, consignée kept", /using:\s*composite/.test(action) && /shell:\s*bash/.test(action) && JSON.parse(read(out, ".bootstrap/manifest.json")).files[ACTION].status === "kept");
+    const ci = read(out, ".github/workflows/ci.yml");
+    const at = (needle) => ci.indexOf(needle);
+    check("project-setup : ci.yml l'appelle après le checkout et avant les commandes du projet", at("uses: ./.github/actions/project-setup") > at("actions/checkout@") && at("uses: ./.github/actions/project-setup") < at("run-checks.mjs\n"), ci);
+    check("project-setup : noms des jobs inchangés (plan, checks, pr-title)", /^ {2}plan:/m.test(ci) && /^ {2}checks:/m.test(ci) && /^ {2}pr-title:/m.test(ci));
+    check("project-setup : docs/workflow.md désigne l'action", /project-setup/.test(read(out, "docs/workflow.md")));
+    const custom = action.replace("run: echo", "run: echo installe-mes-outils #");
+    writeFileSync(path.join(out, ...ACTION.split("/")), custom);
+    const upd = runScript(o2.script, ["--update", "--target", out]);
+    check("project-setup : personnalisée, jamais touchée ni signalée après changement du modèle", upd.res.status === 0 && read(out, ACTION) === custom && !upd.report.conflicts.includes(ACTION) && !upd.report.updated.includes(ACTION) && upd.report.kept.includes(ACTION), JSON.stringify(upd.report));
+    check(
+      "project-setup : modèle valide (name, description, composite, shell sur chaque étape run)",
+      /^name:\s*\S+/m.test(action) && /^description:\s*\S+/m.test(action) && /using:\s*composite/.test(action) && (action.match(/^\s+run:/gm) ?? []).length === (action.match(/^\s+shell:\s*bash/gm) ?? []).length && (action.match(/^\s+- name:/gm) ?? []).length === 1,
+    );
+    rmSync(path.join(out, ...ACTION.split("/")));
+    check("project-setup : recréée si le projet l'a supprimée", runScript(o2.script, ["--update", "--target", out]).report.created.includes(ACTION) && exists(out, ACTION));
+
+    // migration d'un projet généré avec l'ancien modèle (sans action, commentaire d'installation dans ci.yml)
+    const CI = ".github/workflows/ci.yml";
+    const oldComment = "      # Installer ici la chaîne d'outils de la stack choisie (langage, dépendances) avant les commandes du projet\n";
+    const legacy = plugin("9.7.0", (skill) => {
+      const f = path.join(skill, "assets", "templates", ...CI.split("/"));
+      writeFileSync(f, readFileSync(f, "utf8").replace(/ {6}# Chaîne d'outils[^\n]*\n {6}- name: Chaîne d'outils du projet[^\n]*\n {8}uses: \.\/\.github\/actions\/project-setup\n/, oldComment));
+      const mj = path.join(skill, "assets", "modules.json");
+      const catalog = JSON.parse(readFileSync(mj, "utf8"));
+      catalog.files = catalog.files.filter((e) => e.path !== ACTION);
+      writeFileSync(mj, JSON.stringify(catalog));
+    });
+    const old = () => {
+      const dir = path.join(mkdir("pb-setup-old-"), "repo");
+      runScript(legacy.script, ["--config", withConfig(cfg(["claude", "github"])), "--target", dir]);
+      return dir;
+    };
+    check("migration : l'ancien modèle n'a ni action ni appel", (() => { const d = old(); return !exists(d, ACTION) && !read(d, CI).includes("project-setup") && read(d, CI).includes(oldComment); })());
+    const intact = old();
+    const mig1 = runScript(o2.script, ["--update", "--target", intact]);
+    check("migration : ci.yml resté tel que généré -> updated, action créée kept, code 0", mig1.res.status === 0 && mig1.report.updated.includes(CI) && mig1.report.created.includes(ACTION) && JSON.parse(read(intact, ".bootstrap/manifest.json")).files[ACTION].status === "kept" && read(intact, CI).includes("uses: ./.github/actions/project-setup"), JSON.stringify(mig1.report));
+    const mig4 = runScript(o2.script, ["--update", "--target", intact]);
+    check("migration : deuxième mise à jour sans effet", mig4.res.status === 0 && mig4.report.created.length === 0 && mig4.report.updated.length === 0 && mig4.report.reconciled.length === 0 && mig4.report.conflicts.length === 0 && mig4.report.manifest === undefined, JSON.stringify(mig4.report));
+    const far = old();
+    writeFileSync(path.join(far, ...CI.split("/")), read(far, CI) + "# ajout du projet en fin de fichier\n");
+    const mig2 = runScript(o2.script, ["--update", "--target", far]);
+    check("migration : ci.yml modifié loin -> reconciled, action créée", mig2.res.status === 0 && mig2.report.reconciled.includes(CI) && mig2.report.created.includes(ACTION) && read(far, CI).includes("ajout du projet") && read(far, CI).includes("uses: ./.github/actions/project-setup"), JSON.stringify(mig2.report));
+    const near = old();
+    const nearCi = read(near, CI).replace(oldComment, "      - name: Installer mes outils\n        run: echo mes-outils\n");
+    writeFileSync(path.join(near, ...CI.split("/")), nearCi);
+    const mig3 = runScript(o2.script, ["--update", "--target", near]);
+    check("migration : ci.yml modifié à l'emplacement remplacé -> conflit, intact, action créée, code 3", mig3.res.status === 3 && mig3.report.conflicts.includes(CI) && read(near, CI) === nearCi && mig3.report.created.includes(ACTION), JSON.stringify(mig3.report));
+    const sans = path.join(mkdir("pb-setup2-"), "repo");
+    runScript(o1.script, ["--config", withConfig(cfg(["claude"])), "--target", sans]);
+    check("project-setup : absente sans le module github", !exists(sans, ACTION));
+  }
 
   // adoption d'un projet sans manifeste
   const adopted = path.join(mkdir("pb-adopt-"), "repo");

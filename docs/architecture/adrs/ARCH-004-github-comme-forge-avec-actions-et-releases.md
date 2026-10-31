@@ -23,7 +23,7 @@ Le projet a besoin de tout le cycle — ticket, suivi, revue, CI, livraison — 
 - **Projects** : colonnes Todo, In Progress, In Review, Done ; automatisations natives (auto-add, item closed et PR merged → Done).
 - **CI** (`.github/workflows/ci.yml`) : `ubuntu-latest` et `windows-latest` (gratuits en public).
 - **Release** (`.github/workflows/release.yml`) par `googleapis/release-please-action` (Apache-2.0).
-- Actions tierces open source uniquement, **épinglées sur un SHA de commit**.
+- Actions tierces open source uniquement, **épinglées sur un SHA de commit** (les actions locales `./…` exceptées).
 - Aucune automatisation qui consomme des tokens d'API en CI sans accord explicite.
 - La branche `main` est protégée : la CI est un check obligatoire avant merge.
 - Claude Code passe par la CLI `gh` : lecture pré-approuvée, écriture soumise à approbation.

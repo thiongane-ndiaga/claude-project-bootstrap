@@ -34,6 +34,11 @@ Un changement de **modèle** (`assets/templates/`), du **catalogue** (`assets/mo
 ## Fichiers propres au projet
 Une entrée du catalogue (`assets/modules.json`) marquée `"owned": true` est créée à la première génération, puis appartient au projet : jamais remplacée, fusionnée ni signalée en conflit, consignée `kept` dans le manifeste. C'est le cas de `.bootstrap/checks.json` (commandes de tests et systèmes de la CI). Pas besoin de la lister dans `keep`.
 
+## Chaîne d'outils de la CI : `project-setup`
+`ci.yml` est entièrement géré par le plugin. L'installation de la chaîne d'outils du projet (langage, dépendances) se place dans `.github/actions/project-setup/action.yml`, une action composite locale créée une seule fois (`owned`) et appelée par `ci.yml` avant les commandes de `.bootstrap/checks.json`. Les noms des jobs et des checks ne changent pas. L'action utilise `bash` (exécuteurs hébergés) ; une installation qui change la version de Node doit garder Node ≥ 20.19, nécessaire à `run-checks.mjs`.
+
+Mise à jour d'un projet généré avant ce point d'extension : l'action est créée ; `ci.yml` est remplacé s'il est resté tel que généré, fusionné à partir de sa base si la modification du projet est éloignée de l'ancien commentaire d'installation (rapporté `reconciled` : le relire), et sinon signalé en conflit. Pour résoudre le conflit : déplacer l'étape d'installation dans l'action, reprendre le `ci.yml` du modèle (ou `--adopt`), puis relancer `--update`.
+
 ## Migrations hors fichiers
 Ce qui n'est pas un fichier (réglage du dépôt, labels, protection de branche) se corrige par une migration dans `migrations/`, un module `.mjs` par migration, numéroté (`0001-…`) :
 

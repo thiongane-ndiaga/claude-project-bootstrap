@@ -23,12 +23,14 @@ export default {
       },
     },
     "actions-pinned-to-sha": {
-      description: "Chaque action est épinglée sur un SHA de commit complet",
+      description: "Chaque action externe est épinglée sur un SHA de commit complet (les actions locales ./… n'ont pas de SHA)",
       async check(ctx) {
-        for (const match of await ctx.grepFiles(/^\s*-?\s*uses:\s*(\S+)/, ".github/workflows/*.yml")) {
-          const ref = /uses:\s*(\S+)/.exec(match.content)?.[1] ?? "";
-          if (!/@[0-9a-f]{40}$/.test(ref)) {
-            ctx.report.violation({ message: `Action non épinglée sur un SHA : ${ref}`, file: match.file, line: match.line });
+        for (const glob of [".github/workflows/*.yml", ".github/actions/**/*.yml"]) {
+          for (const match of await ctx.grepFiles(/^\s*-?\s*uses:\s*(\S+)/, glob)) {
+            const ref = /uses:\s*(\S+)/.exec(match.content)?.[1] ?? "";
+            if (!ref.startsWith("./") && !/@[0-9a-f]{40}$/.test(ref)) {
+              ctx.report.violation({ message: `Action non épinglée sur un SHA : ${ref}`, file: match.file, line: match.line });
+            }
           }
         }
       },
