@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Choisit les versions à épingler : dernière version stable publiée depuis au moins N jours (défaut 14)
-// pour les CLI npm et les actions GitHub, avec le SHA de commit de chaque action.
+// Choisit les versions à épingler : dernière version stable des CLI npm, et dernière version stable des
+// actions GitHub publiée depuis au moins N jours (défaut 14), avec le SHA de commit de chaque action.
 // Usage : node resolve-versions.mjs [--min-age-days 14]  → JSON sur stdout, à fusionner dans bootstrap.json
 import { spawnSync } from "node:child_process";
 
@@ -19,9 +19,9 @@ function npmVersion(pkg) {
   const res = spawnSync(`npm view ${pkg} time --json`, { encoding: "utf8", shell: true });
   if (res.status !== 0) throw new Error(`npm view ${pkg} : ${res.stderr}`);
   const candidates = Object.entries(JSON.parse(res.stdout))
-    .filter(([v, t]) => stable(v) && Date.parse(t) <= cutoff)
+    .filter(([v]) => stable(v))
     .sort((a, b) => bySemverDesc(a[0], b[0]));
-  if (!candidates.length) throw new Error(`${pkg} : aucune version stable de plus de ${minAgeDays} jours`);
+  if (!candidates.length) throw new Error(`${pkg} : aucune version stable`);
   return { version: candidates[0][0], published: candidates[0][1] };
 }
 

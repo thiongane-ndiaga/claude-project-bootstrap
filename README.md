@@ -20,7 +20,7 @@ skills/project-bootstrap/
   assets/modules.json    catalogue des modules, dépendances, fichiers
   assets/templates/      modèles (blocs @@module:… et paramètres {{…}})
   scripts/scaffold.mjs   génère les fichiers, n'écrase jamais rien
-  scripts/resolve-versions.mjs  versions CLI et SHA d'actions publiés depuis ≥ 14 jours
+  scripts/resolve-versions.mjs  dernières versions CLI ; SHA d'actions publiés depuis ≥ 14 jours
   references/            pièges connus, configuration, GitHub, vérification
 tests/scaffold.test.mjs  tests du générateur (node tests/scaffold.test.mjs)
 ```

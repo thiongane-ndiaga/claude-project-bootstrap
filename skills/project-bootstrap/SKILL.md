@@ -45,7 +45,7 @@ Les agents générés dépendent des modules : `spec-reviewer` (openspec), `trac
 
 ## Phase 1 — Plan [STOP]
 
-1. `node scripts/resolve-versions.mjs` → versions des CLI et SHA des actions publiées depuis ≥ 14 jours.
+1. `node scripts/resolve-versions.mjs` → dernières versions stables des CLI ; SHA des actions publiées depuis ≥ 14 jours (le filtre d'ancienneté protège les actions épinglées, pas les CLI).
 2. Écris `bootstrap.json` dans le scratchpad (schéma : `references/bootstrap-config.md`).
 3. `node scripts/scaffold.mjs --config bootstrap.json --target <dépôt> --dry-run` : liste des fichiers créés et des conflits.
 4. Présente : modules et dépendances, fichiers à créer, conflits, commandes globales à approuver, actions GitHub prévues, ce qui restera manuel. **[STOP]**
