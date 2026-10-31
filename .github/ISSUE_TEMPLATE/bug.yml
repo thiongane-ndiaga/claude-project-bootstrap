@@ -1,0 +1,27 @@
+name: Bug
+description: Un comportement du plugin qui ne correspond pas à l'attendu
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Étapes de reproduction
+    validations:
+      required: true
+  - type: textarea
+    id: attendu
+    attributes:
+      label: Comportement attendu
+    validations:
+      required: true
+  - type: textarea
+    id: observe
+    attributes:
+      label: Comportement observé
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version du plugin, de Claude Code et système

@@ -8,7 +8,8 @@
     {
       "name": "project-bootstrap",
       "source": "./",
-      "description": "Recrée l'outillage et le workflow issue → release d'un projet piloté par Claude Code, module par module."
+      "description": "Recrée l'outillage et le workflow issue → release d'un projet piloté par Claude Code, module par module.",
+      "license": "MIT"
     }
   ]
 }

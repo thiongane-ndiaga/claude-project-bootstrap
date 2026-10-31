@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Vulnérabilité
+    url: https://github.com/thiongane-ndiaga/claude-project-bootstrap/security/advisories/new
+    about: Signalement privé, voir SECURITY.md

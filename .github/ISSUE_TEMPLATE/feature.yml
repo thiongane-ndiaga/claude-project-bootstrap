@@ -1,0 +1,19 @@
+name: Fonctionnalité
+description: Un besoin ou une amélioration du plugin
+title: "[feat] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: besoin
+    attributes:
+      label: Besoin
+    validations:
+      required: true
+  - type: textarea
+    id: piste
+    attributes:
+      label: Piste
+  - type: textarea
+    id: criteres
+    attributes:
+      label: Critères d'acceptation
