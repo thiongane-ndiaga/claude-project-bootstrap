@@ -14,20 +14,38 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  tests:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
+  # systèmes de la CI : « ciOs » de .bootstrap/checks.json
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      os: ${{ steps.os.outputs.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-      - name: Scaffold tests
-        run: node tests/scaffold.test.mjs
+      - id: os
+        run: echo "os=$(node .bootstrap/run-checks.mjs --print-os)" >> "$GITHUB_OUTPUT"
+
+  checks:
+    needs: plan
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJSON(needs.plan.outputs.os) }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      # Installer ici la chaîne d'outils de la stack choisie (langage, dépendances) avant les commandes du projet
+      - name: Commandes du projet (.bootstrap/checks.json)
+        run: node .bootstrap/run-checks.mjs
 
   pr-title:
     if: github.event_name == 'pull_request'
@@ -35,10 +53,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 24
       - name: Conventional Commit title
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
-        run: node skills/project-bootstrap/assets/templates/scripts/check-pr-title.mjs
+        run: node scripts/check-pr-title.mjs
