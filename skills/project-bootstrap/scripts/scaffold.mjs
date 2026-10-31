@@ -14,7 +14,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, mkdtempSync, readdi
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { mergeJson, mergeLines } from "./merge.mjs";
+import { mergeJson, mergeLines, mergeThreeWay } from "./merge.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const assets = path.join(here, "..", "assets");
@@ -93,6 +93,8 @@ if (args.update === true && !previous && !args.config) {
   process.exit(1);
 }
 const config = typeof args.config === "string" ? JSON.parse(readFileSync(args.config, "utf8")) : previous?.config;
+// date de génération figée au manifeste : sans elle, {{DATE}} change chaque jour et le modèle paraît modifié
+config.date = config.date ?? previous?.config?.date ?? new Date().toISOString().slice(0, 10);
 const dryRun = args["dry-run"] === true;
 
 // --- modules sélectionnés et dépendances ---
@@ -236,6 +238,8 @@ function diffText(currentPath, proposed) {
 //   identique au modèle               -> rien ;
 //   resté tel que généré              -> remplacé par le modèle actuel (l'empreinte du manifeste le prouve) ;
 //   modèle inchangé depuis la génération -> rien : la personnalisation du projet n'est pas un conflit (« customized ») ;
+//   base valide (.bootstrap/base)     -> fusion à trois voies base / projet / modèle (git merge-file) : sans conflit,
+//                                        écrite et consignée « reconciled » ; avec conflit, rien n'est écrit (proposition dans diffs) ;
 //   fichier partagé (merge)           -> fusionné avec l'existant ;
 //   --adopt                           -> repris tel quel, consigné « adopted » (le modèle actuel devient la référence) ;
 //   sinon                             -> conflit signalé (diff avec --diff), jamais d'écrasement.
@@ -251,10 +255,12 @@ const report = {
   updated: [],
   merged: [],
   identical: [],
+  reconciled: [],
   customized: [],
   adopted: [],
   kept: [],
   retired: [],
+  baseInvalid: [],
   conflicts: [],
 };
 const diffs = {};
@@ -263,11 +269,21 @@ const put = (dest, text) => {
   mkdirSync(path.dirname(dest), { recursive: true });
   writeFileSync(dest, text);
 };
+// base de fusion (ARCH-006) : ce que le plugin a produit, en LF, suffixe neutre pour les outils du projet.
+// Écrite seulement si elle manque ou diffère ; jamais pour un fichier fusionné par lignes/JSON, owned ou keep.
+const baseFile = (rel) => path.join(target, ".bootstrap", "base", ...rel.split("/")) + ".base";
+const ensureBase = (rel, content) => {
+  const file = baseFile(rel);
+  if (!existsSync(file) || readText(file) !== content) put(file, content);
+};
 
 for (const { rel, content, merge, owned } of outputs) {
   const dest = path.join(target, ...rel.split("/"));
   const generated = sha256(content);
   const before = previous?.files?.[rel];
+  const base = (text) => {
+    if (!merge && !owned) ensureBase(rel, text);
+  };
   if (keep.has(rel) || (owned && existsSync(dest))) {
     report.kept.push(rel);
     if (existsSync(dest)) files[rel] = { sha256: sha256(readText(dest)), generated, status: "kept" };
@@ -275,25 +291,50 @@ for (const { rel, content, merge, owned } of outputs) {
   }
   if (!existsSync(dest)) {
     put(dest, content);
+    base(content);
     report.created.push(rel);
     files[rel] = { sha256: generated, generated, status: owned ? "kept" : "created" };
     continue;
   }
   const current = readText(dest);
   if (current === content) {
+    base(content);
     report.identical.push(rel);
     files[rel] = { sha256: generated, generated, status: before?.status === "merged" ? "merged" : "created" };
     continue;
   }
   if (before?.status === "created" && sha256(current) === before.sha256) {
     put(dest, content);
+    base(content);
     report.updated.push(rel);
     files[rel] = { sha256: generated, generated, status: "created" };
     continue;
   }
   if (before && before.status !== "kept" && before.generated === generated) {
+    base(content);
     report.customized.push(rel);
     continue;
+  }
+  // fusion à trois voies : base valide (empreinte du manifeste), fichier modifié, modèle changé
+  let proposal = null;
+  if (before && before.status !== "kept" && !merge && !owned && existsSync(baseFile(rel))) {
+    const old = readText(baseFile(rel));
+    if (sha256(old) !== before.generated) report.baseInvalid.push(rel);
+    else {
+      const res = mergeThreeWay(current, old, content);
+      if (res.status === "clean") {
+        if (res.text === current) report.identical.push(rel);
+        else {
+          const raw = readFileSync(dest, "utf8");
+          put(dest, raw.includes("\r\n") ? res.text.replace(/\n/g, "\r\n") : res.text);
+          report.reconciled.push(rel);
+        }
+        base(content);
+        files[rel] = { sha256: sha256(res.text), generated, status: "reconciled" };
+        continue;
+      }
+      if (res.status === "conflict") proposal = res.text;
+    }
   }
   if (merge) {
     const merged = merge === "lines" ? mergeLines(current, content) : mergeJson(current, content);
@@ -308,12 +349,13 @@ for (const { rel, content, merge, owned } of outputs) {
     }
   }
   if (args.adopt === true) {
+    base(content);
     report.adopted.push(rel);
     files[rel] = { sha256: sha256(current), generated, status: "adopted" };
     continue;
   }
   report.conflicts.push(rel);
-  if (args.diff === true) diffs[rel] = diffText(dest, content);
+  if (args.diff === true) diffs[rel] = proposal ?? diffText(dest, content);
 }
 
 // fichiers suivis par le manifeste que le modèle ne produit plus : signalés, jamais supprimés

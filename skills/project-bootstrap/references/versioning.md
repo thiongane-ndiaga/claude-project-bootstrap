@@ -16,8 +16,20 @@ Un changement de **modèle** (`assets/templates/`), du **catalogue** (`assets/mo
 | fichier resté tel que généré | remplacé par le nouveau modèle |
 | fichier partagé (`.gitignore`, `.gitattributes`, `settings.json`, `.archgate/config.json`) | fusionné |
 | fichier modifié, modèle inchangé | laissé tel quel (`customized`) |
-| fichier modifié, modèle changé | **conflit** : diff proposé, jamais écrasé |
+| fichier modifié, modèle changé, base valide | **fusion à trois voies** : sans conflit, écrite et consignée `reconciled` ; avec conflit, rien n'est écrit et la proposition avec marqueurs est dans `diffs` (`--diff`) |
+| fichier modifié, modèle changé, base absente ou invalide | **conflit** : diff proposé, jamais écrasé (`baseInvalid` si la base est altérée) |
 | fichier que le modèle ne produit plus | signalé (`retired`), jamais supprimé |
+
+## Base et fusion à trois voies
+À chaque génération ou mise à jour, `scaffold.mjs` conserve dans `.bootstrap/base/<chemin>.base` ce que le modèle a produit (LF), pour les fichiers du modèle qui ne sont ni partagés (`.gitignore`, `settings.json`…), ni `owned`, ni `keep`. Le suffixe `.base` évite que les outils du projet traitent ces copies comme du code. La base est valide si son empreinte, après normalisation en LF, égale `generated` du manifeste ; sinon elle est ignorée et signalée (`baseInvalid`).
+
+- Fusion par `git merge-file` (git est déjà requis pour les diffs). Les fins de ligne CRLF du fichier du projet sont restituées.
+- Un fichier fusionné prend le statut `reconciled` : il n'est jamais remplacé par le modèle aux mises à jour suivantes, mais refusionné.
+- Jamais de marqueurs de conflit écrits dans un fichier du projet.
+- Une fusion sans conflit peut produire un fichier invalide (clé YAML en double, étape ajoutée des deux côtés) : relire `ci.yml` et les hooks avant de commiter.
+- Un fichier aux fins de ligne mélangées est réécrit entièrement en CRLF.
+- La date de génération est enregistrée dans `config.date` : un manifeste antérieur sans date reçoit la date du jour à la première mise à jour, ce qui peut changer une fois la date écrite dans ARCH-004 si ce fichier est resté tel que généré.
+- Les bases de fichiers que le modèle ne produit plus restent en place (rien n'est supprimé).
 
 ## Fichiers propres au projet
 Une entrée du catalogue (`assets/modules.json`) marquée `"owned": true` est créée à la première génération, puis appartient au projet : jamais remplacée, fusionnée ni signalée en conflit, consignée `kept` dans le manifeste. C'est le cas de `.bootstrap/checks.json` (commandes de tests et systèmes de la CI). Pas besoin de la lister dans `keep`.
@@ -37,7 +49,6 @@ export function plan({ gh, repo, target, manifest }) {
 `scripts/migrate.mjs` simule par défaut ; `--apply` exécute les actions et consigne l'identifiant dans le manifeste. Toute action visible hors de la machine demande l'accord de l'utilisateur, comme dans le reste du skill.
 
 ## Pas encore géré
-- Fusion à trois voies (la version de base se régénérerait depuis l'étiquette git du plugin enregistré).
 - Zones gérées délimitées par des marqueurs dans `CLAUDE.md`, `docs/workflow.md` et `ci.yml`.
 - Reconnaissance automatique des fichiers non modifiés d'une version antérieure au manifeste (table d'empreintes par version).
 - Retrait d'un module.

@@ -2,7 +2,7 @@
 // Tests de scaffold.mjs sur plusieurs combinaisons de modules. Usage : node tests/scaffold.test.mjs
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { cpSync, mkdirSync, mkdtempSync, writeFileSync, readFileSync, readdirSync, statSync, rmSync } from "node:fs";
+import { chmodSync, cpSync, mkdirSync, mkdtempSync, writeFileSync, readFileSync, readdirSync, statSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -249,8 +249,8 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
     mutate(path.join(dir, "skills", "project-bootstrap"));
     return { dir, script: path.join(dir, "skills", "project-bootstrap", "scripts", "scaffold.mjs") };
   };
-  const runScript = (script, args) => {
-    const res = spawnSync(process.execPath, [script, ...args], { encoding: "utf8" });
+  const runScript = (script, args, env = process.env) => {
+    const res = spawnSync(process.execPath, [script, ...args], { encoding: "utf8", env });
     return { res, report: res.status === 0 || res.status === 3 ? JSON.parse(res.stdout) : null };
   };
   const withConfig = (config) => {
@@ -298,6 +298,137 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
   const after = runScript(v2.script, ["--update", "--target", out]);
   check("--adopt : fichier adopté plus signalé (modèle inchangé)", after.res.status === 0 && after.report.customized.includes("CLAUDE.md") && after.report.manifest === undefined);
   check("--update sans manifeste refusé", runScript(v2.script, ["--update", "--target", path.join(mkdir("pb-none-"), "x")]).res.status === 1);
+
+  // fusion à trois voies avec base conservée dans le projet (#81, ARCH-006)
+  {
+    const WF = "docs/workflow.md";
+    const baseOf = (rel) => ".bootstrap/base/" + rel + ".base";
+    const appendTo = (rel, text) => (skill) => {
+      const f = path.join(skill, "assets", "templates", ...rel.split("/"));
+      writeFileSync(f, readFileSync(f, "utf8") + text);
+    };
+    const p1 = plugin("9.4.0");
+    const p2 = plugin("9.5.0", appendTo(WF, "\nNouvelle section v9.5.\n"));
+    const p3 = plugin("9.6.0", (skill) => {
+      appendTo(WF, "\nNouvelle section v9.5.\n")(skill);
+      appendTo(WF, "\nNouvelle section v9.6.\n")(skill);
+    });
+    const fresh = (modules = ["claude", "github"]) => {
+      const out = path.join(mkdir("pb-3w-"), "repo");
+      runScript(p1.script, ["--config", withConfig(cfg(modules)), "--target", out]);
+      return out;
+    };
+    const editTop = (out, eol = "\n") => {
+      const lines = read(out, WF).split("\n");
+      lines[0] = "# Mon workflow";
+      writeFileSync(path.join(out, ...WF.split("/")), lines.join(eol));
+    };
+
+    // bases écrites à la génération : fichiers du modèle seulement, suffixe .base, jamais pour les fichiers partagés ou owned
+    const out = fresh();
+    check(
+      "base : copie écrite pour un fichier du modèle, suffixe .base, contenu du modèle",
+      exists(out, baseOf(WF)) && read(out, baseOf(WF)) === read(out, WF) && exists(out, baseOf("CLAUDE.md")),
+    );
+    check("base : aucune pour un fichier partagé ni pour un fichier owned", !exists(out, baseOf(".gitignore")) && !exists(out, baseOf(".claude/settings.json")) && !exists(out, baseOf(".bootstrap/checks.json")));
+    check("base : aucun fichier de .bootstrap/base sans le suffixe .base", (() => {
+      const walk = (d) => readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(d, e.name)) : [e.name]));
+      return walk(path.join(out, ".bootstrap", "base")).every((n) => n.endsWith(".base"));
+    })());
+
+    // modifications éloignées : fusion sans conflit
+    editTop(out);
+    const dry = runScript(p2.script, ["--update", "--target", out, "--dry-run"]);
+    check("fusion : --dry-run rapporte reconciled sans rien écrire", dry.res.status === 0 && dry.report.reconciled.includes(WF) && read(out, WF).startsWith("# Mon workflow") && !/v9\.5/.test(read(out, WF)) && !/v9\.5/.test(read(out, baseOf(WF))));
+    const up = runScript(p2.script, ["--update", "--target", out]);
+    check("fusion : ajout du projet et changement du modèle conservés, code 0", up.res.status === 0 && up.report.reconciled.includes(WF) && up.report.conflicts.length === 0 && read(out, WF).startsWith("# Mon workflow") && /Nouvelle section v9\.5/.test(read(out, WF)), JSON.stringify(up.report));
+    check("fusion : statut reconciled, base = nouveau modèle", JSON.parse(read(out, ".bootstrap/manifest.json")).files[WF].status === "reconciled" && /v9\.5/.test(read(out, baseOf(WF))));
+    // idempotence
+    const again = runScript(p2.script, ["--update", "--target", out]);
+    check("fusion : idempotente (fichier customized, rien de réécrit, manifeste intact)", again.res.status === 0 && again.report.customized.includes(WF) && again.report.reconciled.length === 0 && again.report.created.length === 0 && again.report.updated.length === 0 && again.report.manifest === undefined, JSON.stringify(again.report));
+    // persistance : nouveau changement du modèle, la personnalisation survit
+    const up3 = runScript(p3.script, ["--update", "--target", out]);
+    check("fusion : seconde mise à jour refusionne, jamais de remplacement", up3.res.status === 0 && up3.report.reconciled.includes(WF) && read(out, WF).startsWith("# Mon workflow") && /v9\.6/.test(read(out, WF)));
+
+    // modifications voisines : conflit, fichier intact, proposition avec marqueurs
+    const near = fresh();
+    const last = read(near, WF).replace(/\n+$/, "") + " (projet)\n";
+    writeFileSync(path.join(near, ...WF.split("/")), last);
+    const conflict = runScript(p2.script, ["--update", "--target", near, "--diff"]);
+    check("conflit : code 3, fichier intact, aucun marqueur écrit", conflict.res.status === 3 && conflict.report.conflicts.includes(WF) && read(near, WF) === last && !/<<<<<<</.test(read(near, WF)));
+    check("conflit : proposition avec marqueurs sous diffs, base conservée", /<<<<<<< projet/.test(conflict.report.diffs?.[WF] ?? "") && !/v9\.5/.test(read(near, baseOf(WF))));
+    const adoptC = runScript(p2.script, ["--update", "--target", near, "--adopt"]);
+    check("conflit + --adopt : adopté, code 0, base = nouveau modèle", adoptC.res.status === 0 && adoptC.report.adopted.includes(WF) && read(near, WF) === last && /v9\.5/.test(read(near, baseOf(WF))), JSON.stringify(adoptC.report));
+
+    // --adopt n'empêche pas une fusion propre
+    const both = fresh();
+    editTop(both);
+    const adoptClean = runScript(p2.script, ["--update", "--target", both, "--adopt"]);
+    check("--adopt : une fusion propre l'emporte (non adopté)", adoptClean.res.status === 0 && adoptClean.report.reconciled.includes(WF) && !adoptClean.report.adopted.includes(WF));
+
+    // le projet contient déjà le changement du modèle : rien à écrire
+    const same = fresh();
+    writeFileSync(path.join(same, ...WF.split("/")), read(same, WF) + "\nNouvelle section v9.5.\n");
+    const sameUp = runScript(p2.script, ["--update", "--target", same]);
+    check("fusion identique au fichier : non réécrit, rapporté identical, base à jour", sameUp.res.status === 0 && sameUp.report.identical.includes(WF) && !sameUp.report.reconciled.includes(WF) && /v9\.5/.test(read(same, baseOf(WF))), JSON.stringify(sameUp.report));
+
+    // CRLF restauré
+    const crlf = fresh();
+    editTop(crlf, "\r\n");
+    const crlfUp = runScript(p2.script, ["--update", "--target", crlf]);
+    const crlfText = readFileSync(path.join(crlf, ...WF.split("/")), "utf8");
+    check("fusion : fins de ligne CRLF du fichier restaurées", crlfUp.res.status === 0 && crlfUp.report.reconciled.includes(WF) && crlfText.includes("\r\n") && !/[^\r]\n/.test(crlfText), JSON.stringify(crlfUp.report));
+    // base relue en CRLF : toujours valide
+    const crlfBase = fresh();
+    editTop(crlfBase);
+    const bf = path.join(crlfBase, ...baseOf(WF).split("/"));
+    writeFileSync(bf, readFileSync(bf, "utf8").replace(/\n/g, "\r\n"));
+    check("base réécrite en CRLF : reste valide", runScript(p2.script, ["--update", "--target", crlfBase]).report.reconciled.includes(WF));
+
+    // replis : base absente, base altérée, git indisponible
+    const noBase = fresh();
+    editTop(noBase);
+    rmSync(path.join(noBase, ...baseOf(WF).split("/")));
+    const nb = runScript(p2.script, ["--update", "--target", noBase]);
+    check("repli : base absente -> conflit, fichier intact, pas signalée invalide", nb.res.status === 3 && nb.report.conflicts.includes(WF) && !nb.report.baseInvalid.includes(WF));
+    const badBase = fresh();
+    editTop(badBase);
+    writeFileSync(path.join(badBase, ...baseOf(WF).split("/")), "base altérée\n");
+    const bb = runScript(p2.script, ["--update", "--target", badBase]);
+    check("repli : base altérée -> conflit et baseInvalid", bb.res.status === 3 && bb.report.conflicts.includes(WF) && bb.report.baseInvalid.includes(WF));
+    const noGit = fresh();
+    editTop(noGit);
+    const noGitUp = runScript(p2.script, ["--update", "--target", noGit], { ...process.env, PATH: "", Path: "" });
+    check("repli : git indisponible -> conflit, fichier intact", noGitUp.res.status === 3 && noGitUp.report.conflicts.includes(WF) && read(noGit, WF).startsWith("# Mon workflow") && !/v9\.5/.test(read(noGit, WF)), noGitUp.res.stderr);
+
+    // fichier partagé : le mécanisme existant garde la priorité (pas de base, fusion par lignes)
+    const shared = fresh();
+    writeFileSync(path.join(shared, ".gitignore"), "mon-dossier/\n");
+    const sharedUp = runScript(p2.script, ["--update", "--target", shared]);
+    check("fichier partagé : fusion par lignes inchangée, aucune base", sharedUp.res.status === 0 && read(shared, ".gitignore").includes("mon-dossier/") && !exists(shared, baseOf(".gitignore")));
+
+    // date figée au manifeste : conservée avec --update --config sans date
+    const dated = fresh();
+    const mf = path.join(dated, ".bootstrap", "manifest.json");
+    const m0 = JSON.parse(readFileSync(mf, "utf8"));
+    check("date : enregistrée au manifeste à la première génération", /^\d{4}-\d{2}-\d{2}$/.test(m0.config.date ?? ""));
+    m0.config.date = "2020-01-02";
+    writeFileSync(mf, JSON.stringify(m0, null, 2) + "\n");
+    runScript(p1.script, ["--update", "--target", dated, "--config", withConfig(cfg(["claude", "github"]))]);
+    check("date : conservée par --update --config sans date", JSON.parse(readFileSync(mf, "utf8")).config.date === "2020-01-02");
+
+    // bit exécutable conservé (POSIX)
+    if (process.platform !== "win32") {
+      const hooks = path.join(mkdir("pb-3w-x-"), "repo");
+      const p4 = plugin("9.7.0", appendTo(".githooks/pre-push", "\n# hook v9.7\n"));
+      runScript(p1.script, ["--config", withConfig(cfg(["claude", "githooks"])), "--target", hooks]);
+      const hook = path.join(hooks, ".githooks", "pre-push");
+      writeFileSync(hook, "# hook du projet\n" + readFileSync(hook, "utf8"));
+      chmodSync(hook, 0o755);
+      const hookUp = runScript(p4.script, ["--update", "--target", hooks]);
+      check("fusion : bit exécutable de pre-push conservé", hookUp.res.status === 0 && hookUp.report.reconciled.includes(".githooks/pre-push") && (statSync(hook).mode & 0o111) !== 0, JSON.stringify(hookUp.report));
+    }
+  }
 
   // fichier propre au projet (owned) : créé une fois, jamais touché ensuite, même si le modèle change
   const own1 = plugin("9.2.0");
