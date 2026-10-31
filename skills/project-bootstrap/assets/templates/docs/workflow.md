@@ -89,6 +89,19 @@ Avant 1.0.0 : `feat` → patch, `feat!` → minor.
 | PR de release-please | la CI attend une approbation (*Approve and run*) car déclenchée par le bot `github-actions` | — |
 @@end
 
+### Commandes du projet (tests, linter, types, build)
+
+Les commandes propres à la stack se déclarent **à un seul endroit**, `.bootstrap/checks.json`, et sont exécutées par `.bootstrap/run-checks.mjs`, lu par le contrôle qualité local (donc le hook `TaskCompleted` et le `pre-push`) et par la CI :
+
+```json
+{ "name": "tests", "command": "npm test", "os": ["linux", "windows", "macos"], "blocking": true }
+```
+
+- `os` (facultatif) restreint la commande à certains systèmes ; `blocking: false` la signale sans bloquer.
+- `ciOs` fixe les systèmes de la matrice de la CI (noms de runners GitHub).
+- Pour les commandes qui exigent une chaîne d'outils (langage, dépendances), ajouter l'étape d'installation dans `ci.yml`, avant l'étape « Commandes du projet ».
+- Ce fichier est propre au projet : une mise à jour du plugin ne doit pas l'écraser.
+
 @@module:github
 Claude Code utilise `gh` en lecture sans demander ; `gh issue create`, `gh pr create`, `gh pr merge`, `gh release create` demandent toujours une approbation.
 @@end
