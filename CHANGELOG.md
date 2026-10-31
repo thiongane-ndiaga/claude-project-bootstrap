@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.3](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.2...v0.1.3) (2026-10-31)
+
+
+### Features
+
+* **scaffold:** manifest and existing-project mode ([#71](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/71)) ([7c54278](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/7c54278e228f4695fd046a3234058f32a5f7a67e)), closes [#27](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/27)
+* **scaffold:** refuse incompatible modules via a conflicts field ([#70](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/70)) ([caad2d6](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/caad2d63c3f09da290ce8b19c7d256733c905b0f)), closes [#26](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/26)
+* **scaffold:** update bootstrapped projects across plugin versions ([#74](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/74)) ([0ad1ab5](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/0ad1ab52a74b01dd34af86abe7308553706a3563)), closes [#44](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/44)
+
 ## [0.1.2](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.1...v0.1.2) (2026-10-31)
 
 
