@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(git status *)",
+      "PowerShell(git status *)",
+      "Bash(git diff *)",
+      "PowerShell(git diff *)",
+      "Bash(git log *)",
+      "PowerShell(git log *)",
+      "Bash(git show *)",
+      "PowerShell(git show *)",
+      "Bash(git branch --show-current)",
+      "PowerShell(git branch --show-current)",
+      "Bash(git rev-parse *)",
+      "PowerShell(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "PowerShell(git ls-files *)",
+      "Bash(node .claude/hooks/quality-gate.mjs)",
+      "PowerShell(node .claude/hooks/quality-gate.mjs)",
+      "Bash(gh auth status *)",
+      "PowerShell(gh auth status *)",
+      "Bash(gh repo view *)",
+      "PowerShell(gh repo view *)",
+      "Bash(gh issue list *)",
+      "PowerShell(gh issue list *)",
+      "Bash(gh issue view *)",
+      "PowerShell(gh issue view *)",
+      "Bash(gh pr list *)",
+      "PowerShell(gh pr list *)",
+      "Bash(gh pr view *)",
+      "PowerShell(gh pr view *)",
+      "Bash(gh pr diff *)",
+      "PowerShell(gh pr diff *)",
+      "Bash(gh pr checks *)",
+      "PowerShell(gh pr checks *)",
+      "Bash(gh run list *)",
+      "PowerShell(gh run list *)",
+      "Bash(gh run view *)",
+      "PowerShell(gh run view *)",
+      "Bash(gh release list *)",
+      "PowerShell(gh release list *)",
+      "Bash(gh release view *)",
+      "PowerShell(gh release view *)",
+      "Bash(gh label list *)",
+      "PowerShell(gh label list *)"
+    ],
+    "ask": []
+  },
+  "hooks": {
+    "TaskCompleted": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/quality-gate.mjs"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

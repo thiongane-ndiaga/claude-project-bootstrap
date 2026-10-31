@@ -2,3 +2,8 @@ node_modules/
 *-workspace/
 .DS_Store
 Thumbs.db
+
+# Claude Code : réglages et mémoire locaux à la machine
+.claude/settings.local.json
+.claude/agent-memory-local/
+CLAUDE.local.md
