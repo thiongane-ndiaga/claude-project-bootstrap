@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.4](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.3...v0.1.4) (2026-10-31)
+
+
+### Features
+
+* **scaffold:** owned files created once and never updated ([#75](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/75)) ([#77](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/77)) ([13a6479](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/13a647969fda0fec303a9b978e779fcedac47e5e))
+* **scaffold:** three-way merge of modified generated files with a stored base ([#86](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/86)) ([cdab639](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/cdab63954b29303309a9a0c7231d49477a8e8f3c))
+* **templates:** project-setup action owned by the project, called by ci.yml ([#87](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/87)) ([5f34780](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/5f34780f811a32d87b3f8243c60ce36cfe5e4680))
+
 ## [0.1.3](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.2...v0.1.3) (2026-10-31)
 
 
