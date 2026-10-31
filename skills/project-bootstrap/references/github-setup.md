@@ -3,7 +3,7 @@
 Chaque commande écrit sur GitHub : demande l'accord avant. `<owner>` est le login de l'utilisateur (`gh api user --jq .login`), `<repo>` le nom du dépôt.
 
 1. **Dépôt** : `gh repo create <repo> --private|--public --source . --remote origin --push`. Le hook pre-push s'exécute au passage.
-2. **Labels** : `node scripts/sync-labels.mjs` (lit `.github/labels.json`, `--force` = idempotent). Les labels par défaut de GitHub restent ; ne les supprime qu'avec accord.
+2. **Labels** : `node scripts/sync-labels.mjs` (lit `.github/labels.json`). Il liste d'abord les labels du dépôt (noms comparés sans tenir compte de la casse) : les labels natifs marqués `"native": true` (`bug`, `enhancement`) ne sont créés que s'ils manquent et jamais modifiés ; les labels du plugin (`adr`, `chore`) sont créés ou mis à jour. Si la lecture des labels échoue, rien n'est créé. Les labels par défaut de GitHub restent ; ne les supprime qu'avec accord. Un `labels.json` de projet qui garde d'anciens `type:*` les fera recréer : migre d'abord (`migrate.mjs`, migration `0002-native-labels`) puis retire-les du fichier.
 3. **Actions et release-please** (module release) :
    `gh api -X PUT repos/<owner>/<repo>/actions/permissions/workflow -f default_workflow_permissions=read -F can_approve_pull_request_reviews=true`
 4. **Project** (module projects ; scope `project` requis, sinon `gh auth refresh -s project`) :

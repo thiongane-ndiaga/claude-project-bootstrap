@@ -82,7 +82,9 @@ Un commit Conventional Commits par étape (anglais). Demande l'accord avant chaq
 7. **githooks** : `git config core.hooksPath .githooks` et `git update-index --chmod=+x .githooks/pre-push` après le premier `git add`.
 8. **agent-teams** : `"env": {"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"}` dans `.claude/settings.local.json` (jamais dans `settings.json` partagé : le flag change la délégation ordinaire).
 9. **Contrôle** : `node .claude/hooks/quality-gate.mjs` renvoie 0.
-10. **GitHub** (accord pour chaque action ; voir `references/github-setup.md`) : création du dépôt et push, labels, permissions Actions pour release-please, Project, protection de branche si public. Si un classificateur de permissions bloque une commande, ne la contourne pas : donne-la à l'utilisateur pour qu'il la lance avec `!`.
+10. **GitHub** (accord pour chaque action ; voir `references/github-setup.md`) : création du dépôt et push, labels (`node scripts/sync-labels.mjs` : **réutiliser avant de créer**, voir ci-dessous), permissions Actions pour release-please, Project, protection de branche si public. Si un classificateur de permissions bloque une commande, ne la contourne pas : donne-la à l'utilisateur pour qu'il la lance avec `!`.
+
+    **Réutiliser avant de créer** (labels, statuts, types de ticket, colonnes — GitHub aujourd'hui, tout module de forge ou de suivi demain) : liste d'abord ce que l'outil fournit déjà, réutilise l'existant quand le sens correspond (`bug`, `enhancement`, `documentation`…), ne crée que ce qui manque et signale-le avec les autres actions visibles. Pour GitHub, `labels.json` marque les labels natifs (`"native": true`) : `sync-labels.mjs` ne les crée que s'ils manquent et ne les modifie jamais ; il met à jour les seuls labels du plugin (`adr`, `chore`).
 11. Dis à l'utilisateur de **redémarrer Claude Code** dans le dépôt (depuis un terminal ouvert après l'installation de gh) : agents et plugins ne se chargent qu'au démarrage.
 
 **[STOP]** Journal concis (commande → résultat), écarts par rapport au plan.
@@ -95,7 +97,7 @@ Suis `references/verification.md` : chaîne issue → spec → PR → CI rouge p
 
 Les ADR d'outillage générés sont au statut **Proposé** : l'utilisateur les relit, puis les passe à « Accepté ». Sur un dépôt dont `main` est protégée, l'acceptation passe par une issue et une PR (accord requis pour chaque action GitHub) :
 
-1. Issue de type `type:adr` (formulaire `architecture-decision`, ou son texte reproduit dans `--body-file`).
+1. Issue avec le label `adr` (formulaire `architecture-decision`, ou son texte reproduit dans `--body-file`).
 2. Branche `docs/<n>-accept-tooling-adrs`.
 3. Dans chaque ADR, remplace le contenu de `## Statut` par « Accepté (issue #<n>) » : ARCH-003 demande d'y citer l'issue.
 4. `node .claude/hooks/quality-gate.mjs` renvoie 0.
@@ -119,7 +121,7 @@ Propose ensuite de rédiger arc42 §1 à §3, puis d'ouvrir la première issue �
    - `retired` : fichiers que le modèle ne produit plus (jamais supprimés automatiquement).
    Ces fichiers contiennent du code qui s'exécute (hooks, CI, `pre-push`) : l'utilisateur relit le diff avant d'appliquer.
 4. **Appliquer** : même commande sans `--dry-run`, un commit pour la mise à jour (`chore: update project-bootstrap to <version>`), le manifeste inclus. Pour chaque conflit, l'utilisateur fusionne à la main le nouveau modèle dans son fichier ; relance ensuite avec `--update --adopt` pour le consigner (il ne sera plus signalé tant que le modèle ne change pas).
-5. **Migrations hors fichiers** (réglages côté forge) : `node scripts/migrate.mjs --target <dépôt>` simule et liste les actions ; **accord explicite** de l'utilisateur, puis `--apply`. Chaque migration vérifie l'état réel et ne propose rien s'il est déjà conforme ; celles appliquées sont consignées dans le manifeste.
+5. **Migrations hors fichiers** (réglages côté forge) : `node scripts/migrate.mjs --target <dépôt>` simule et liste les actions ; **accord explicite** de l'utilisateur, puis `--apply`. Chaque migration vérifie l'état réel et ne propose rien s'il est déjà conforme ; celles appliquées sont consignées dans le manifeste. Une migration peut aussi renvoyer des `notes` (informations, jamais exécutées) : présente-les à l'utilisateur avec la simulation. Une migration qui supprime (par exemple `0002-native-labels` : anciens labels `type:*` remplacés par `bug`, `enhancement`, `adr`, `chore`) le dit clairement dans la simulation ; la suppression d'un label le retire de toutes les issues et PR et ne se défait pas.
 6. **Contrôle** : `node .claude/hooks/quality-gate.mjs` renvoie 0, puis PR comme d'habitude. Relancer la mise à jour sur un projet à jour ne change rien.
 
 **Projet sans manifeste** : `node scripts/scaffold.mjs --config bootstrap.json --target <dépôt> --adopt` crée les fichiers absents, fusionne les fichiers partagés, consigne comme `adopted` chaque fichier existant qui diffère du modèle (traité comme personnalisé) et écrit le manifeste. La reconnaissance automatique des fichiers non modifiés d'une version antérieure du plugin n'existe pas : tout fichier qui diffère est adopté tel quel.
