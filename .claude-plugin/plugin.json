@@ -5,6 +5,15 @@
   "author": {
     "name": "Ndiaga Thiongane"
   },
+  "license": "MIT",
   "repository": "https://github.com/thiongane-ndiaga/claude-project-bootstrap",
-  "keywords": ["bootstrap", "openspec", "archgate", "arc42", "adr", "github", "workflow"]
+  "keywords": [
+    "bootstrap",
+    "openspec",
+    "archgate",
+    "arc42",
+    "adr",
+    "github",
+    "workflow"
+  ]
 }
