@@ -13,8 +13,6 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-
 jobs:
   # systèmes de la CI : « ciOs » de .bootstrap/checks.json
   plan:
