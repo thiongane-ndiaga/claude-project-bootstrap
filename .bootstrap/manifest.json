@@ -63,7 +63,8 @@
       ".github/labels.json",
       "scripts/sync-labels.mjs",
       ".bootstrap/checks.json"
-    ]
+    ],
+    "date": "2026-10-31"
   },
   "files": {
     ".archgate/config.json": {
@@ -131,6 +132,11 @@
       "generated": "236a7aa59cce23c34891b7bf99896a2c992733e343e2f6ab9984e8aa3f719a4c",
       "status": "created"
     },
+    ".github/actions/project-setup/action.yml": {
+      "sha256": "e2f60cae813321c66b10f5a98484d3b119ec4505c0e92737129041802c73e40e",
+      "generated": "e2f60cae813321c66b10f5a98484d3b119ec4505c0e92737129041802c73e40e",
+      "status": "kept"
+    },
     ".github/ISSUE_TEMPLATE/architecture-decision.yml": {
       "sha256": "9d167a5936e0ef1ef1922febd4bf8f4a70175b920beb986daac5d3486d6ec943",
       "generated": "9d167a5936e0ef1ef1922febd4bf8f4a70175b920beb986daac5d3486d6ec943",
@@ -157,8 +163,8 @@
       "status": "adopted"
     },
     ".github/workflows/ci.yml": {
-      "sha256": "cd65b566cfa39fb7867c9ae2355580322dbe5257cbdd6f5a28d84fd583112ae8",
-      "generated": "cd65b566cfa39fb7867c9ae2355580322dbe5257cbdd6f5a28d84fd583112ae8",
+      "sha256": "b68310887aa3079b830fa60a7bd7c233f966879958aed019ee0cab13df1064a5",
+      "generated": "b68310887aa3079b830fa60a7bd7c233f966879958aed019ee0cab13df1064a5",
       "status": "created"
     },
     ".github/workflows/release.yml": {
@@ -207,13 +213,13 @@
       "status": "created"
     },
     "docs/architecture/adrs/ARCH-004-github-comme-forge-avec-actions-et-releases.md": {
-      "sha256": "03b40f1030a868cd190bacee1f34109a422156c75c7f00ca79b9e38d175a1c2f",
-      "generated": "03b40f1030a868cd190bacee1f34109a422156c75c7f00ca79b9e38d175a1c2f",
+      "sha256": "38026d669a1b0f73939a96ab9cfd0ec02fbbdcb98c01c06d89d50eb23fc3ddbc",
+      "generated": "38026d669a1b0f73939a96ab9cfd0ec02fbbdcb98c01c06d89d50eb23fc3ddbc",
       "status": "created"
     },
     "docs/architecture/adrs/ARCH-004-github-comme-forge-avec-actions-et-releases.rules.ts": {
-      "sha256": "c16143ffb8bd83168e6a8dd6005d9bc3a4a6bb4d0551988800d28ac6d82faeae",
-      "generated": "c16143ffb8bd83168e6a8dd6005d9bc3a4a6bb4d0551988800d28ac6d82faeae",
+      "sha256": "c75cc4829c87a5c5a2e81db9b5b38cb514ea0d3f4d00944d6f49ae3b543202e9",
+      "generated": "c75cc4829c87a5c5a2e81db9b5b38cb514ea0d3f4d00944d6f49ae3b543202e9",
       "status": "created"
     },
     "docs/architecture/adrs/ARCH-005-conventions-de-branches-commits-et-versionnement.md": {
@@ -282,8 +288,8 @@
       "status": "created"
     },
     "docs/workflow.md": {
-      "sha256": "f01c5e28cf613712cac7391d5c68c9d319551c26f42c1877d0f11f60c112c2ee",
-      "generated": "7e763021ad41dcbc5f8c26e8d3009bbc206776033897ee999a534ac0cdb3e792",
+      "sha256": "0b956f19e1827f645dd91dd83aed32ba52de064ac40fc97ea66c76afc35aaf81",
+      "generated": "d4929ac098d7256efaf3b122b7576293df79f40a079ebca2fbcf7b5112f3fb10",
       "status": "adopted"
     },
     "release-please-config.json": {

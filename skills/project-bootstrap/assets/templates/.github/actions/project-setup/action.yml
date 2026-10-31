@@ -1,0 +1,10 @@
+name: project-setup
+description: Chaîne d'outils du projet (langage, dépendances), installée avant les commandes de .bootstrap/checks.json. Fichier propre au projet.
+# Ce fichier appartient au projet : le plugin le crée une fois, puis ne le modifie plus.
+# Ajouter ici, sous « steps », les étapes d'installation de la stack (uses: ... ou run: ...).
+runs:
+  using: composite
+  steps:
+    - name: Aucune chaîne d'outils à installer
+      shell: bash
+      run: echo "project-setup - aucune chaîne d'outils configurée."

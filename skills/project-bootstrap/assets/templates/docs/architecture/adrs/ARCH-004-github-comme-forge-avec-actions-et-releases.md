@@ -33,7 +33,7 @@ Le projet a besoin de tout le cycle — ticket, suivi, revue, CI, livraison — 
 @@module:release
 - **Release** (`.github/workflows/release.yml`) par `googleapis/release-please-action` (Apache-2.0).
 @@end
-- Actions tierces open source uniquement, **épinglées sur un SHA de commit**.
+- Actions tierces open source uniquement, **épinglées sur un SHA de commit** (les actions locales `./…` exceptées).
 - Aucune automatisation qui consomme des tokens d'API en CI sans accord explicite.
 @@module:visibility-private
 - Faute de protection de branche, le blocage est local : `.githooks/pre-push` exécute le même contrôle que la CI.

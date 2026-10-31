@@ -59,6 +59,7 @@
     { "path": ".github/pull_request_template.md", "when": ["github"] },
     { "path": ".github/labels.json", "when": ["github"] },
     { "path": ".github/workflows/ci.yml", "when": ["github"] },
+    { "path": ".github/actions/project-setup/action.yml", "when": ["github"], "owned": true },
     { "path": "scripts/sync-labels.mjs", "when": ["github"] },
     { "path": "scripts/check-pr-title.mjs", "when": ["github"] },
 

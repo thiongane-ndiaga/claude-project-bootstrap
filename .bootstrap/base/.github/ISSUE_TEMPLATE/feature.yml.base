@@ -1,0 +1,30 @@
+name: Fonctionnalité
+description: Un besoin nouveau ou une évolution de comportement
+title: "[feat] "
+labels: ["type:feature"]
+body:
+  - type: textarea
+    id: besoin
+    attributes:
+      label: Besoin
+      description: Qui a besoin de quoi, et pourquoi ? Pas de solution technique ici.
+    validations:
+      required: true
+  - type: textarea
+    id: criteres
+    attributes:
+      label: Critères d'acceptation
+      description: Comportements observables qui permettront de dire que c'est fait.
+      placeholder: "- Étant donné … quand … alors …"
+    validations:
+      required: true
+  - type: textarea
+    id: hors-perimetre
+    attributes:
+      label: Hors périmètre
+  - type: checkboxes
+    id: adr
+    attributes:
+      label: Décision d'architecture
+      options:
+        - label: Ce besoin implique probablement un choix technique ou une contrainte transverse (ADR requis, voir docs/workflow.md)

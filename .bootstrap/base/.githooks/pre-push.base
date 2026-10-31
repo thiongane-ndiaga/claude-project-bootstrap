@@ -1,0 +1,10 @@
+#!/usr/bin/env node
+// Substitut local à la protection de branche (indisponible en dépôt privé sur GitHub Free).
+// Activation par clone : git config core.hooksPath .githooks
+import { spawnSync } from "node:child_process";
+
+const res = spawnSync(process.execPath, [".claude/hooks/quality-gate.mjs"], { stdio: "inherit" });
+if (res.status !== 0) {
+  console.error("pre-push : contrôle qualité en échec, push annulé (contournement exceptionnel : git push --no-verify)");
+  process.exit(1);
+}
