@@ -208,10 +208,10 @@ function buildSettings() {
 // --- génération ---
 const outputs = [];
 try {
-  for (const { path: rel, when, merge } of manifest.files) {
+  for (const { path: rel, when, merge, owned } of manifest.files) {
     if (!when.every((m) => active.has(m))) continue;
     const raw = readFileSync(path.join(assets, "templates", rel), "utf8").replace(/\r\n/g, "\n");
-    outputs.push({ rel, merge, content: applyParams(applyBlocks(raw, rel), rel) });
+    outputs.push({ rel, merge, owned, content: applyParams(applyBlocks(raw, rel), rel) });
   }
 } catch (err) {
   // rien n'est écrit tant que tous les modèles ne sont pas résolus
@@ -231,7 +231,7 @@ function diffText(currentPath, proposed) {
 // status : created (fichier du modèle) | merged (fusionné avec l'existant) | kept (géré par le projet) | adopted (existant repris tel quel).
 //
 // Règles, dans l'ordre, pour chaque fichier du modèle :
-//   listé dans config.keep            -> conservé tel quel, jamais touché ;
+//   listé dans config.keep ou « owned » dans le catalogue (créé s'il est absent) -> conservé tel quel, jamais touché ;
 //   absent                            -> créé ;
 //   identique au modèle               -> rien ;
 //   resté tel que généré              -> remplacé par le modèle actuel (l'empreinte du manifeste le prouve) ;
@@ -264,11 +264,11 @@ const put = (dest, text) => {
   writeFileSync(dest, text);
 };
 
-for (const { rel, content, merge } of outputs) {
+for (const { rel, content, merge, owned } of outputs) {
   const dest = path.join(target, ...rel.split("/"));
   const generated = sha256(content);
   const before = previous?.files?.[rel];
-  if (keep.has(rel)) {
+  if (keep.has(rel) || (owned && existsSync(dest))) {
     report.kept.push(rel);
     if (existsSync(dest)) files[rel] = { sha256: sha256(readText(dest)), generated, status: "kept" };
     continue;
@@ -276,7 +276,7 @@ for (const { rel, content, merge } of outputs) {
   if (!existsSync(dest)) {
     put(dest, content);
     report.created.push(rel);
-    files[rel] = { sha256: generated, generated, status: "created" };
+    files[rel] = { sha256: generated, generated, status: owned ? "kept" : "created" };
     continue;
   }
   const current = readText(dest);

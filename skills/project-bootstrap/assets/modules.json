@@ -17,7 +17,7 @@
     { "path": ".gitignore", "when": ["core"], "merge": "lines" },
     { "path": "CLAUDE.md", "when": ["core"] },
     { "path": "docs/workflow.md", "when": ["core"] },
-    { "path": ".bootstrap/checks.json", "when": ["core"] },
+    { "path": ".bootstrap/checks.json", "when": ["core"], "owned": true },
     { "path": ".bootstrap/run-checks.mjs", "when": ["core"] },
 
     { "path": ".claude/hooks/quality-gate.mjs", "when": ["claude"] },

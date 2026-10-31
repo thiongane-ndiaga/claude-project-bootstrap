@@ -142,7 +142,7 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
     const r = run(cfg(["claude", "github"]));
     const m = manifestOf(r.out);
     check("manifeste : écrit avec la version du plugin et les modules", m.schema === 1 && m.plugin.version === pluginVersion && m.modules.includes("github") && m.modules.includes("core"));
-    check("manifeste : empreinte de chaque fichier généré", Object.entries(m.files).every(([rel, f]) => f.sha256 === sha(read(r.out, rel)) && f.status === "created") && "CLAUDE.md" in m.files);
+    check("manifeste : empreinte de chaque fichier généré", Object.entries(m.files).every(([rel, f]) => f.sha256 === sha(read(r.out, rel)) && f.status === (rel === ".bootstrap/checks.json" ? "kept" : "created")) && "CLAUDE.md" in m.files);
     check("manifeste : réponses de la phase 0 conservées", m.config.projectName === "Test" && m.config.versions.node === "24");
     const dry = run(cfg(["claude"]), ["--dry-run"]);
     check("manifeste : pas écrit en dry-run", !exists(dry.out, ".bootstrap/manifest.json"));
@@ -298,6 +298,22 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
   const after = runScript(v2.script, ["--update", "--target", out]);
   check("--adopt : fichier adopté plus signalé (modèle inchangé)", after.res.status === 0 && after.report.customized.includes("CLAUDE.md") && after.report.manifest === undefined);
   check("--update sans manifeste refusé", runScript(v2.script, ["--update", "--target", path.join(mkdir("pb-none-"), "x")]).res.status === 1);
+
+  // fichier propre au projet (owned) : créé une fois, jamais touché ensuite, même si le modèle change
+  const own1 = plugin("9.2.0");
+  const own2 = plugin("9.3.0", (skill) => {
+    const f = path.join(skill, "assets", "templates", ".bootstrap", "checks.json");
+    writeFileSync(f, readFileSync(f, "utf8") + "\n");
+  });
+  const ownOut = path.join(mkdir("pb-own-"), "repo");
+  runScript(own1.script, ["--config", withConfig(cfg(["claude"])), "--target", ownOut]);
+  const checksBefore = read(ownOut, ".bootstrap/checks.json");
+  check("owned : checks.json créé à la première génération, consigné kept", JSON.parse(read(ownOut, ".bootstrap/manifest.json")).files[".bootstrap/checks.json"].status === "kept");
+  const ownUp = runScript(own2.script, ["--update", "--target", ownOut]);
+  check("owned : intact, ni remplacé ni en conflit après changement du modèle", read(ownOut, ".bootstrap/checks.json") === checksBefore && ownUp.res.status === 0 && !ownUp.report.updated.includes(".bootstrap/checks.json") && !ownUp.report.conflicts.includes(".bootstrap/checks.json"), JSON.stringify(ownUp.report));
+  writeFileSync(path.join(ownOut, ".bootstrap", "checks.json"), "[]\n");
+  const ownUp2 = runScript(own2.script, ["--update", "--target", ownOut]);
+  check("owned : personnalisé, jamais touché", read(ownOut, ".bootstrap/checks.json") === "[]\n" &&ownUp2.res.status === 0);
 
   // adoption d'un projet sans manifeste
   const adopted = path.join(mkdir("pb-adopt-"), "repo");
