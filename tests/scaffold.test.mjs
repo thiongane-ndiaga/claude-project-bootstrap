@@ -8,6 +8,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { runMigrations } from "../skills/project-bootstrap/scripts/migrate.mjs";
 import { syncLabels } from "../skills/project-bootstrap/assets/templates/scripts/sync-labels.mjs";
+import { formatReport, isGhWrite, parseArgs, parseFormLabels, realExec, runAudit } from "../skills/project-bootstrap/scripts/audit.mjs";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const scaffold = path.join(root, "skills", "project-bootstrap", "scripts", "scaffold.mjs");
@@ -619,6 +620,316 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
     const r10 = await m2(newProj(), st10);
     check("0002 : aucun ancien label -> aucune action", r10[0].actions.length === 0 && r10[0].notes.length === 0);
     check("0002 : ignorée si le module github est absent", (await m2((() => { const d = path.join(mkdir("pb-m2x-"), "repo"); run(cfg(["claude"]), [], d); return d; })(), mkState([], []))).length === 0);
+  }
+
+  // audit en lecture seule d'un projet généré (#46) : projets réels (scaffold + git), CLI et gh simulés
+  {
+    const MODS = ["claude", "github", "openspec", "archgate", "release", "githooks"];
+    const detected = new Set();
+    const mkProject = (modules = MODS, { git = true, name = "projet" } = {}) => {
+      const dir = path.join(mkdir("pb-audit-"), name);
+      run(cfg(modules), [], dir);
+      if (git) {
+        const g = (...a) => spawnSync("git", ["-C", dir, ...a], { encoding: "utf8" });
+        g("init", "-q");
+        g("config", "user.name", "t");
+        g("config", "user.email", "t@t");
+        if (modules.includes("githooks") && process.platform !== "win32") chmodSync(path.join(dir, ".githooks", "pre-push"), 0o755);
+        g("add", "-A");
+        if (modules.includes("githooks")) g("update-index", "--chmod=+x", ".githooks/pre-push");
+        g("commit", "-q", "-m", "init");
+        g("config", "core.hooksPath", ".githooks");
+      }
+      return dir;
+    };
+    const git = (dir, ...a) => spawnSync("git", ["-C", dir, ...a], { encoding: "utf8" });
+    const ciVersion = (dir, name) => new RegExp(`${name}:\\s*"?([\\w.-]+)`).exec(read(dir, ".github/workflows/ci.yml"))[1];
+    const res = (status = 0, stdout = "", stderr = "") => ({ status, stdout, stderr });
+    // exécuteur simulé : git et scaffold sont réels, les CLI du projet et gh sont simulés
+    const fake = (dir, o = {}) => {
+      const calls = [];
+      const exec = (cmd, args = [], opts = {}) => {
+        calls.push([cmd, ...args].join(" "));
+        if (o.throwOn?.(cmd, args)) throw new Error("boom");
+        if (cmd === "git") return realExec(cmd, args, opts);
+        if (cmd === process.execPath) return o.scaffold ?? realExec(cmd, args, opts);
+        const j = args.join(" ");
+        if (["openspec", "archgate", "npm", "gh"].includes(cmd) && o.absent?.includes(cmd)) return res(127);
+        if (cmd === "openspec") {
+          if (j === "--version") return res(0, `${o.openspecVersion ?? ciVersion(dir, "OPENSPEC_VERSION")}\n`);
+          if (j.startsWith("validate")) return o.validate ?? res(0, "ok");
+          if (j.startsWith("doctor")) return o.doctor ?? res(0, JSON.stringify({ root: { path: dir, healthy: true, status: [] }, status: [] }));
+        }
+        if (cmd === "archgate") {
+          if (j === "--version") return res(0, `${o.archgateVersion ?? ciVersion(dir, "ARCHGATE_VERSION")}\n`);
+          if (j.startsWith("check")) return o.check ?? res(0, "check passed");
+        }
+        if (cmd === "npm") return res(0, `${o.npmPrefix ?? tmpdir()}\n`);
+        if (cmd === "gh") return o.gh ? o.gh(args) : res(0, "");
+        return res(127);
+      };
+      return { exec, calls };
+    };
+    const audit = async (dir, o = {}, extra = {}) => {
+      const f = fake(dir, o);
+      const report = await runAudit({ target: dir, exec: f.exec, ...extra });
+      for (const r of report.results) if (r.statut === "ecart") detected.add(r.id);
+      return { ...report, calls: f.calls };
+    };
+    const by = (r, id) => r.results.find((x) => x.id === id);
+    const ecarts = (r) => r.results.filter((x) => x.statut === "ecart").map((x) => x.id);
+
+    // --- rapport, codes, projet sain
+    const healthy = mkProject();
+    const rep0 = await audit(healthy);
+    check("audit : projet sain -> aucun écart, code 0", rep0.summary.ecart === 0 && rep0.summary.ok >= 10, JSON.stringify(rep0.results.filter((r) => r.statut !== "ok")));
+    check("audit : aucun appel à gh sans --forge ni --workstation", !rep0.calls.some((c) => c.startsWith("gh ")));
+    const snap = (dir) => {
+      const files = git(dir, "ls-files").stdout.split("\n").filter(Boolean).sort();
+      const h = createHash("sha256");
+      for (const f of files) h.update(f + readFileSync(path.join(dir, f)).toString("latin1"));
+      h.update(readFileSync(path.join(dir, ".git", "index")));
+      return h.digest("hex");
+    };
+    const before = snap(healthy);
+    await audit(healthy, { throwOn: () => false });
+    check("audit : fichiers suivis et index git identiques avant et après", snap(healthy) === before);
+    check("audit : télémétrie coupée pour les CLI du projet (env de l'exécuteur réel)", realExec(process.execPath, ["-e", "process.stdout.write(process.env.OPENSPEC_TELEMETRY)"]).stdout === "0");
+    const spaced = mkProject(MODS, { name: "mon projet (test) & co" });
+    check("audit : cible avec espaces et métacaractères", (await audit(spaced)).summary.ecart === 0);
+    check("audit : --json -> résultats et compte par statut", (() => { const r = JSON.parse(JSON.stringify(rep0)); return Array.isArray(r.results) && typeof r.summary.ok === "number" && "non-verifiable" in r.summary; })());
+    const bare = path.join(mkdir("pb-audit-bare-"), "vide");
+    mkdirSync(bare, { recursive: true });
+    const repBare = await audit(bare);
+    check("audit : dossier sans manifeste -> tout non vérifiable, résumé explicite", repBare.summary.ok === 0 && repBare.summary.ecart === 0 && repBare.summary["non-verifiable"] >= 2 && /Aucun contrôle n'a pu être effectué/.test(formatReport(repBare)) && by(repBare, "manifeste").message.includes("--adopt"));
+    check("audit : usage -> cible absente ou dossier inexistant", parseArgs([]).error && parseArgs(["--target", path.join(bare, "nope")]).error);
+    check("audit : usage -> --repo invalide (a/../b, métacaractères) refusé avant toute commande", ["a/../b", "a b/c", "a/b;ls", "../x"].every((r) => parseArgs(["--target", bare, "--repo", r]).error) && !parseArgs(["--target", bare, "--repo", "o/r"]).error);
+    check("audit : usage -> option inconnue, --project non numérique", parseArgs(["--target", bare, "--nope"]).error && parseArgs(["--target", bare, "--project", "x"]).error);
+    const boom = await audit(healthy, { throwOn: (cmd, args) => cmd === "git" && args.includes("rev-parse") });
+    check("audit : une exception dans un contrôle -> non vérifiable, les autres s'exécutent", by(boom, "hooks-git")?.statut === "non-verifiable" && boom.summary.ok >= 8, JSON.stringify(boom.results.filter((r) => r.statut !== "ok")));
+    const slow = await audit(healthy, { check: { status: null, stdout: "", stderr: "", error: Object.assign(new Error("t"), { code: "ETIMEDOUT" }) } });
+    check("audit : délai dépassé -> non vérifiable", by(slow, "archgate-check")?.statut === "non-verifiable" && /délai/.test(by(slow, "archgate-check").message));
+
+    // --- manifeste, mise à jour, bases
+    const p1 = mkProject();
+    writeFileSync(path.join(p1, ".bootstrap", "manifest.json"), "{ pas du json");
+    const r1 = await audit(p1);
+    check("piège : manifeste illisible -> écart", by(r1, "manifeste")?.statut === "ecart");
+    const p2 = mkProject();
+    const mf = JSON.parse(read(p2, ".bootstrap/manifest.json"));
+    mf.plugin.version = "0.0.1";
+    writeFileSync(path.join(p2, ".bootstrap", "manifest.json"), JSON.stringify(mf, null, 2));
+    const r2 = await audit(p2);
+    check("piège : version du manifeste en retard -> écart avec la correction", by(r2, "version-plugin")?.statut === "ecart" && /--update/.test(by(r2, "version-plugin").correction));
+    const p3 = mkProject();
+    rmSync(path.join(p3, ".gitattributes"));
+    const r3 = await audit(p3);
+    check("piège : fichier du modèle manquant -> mise à jour en attente (écart)", by(r3, "mise-a-jour")?.statut === "ecart" && /\.gitattributes/.test(by(r3, "mise-a-jour").message), JSON.stringify(by(r3, "mise-a-jour")));
+    const canned = (o) => res(o.status ?? 0, JSON.stringify({ created: [], updated: [], reconciled: [], conflicts: [], merged: [], retired: [], baseInvalid: [], ...o.report }));
+    const rr = await audit(healthy, { scaffold: canned({ report: { reconciled: ["CLAUDE.md"] } }) });
+    check("audit : fusion propre en attente (reconciled) -> écart", by(rr, "mise-a-jour")?.statut === "ecart" && /reconciled/.test(by(rr, "mise-a-jour").message));
+    const rc = await audit(healthy, { scaffold: canned({ status: 3, report: { conflicts: ["ci.yml"] } }) });
+    check("audit : conflit (sortie 3 normale) -> écart, pas erreur de l'outil", by(rc, "mise-a-jour")?.statut === "ecart");
+    const rn = await audit(healthy, { scaffold: canned({ report: { merged: [".gitignore"], retired: ["x.md"], manifest: "updated" } }) });
+    check("audit : merged, retired et manifest:updated ne sont pas des écarts", by(rn, "mise-a-jour")?.statut === "ok" && /x\.md/.test(by(rn, "mise-a-jour").message));
+    const rb = await audit(healthy, { scaffold: canned({ report: { baseInvalid: ["CLAUDE.md"] } }) });
+    check("piège : base de fusion altérée -> écart", by(rb, "bases")?.statut === "ecart");
+    const re = await audit(healthy, { scaffold: res(1, "", "erreur") });
+    check("audit : scaffold en erreur (sortie 1) -> non vérifiable", by(re, "mise-a-jour")?.statut === "non-verifiable");
+
+    // --- hooks git (git réel)
+    const hooksProject = (mode, { commitMode = mode, hooksPath = true } = {}) => {
+      const d = mkProject(MODS, { git: false });
+      const g = (...a) => git(d, ...a);
+      g("init", "-q"); g("config", "user.name", "t"); g("config", "user.email", "t@t");
+      if (process.platform !== "win32") chmodSync(path.join(d, ".githooks", "pre-push"), mode === "100755" ? 0o755 : 0o644);
+      g("add", "-A");
+      g("update-index", mode === "100755" ? "--chmod=+x" : "--chmod=-x", ".githooks/pre-push");
+      g("commit", "-q", "-m", "x");
+      if (commitMode !== mode) g("update-index", commitMode === "100755" ? "--chmod=+x" : "--chmod=-x", ".githooks/pre-push");
+      if (hooksPath) g("config", "core.hooksPath", ".githooks");
+      return d;
+    };
+    const h1 = await audit(hooksProject("100644"));
+    check("piège : bit exécutable de pre-push non enregistré (100644) -> écart avec la correction", by(h1, "hooks-mode")?.statut === "ecart" && /100644/.test(by(h1, "hooks-mode").message) && /update-index --chmod=\+x/.test(by(h1, "hooks-mode").correction));
+    const h2 = await audit(hooksProject("100644", { commitMode: "100755" }));
+    check("piège : 100755 dans l'index mais 100644 dans le dernier commit -> écart", by(h2, "hooks-mode")?.statut === "ecart" && /dernier commit/.test(by(h2, "hooks-mode").message), by(h2, "hooks-mode")?.message);
+    const h3 = await audit(hooksProject("100755", { hooksPath: false }));
+    check("piège : core.hooksPath non réglé -> écart avec la correction", by(h3, "hooks-chemin")?.statut === "ecart" && /git config core.hooksPath \.githooks/.test(by(h3, "hooks-chemin").correction));
+    if (process.platform !== "win32") {
+      const h4 = mkProject();
+      chmodSync(path.join(h4, ".githooks", "pre-push"), 0o644);
+      check("piège : pre-push non exécutable sur le disque -> écart", by(await audit(h4), "hooks-mode")?.statut === "ecart");
+    }
+    const parent = mkdir("pb-audit-parent-");
+    spawnSync("git", ["-C", parent, "init", "-q"]);
+    const child = path.join(parent, "enfant");
+    run(cfg(MODS), [], child);
+    check("audit : cible dans un dépôt git parent -> hooks non vérifiables", by(await audit(child), "hooks-git")?.statut === "non-verifiable");
+    check("audit : cible sans dépôt git -> hooks non vérifiables", by(await audit(mkProject(MODS, { git: false })), "hooks-git")?.statut === "non-verifiable");
+
+    // --- formulaires et labels
+    const setLabels = (dir, value) => {
+      const f = path.join(dir, ".github", "ISSUE_TEMPLATE", "bug.yml");
+      writeFileSync(f, readFileSync(f, "utf8").replace(/^labels:.*$/m, value));
+    };
+    check("audit : parseFormLabels lit crochets, bloc YAML et chaîne à virgules", JSON.stringify([parseFormLabels('labels: ["a", "b"]'), parseFormLabels("labels:\n  - a\n  - b\nbody:"), parseFormLabels("labels: a, b"), parseFormLabels("name: x"), parseFormLabels("labels: &x [a]")]) === JSON.stringify([["a", "b"], ["a", "b"], ["a", "b"], undefined, null]));
+    const f1 = mkProject();
+    setLabels(f1, 'labels: ["inconnu"]');
+    const rf1 = await audit(f1);
+    check("piège : formulaire qui pose un label absent de labels.json -> écart qui nomme le formulaire", by(rf1, "formulaires-labels")?.statut === "ecart" && /bug\.yml/.test(by(rf1, "formulaires-labels").message) && /inconnu/.test(by(rf1, "formulaires-labels").message));
+    const f2 = mkProject();
+    setLabels(f2, 'labels: ["BUG"]');
+    check("audit : casse des labels ignorée", by(await audit(f2), "formulaires-labels")?.statut === "ok");
+    const f3 = mkProject();
+    setLabels(f3, "labels:\n  - bug");
+    check("audit : liste YAML en bloc lue", by(await audit(f3), "formulaires-labels")?.statut === "ok");
+    const f4 = mkProject();
+    setLabels(f4, "labels: &ancre [bug]");
+    check("audit : format de labels non reconnu -> non vérifiable", by(await audit(f4), "formulaires-labels")?.statut === "non-verifiable");
+
+    // --- versions des CLI et des actions
+    const v1 = await audit(healthy, { openspecVersion: "9.9.9" });
+    check("piège : OpenSpec du poste différent de la CI -> écart avec les deux versions et la commande", by(v1, "version-openspec")?.statut === "ecart" && /9\.9\.9/.test(by(v1, "version-openspec").message) && /1\.0\.0/.test(by(v1, "version-openspec").message) && /npm install -g @fission-ai\/openspec@/.test(by(v1, "version-openspec").correction));
+    const v2 = await audit(healthy, { absent: ["openspec"] });
+    check("audit : CLI absente -> pas d'écart sur la version, validate non vérifiable", by(v2, "version-openspec")?.statut === "ok" && by(v2, "openspec-validate")?.statut === "non-verifiable");
+    const a1 = mkProject();
+    const rel = path.join(a1, ".github", "workflows", "release.yml");
+    writeFileSync(rel, readFileSync(rel, "utf8") + "\n      - uses: actions/checkout@" + "0".repeat(40) + "\n");
+    const ra1 = await audit(a1);
+    check("piège : même action avec un SHA différent entre ci.yml et release.yml -> écart", by(ra1, "actions-epinglees")?.statut === "ecart" && /actions\/checkout/.test(by(ra1, "actions-epinglees").message));
+    const a2 = mkProject();
+    const mfa = JSON.parse(read(a2, ".bootstrap/manifest.json"));
+    mfa.config.actions.checkout.sha = "1".repeat(40);
+    writeFileSync(path.join(a2, ".bootstrap", "manifest.json"), JSON.stringify(mfa, null, 2));
+    check("audit : SHA d'une action différent du manifeste -> écart", by(await audit(a2), "actions-epinglees")?.statut === "ecart");
+
+    // --- outils du projet, réglages
+    const t1 = await audit(healthy, { check: res(1, "violation ARCH-004") });
+    check("piège : archgate check échoue (dont rules: incohérent) -> écart qui reprend la sortie", by(t1, "archgate-check")?.statut === "ecart" && /violation ARCH-004/.test(by(t1, "archgate-check").message));
+    const t2 = await audit(healthy, { doctor: res(0, JSON.stringify({ root: { path: healthy, healthy: false }, status: [{ severity: "error", code: "no_openspec_root" }] })) });
+    check("piège : openspec doctor sort en 0 avec un statut d'erreur -> écart", by(t2, "openspec-doctor")?.statut === "ecart" && /no_openspec_root/.test(by(t2, "openspec-doctor").message));
+    const t3 = await audit(healthy, { doctor: res(0, JSON.stringify({ root: { path: path.dirname(healthy), healthy: true }, status: [] })) });
+    check("audit : openspec doctor rapporte la racine d'un dépôt parent -> non vérifiable", by(t3, "openspec-doctor")?.statut === "non-verifiable");
+    const s1 = mkProject();
+    mkdirSync(path.join(s1, ".claude"), { recursive: true });
+    writeFileSync(path.join(s1, ".claude", "settings.local.json"), '{ "agent": "archgate:developer" }');
+    const rs1 = await audit(s1);
+    check("piège : agent archgate:developer imposé par les réglages du projet -> écart avec la correction", by(rs1, "agent-impose")?.statut === "ecart" && /retirer la clé/.test(by(rs1, "agent-impose").correction));
+    const s2 = mkProject();
+    mkdirSync(path.join(s2, ".archgate", "adrs"), { recursive: true });
+    writeFileSync(path.join(s2, ".archgate", "adrs", "GEN-001-exemple.md"), "# exemple");
+    check("piège : ADR d'exemple GEN-001 -> écart", by(await audit(s2), "adr-exemple")?.statut === "ecart");
+
+    // --- forge (gh simulé)
+    const labelsGh = (names) => (args) => (args.some((a) => /labels\?per_page/.test(a)) ? res(0, names.join("\n")) : res(0, ""));
+    const forgeGh = ({ labels = ["bug", "enhancement", "adr", "chore"], protection, rules, other } = {}) => (args) => {
+      const route = args.find((a) => a.startsWith("repos/")) ?? "";
+      if (/\/labels\?per_page/.test(route)) return res(0, args.some((a) => /@json/.test(a)) ? labels.map((n) => JSON.stringify([n, "ededed", ""])).join("\n") : labels.join("\n"));
+      if (/\/branches\/main\/protection$/.test(route)) return protection ?? res(1, "", "gh: Branch not protected (HTTP 404)");
+      if (/\/rules\/branches\/main$/.test(route)) return rules ?? res(0, "[]");
+      if (/\/actions\/permissions\/workflow$/.test(route)) return res(0, JSON.stringify({ can_approve_pull_request_reviews: true, default_workflow_permissions: "read" }));
+      if (other) return other(args, route);
+      return res(0, "");
+    };
+    const forgeOpts = { repo: "o/r", forge: true };
+    const prot = (contexts, appId = 15368) => res(0, JSON.stringify({ required_status_checks: { checks: contexts.map((c) => ({ context: c, app_id: appId })) } }));
+    const ciOsOf = JSON.parse(read(healthy, ".bootstrap/checks.json")).ciOs;
+    const okCtx = ["pr-title", ...ciOsOf.map((o) => `checks (${o})`)];
+    const noForge = await audit(healthy, { gh: forgeGh() }, { forge: false });
+    check("audit : aucun appel gh quand --forge est absent", !noForge.calls.some((c) => c.startsWith("gh ")));
+    const fo1 = await audit(healthy, { gh: forgeGh({ protection: prot(okCtx) }) }, forgeOpts);
+    check("audit : forge saine (labels, protection, migrations) -> aucun écart", fo1.summary.ecart === 0 && by(fo1, "forge-labels")?.statut === "ok" && by(fo1, "forge-protection")?.statut === "ok", JSON.stringify(fo1.results.filter((r) => r.statut !== "ok")));
+    check("audit : aucune écriture émise vers la forge", fo1.calls.filter((c) => c.startsWith("gh ")).every((c) => !/-X (POST|PUT|PATCH|DELETE)/.test(c)));
+    const fo2 = await audit(healthy, { gh: forgeGh({ labels: ["bug", "enhancement"], protection: prot(okCtx) }) }, forgeOpts);
+    check("piège : label posé par un formulaire absent du dépôt -> écart avec sync-labels", by(fo2, "forge-labels")?.statut === "ecart" && /sync-labels/.test(by(fo2, "forge-labels").correction));
+    const fo3 = await audit(healthy, { gh: forgeGh({ protection: prot(["tests (ubuntu-latest)", "pr-title"]) }) }, forgeOpts);
+    check("piège : check exigé par la protection de main inexistant (job renommé) -> écart qui le nomme", by(fo3, "forge-protection")?.statut === "ecart" && /tests \(ubuntu-latest\)/.test(by(fo3, "forge-protection").message));
+    const fo4 = await audit(healthy, { gh: forgeGh({ rules: res(0, JSON.stringify([{ type: "required_status_checks", parameters: { required_status_checks: [{ context: "pr-title" }] } }])) }) }, forgeOpts);
+    check("audit : protection par ruleset lue", by(fo4, "forge-protection")?.statut === "ok" && /pr-title/.test(by(fo4, "forge-protection").message));
+    const fo5 = await audit(healthy, { gh: forgeGh({ protection: res(1, "", "gh: Upgrade to GitHub Pro (HTTP 403)"), rules: res(1, "", "gh: Not Found (HTTP 404)") }) }, forgeOpts);
+    check("audit : protection absente ou inaccessible (403, 404) -> non vérifiable", by(fo5, "forge-protection")?.statut === "non-verifiable");
+    const fo6 = await audit(healthy, { gh: forgeGh({ protection: prot(["SonarCloud Code Analysis"], 12345) }) }, forgeOpts);
+    check("audit : check d'une autre application -> non vérifiable", by(fo6, "forge-protection")?.statut === "non-verifiable");
+    const fo7 = await audit(healthy, { gh: forgeGh() }, { forge: true });
+    check("audit : --forge sans dépôt (ni --repo ni origin) -> forge non vérifiable", by(fo7, "forge")?.statut === "non-verifiable");
+    const fo8 = await audit(healthy, { gh: forgeGh({ protection: prot(okCtx) }) }, forgeOpts);
+    check("audit : check d'une matrice lu depuis ciOs (checks (os))", by(fo8, "forge-protection")?.statut === "ok" && /checks \(ubuntu-latest\)/.test(by(fo8, "forge-protection").message));
+    const mgm = JSON.parse(read(healthy, ".bootstrap/manifest.json"));
+    mgm.migrations = ["0001-actions-pr-permission"];
+    const consigned = mkProject();
+    writeFileSync(path.join(consigned, ".bootstrap", "manifest.json"), JSON.stringify(mgm, null, 2));
+    const driftGh = (args) => (args.some((a) => /\/actions\/permissions\/workflow$/.test(a)) ? res(0, JSON.stringify({ can_approve_pull_request_reviews: false, default_workflow_permissions: "read" })) : forgeGh({ protection: prot(okCtx) })(args));
+    const fo9 = await audit(consigned, { gh: driftGh }, forgeOpts);
+    check("piège : permission des Actions revenue en arrière après la consignation de 0001 -> écart", by(fo9, "migration-0001-actions-pr-permission")?.statut === "ecart" && /Autoriser les Actions/.test(by(fo9, "migration-0001-actions-pr-permission").message));
+    const oldLabelsGh = (args) => {
+      const route = args.find((a) => a.startsWith("repos/")) ?? "";
+      if (/\/labels\?per_page/.test(route) && args.includes("--jq") && args.includes("--paginate") && args.some((a) => /name, \.color/.test(a))) return res(0, JSON.stringify(["needs-adr", "fbca04", "z"]));
+      if (/\/issues$/.test(route)) return res(0, JSON.stringify([7, ["needs-adr"]]));
+      return forgeGh({ protection: prot(okCtx) })(args);
+    };
+    const fo10 = await audit(healthy, { gh: oldLabelsGh }, forgeOpts);
+    check("audit : notes d'une migration reprises dans le message (needs-adr utilisé)", /needs-adr/.test(by(fo10, "migration-0002-native-labels")?.message ?? "") && by(fo10, "migration-0002-native-labels")?.statut === "ok", by(fo10, "migration-0002-native-labels")?.message);
+    check("audit : isGhWrite refuse POST, DELETE, -f sans -X GET, mutation graphql ; accepte GET, -X GET -f, graphql de lecture", [["api", "-X", "POST", "repos/o/r/labels"], ["api", "-X", "DELETE", "repos/o/r/labels/x"], ["api", "repos/o/r/labels", "-f", "name=x"], ["api", "graphql", "-f", "query=mutation { x }"]].every(isGhWrite) && ![["api", "repos/o/r/labels"], ["api", "-X", "GET", "repos/o/r/issues", "-f", "labels=x"], ["api", "graphql", "-f", "query=query { x }", "-f", "owner=o", "-F", "number=4"]].some(isGhWrite));
+
+    // --- automatisations du Project
+    const projModules = [...MODS, "projects"];
+    const pp = mkProject(projModules);
+    const wf = (nodes) => (args) => (args[1] === "graphql" ? res(0, JSON.stringify({ data: { repositoryOwner: { projectV2: { workflows: { nodes } } } } })) : forgeGh({ protection: prot(okCtx) })(args));
+    const allOn = [{ name: "Auto-add to project", enabled: true }, { name: "Item closed", enabled: true }, { name: "Pull request merged", enabled: true }];
+    const pr1 = await audit(pp, { gh: wf(allOn) }, { ...forgeOpts, project: "4", owner: "moi" });
+    check("audit : automatisations du Project actives -> ok avec la mention de la cible à vérifier à la main", by(pr1, "forge-project")?.statut === "ok" && /à la main/.test(by(pr1, "forge-project").message));
+    const gq = pr1.calls.find((c) => c.includes("graphql"));
+    check("audit : owner et numéro passés en variables GraphQL, jamais interpolés dans la requête", /-f owner=moi/.test(gq) && /-F number=4/.test(gq) && !/login: ?"?moi/.test(gq.split("query=")[1].split(" -f ")[0]));
+    const pr2 = await audit(pp, { gh: wf(allOn.map((w) => (w.name === "Item closed" ? { ...w, enabled: false } : w))) }, { ...forgeOpts, project: "4", owner: "moi" });
+    check("piège : automatisation « Item closed » désactivée -> écart", by(pr2, "forge-project")?.statut === "ecart" && /Item closed/.test(by(pr2, "forge-project").message));
+    const pr3 = await audit(pp, { gh: wf(allOn) }, forgeOpts);
+    check("audit : Project sans numéro ni propriétaire -> non vérifiable", by(pr3, "forge-project")?.statut === "non-verifiable");
+
+    // --- poste de travail
+    const home = mkdir("pb-audit-home-");
+    mkdirSync(path.join(home, ".claude", "plugins"), { recursive: true });
+    const plug = path.join(home, ".claude", "plugins", "cache", "archgate");
+    mkdirSync(plug, { recursive: true });
+    const pluginsFile = (entries) => writeFileSync(path.join(home, ".claude", "plugins", "installed_plugins.json"), JSON.stringify({ plugins: { "archgate@archgate": entries } }));
+    pluginsFile([{ scope: "local", projectPath: "/x", installPath: plug }]);
+    writeFileSync(path.join(plug, "settings.json"), '{ "agent": "archgate:developer" }');
+    const ghAuth = (scopes) => (args) => (args[0] === "--version" ? res(0, "gh version 2.103.3\n") : args[0] === "auth" ? res(0, scopes === null ? "Logged in" : `Logged in\n  - Token scopes: ${scopes}`) : res(0, ""));
+    const ws = (o = {}, extra = {}) => audit(pp, { gh: ghAuth("'gist', 'project', 'repo'"), npmPrefix: o.npmPrefix, ...o }, { workstation: true, home, ...extra });
+    const w0 = await ws();
+    check("audit : poste sain (plugin imposant un agent seulement en portée locale) -> aucun écart", w0.results.filter((r) => r.id.startsWith("poste")).every((r) => r.statut !== "ecart"), JSON.stringify(w0.results.filter((r) => r.id.startsWith("poste") && r.statut !== "ok")));
+    const w1 = await ws({}, { nodeVersion: "18.20.0" });
+    check("piège : Node trop ancien -> écart", by(w1, "poste-node")?.statut === "ecart");
+    const w2 = await audit(pp, { gh: ghAuth("'gist', 'repo'") }, { workstation: true, home });
+    check("piège : scope project manquant sur gh -> écart avec la correction", by(w2, "poste-gh-scope")?.statut === "ecart" && /gh auth refresh -h github\.com -s project/.test(by(w2, "poste-gh-scope").correction));
+    const w3 = await audit(pp, { gh: ghAuth(null) }, { workstation: true, home });
+    check("audit : jeton sans liste de scopes -> non vérifiable", by(w3, "poste-gh-scope")?.statut === "non-verifiable");
+    const w4 = await audit(pp, { absent: ["gh", "npm"] }, { workstation: true, home });
+    check("piège : gh absent du PATH -> écart avec la correction ; npm absent -> non vérifiable", by(w4, "poste-gh")?.statut === "ecart" && /rouvrir le terminal/.test(by(w4, "poste-gh").correction) && (process.platform === "win32" || by(w4, "poste-npm")?.statut === "non-verifiable"));
+    pluginsFile([{ scope: "user", installPath: plug }]);
+    const w5 = await ws();
+    check("piège : plugin Archgate en portée utilisateur qui impose un agent -> écart avec la correction locale", by(w5, "poste-archgate-plugin")?.statut === "ecart" && /--scope user/.test(by(w5, "poste-archgate-plugin").correction) && /locale/.test(by(w5, "poste-archgate-plugin").correction));
+    check("audit : aucune correction ne contient sudo", [w0, w1, w2, w5, fo1, fo2, fo3, h1].every((r) => r.results.every((x) => !/\bsudo\b/.test(x.correction ?? ""))));
+    if (process.platform !== "win32") {
+      const ro = mkdir("pb-audit-ro-");
+      chmodSync(ro, 0o555);
+      const w6 = await audit(pp, { gh: ghAuth("'project'"), npmPrefix: ro }, { workstation: true, home });
+      chmodSync(ro, 0o755);
+      check("piège : préfixe npm non inscriptible -> écart avec --prefix ~/.local, sans sudo", process.getuid?.() === 0 || (by(w6, "poste-npm")?.statut === "ecart" && /--prefix ~\/\.local/.test(by(w6, "poste-npm").correction) && !/sudo/.test(by(w6, "poste-npm").correction)));
+    }
+
+    // --- documentation du skill (exigence « Intégration au skill »)
+    const skillText = readFileSync(path.join(root, "skills", "project-bootstrap", "SKILL.md"), "utf8");
+    const phase3 = skillText.slice(skillText.indexOf("## Phase 3"), skillText.indexOf("## Phase 4"));
+    const phase5 = skillText.slice(skillText.indexOf("## Phase 5"));
+    check("skill : l'audit est lancé en fin de phase 3, avec l'accord de l'utilisateur pour --forge et la mise en garde sur la confiance", /audit\.mjs --target/.test(phase3) && /--forge/.test(phase3) && /accord de l'utilisateur/.test(phase3) && /dépôts de confiance/.test(phase3));
+    check("skill : l'audit est lancé après une mise à jour (phase 5)", /audit\.mjs --target/.test(phase5));
+    check("skill : l'audit est dans la vérification de bout en bout", /audit\.mjs --target/.test(readFileSync(path.join(root, "skills", "project-bootstrap", "references", "verification.md"), "utf8")));
+
+    // --- chaque piège de la table du design est détecté au moins une fois par un test ci-dessus
+    const table = ["hooks-mode", "hooks-chemin", "archgate-check", "agent-impose", "adr-exemple", "version-openspec", "version-plugin", "mise-a-jour", "bases", "formulaires-labels", "forge-labels", "forge-protection", "migration-0001-actions-pr-permission", "forge-project", "poste-npm", "poste-archgate-plugin", "poste-gh-scope", "actions-epinglees", "openspec-doctor"];
+    const missingIds = table.filter((id) => !detected.has(id) && !(process.platform === "win32" && id === "poste-npm"));
+    check("audit : la table piège -> contrôle est couverte (chaque contrôle a détecté un écart)", missingIds.length === 0, missingIds.join(", "));
   }
 
   // action de préparation propre au projet, appelée par ci.yml (#82)
