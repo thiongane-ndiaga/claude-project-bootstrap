@@ -34,6 +34,9 @@ Un changement de **modèle** (`assets/templates/`), du **catalogue** (`assets/mo
 ## Fichiers propres au projet
 Une entrée du catalogue (`assets/modules.json`) marquée `"owned": true` est créée à la première génération, puis appartient au projet : jamais remplacée, fusionnée ni signalée en conflit, consignée `kept` dans le manifeste. C'est le cas de `.bootstrap/checks.json` (commandes de tests et systèmes de la CI). Pas besoin de la lister dans `keep`.
 
+## Audit d'un projet
+`scripts/audit.mjs --target <dépôt>` inspecte un projet généré en lecture seule et propose une correction pour chaque écart (voir `SKILL.md`, phase 3). Il réutilise `scaffold.mjs --update --dry-run` pour la mise à jour en attente et les bases invalides, et `plan()` de **toutes** les migrations applicables (avec `--forge`), consignées ou non : une migration consignée dont la forge a dérivé depuis apparaît comme un écart. Codes de sortie : 0 aucun écart, 1 au moins un écart, 2 erreur d'usage (les autres scripts n'ont pas de rapport). À lancer après chaque mise à jour du projet.
+
 ## Chaîne d'outils de la CI : `project-setup`
 `ci.yml` est entièrement géré par le plugin. L'installation de la chaîne d'outils du projet (langage, dépendances) se place dans `.github/actions/project-setup/action.yml`, une action composite locale créée une seule fois (`owned`) et appelée par `ci.yml` avant les commandes de `.bootstrap/checks.json`. Les noms des jobs et des checks ne changent pas. L'action utilise `bash` (exécuteurs hébergés) ; une installation qui change la version de Node doit garder Node ≥ 20.19, nécessaire à `run-checks.mjs`.
 
