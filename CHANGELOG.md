@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.1...v0.1.2) (2026-10-31)
+
+
+### Bug Fixes
+
+* **templates:** omit empty env key in generated ci.yml ([#68](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/68)) ([4049858](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/40498581601d9002a888586b1cbb78db8e2479d8))
+
 ## [0.1.1](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.0...v0.1.1) (2026-10-31)
 
 
