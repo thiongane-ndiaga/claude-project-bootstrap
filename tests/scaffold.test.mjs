@@ -2,10 +2,11 @@
 // Tests de scaffold.mjs sur plusieurs combinaisons de modules. Usage : node tests/scaffold.test.mjs
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdirSync, mkdtempSync, writeFileSync, readFileSync, readdirSync, statSync, rmSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, writeFileSync, readFileSync, readdirSync, statSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { runMigrations } from "../skills/project-bootstrap/scripts/migrate.mjs";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const scaffold = path.join(root, "skills", "project-bootstrap", "scripts", "scaffold.mjs");
@@ -81,11 +82,19 @@ for (const c of cases) {
 
 // conflit : un fichier existant différent n'est jamais écrasé
 {
+  const dir = mkdtempSync(path.join(tmpdir(), "pb-conf-"));
+  const out = path.join(dir, "out");
+  mkdirSync(out, { recursive: true });
+  writeFileSync(path.join(out, "CLAUDE.md"), "contenu de l'utilisateur\n");
+  const again = run({ ...base, visibility: "private", modules: [] }, [], out);
+  check("conflit signalé (code 3)", again.res.status === 3 && again.report.conflicts.includes("CLAUDE.md"));
+  check("fichier existant conservé", readFileSync(path.join(out, "CLAUDE.md"), "utf8") === "contenu de l'utilisateur\n");
+  rmSync(dir, { recursive: true, force: true });
+  // fichier généré puis personnalisé alors que le modèle n'a pas changé : ce n'est pas un conflit
   const first = run({ ...base, visibility: "private", modules: [] });
   writeFileSync(path.join(first.out, "CLAUDE.md"), "contenu de l'utilisateur\n");
-  const again = run({ ...base, visibility: "private", modules: [] }, [], first.out);
-  check("conflit signalé (code 3)", again.res.status === 3 && again.report.conflicts.includes("CLAUDE.md"));
-  check("fichier existant conservé", readFileSync(path.join(first.out, "CLAUDE.md"), "utf8") === "contenu de l'utilisateur\n");
+  const same = run({ ...base, visibility: "private", modules: [] }, [], first.out);
+  check("personnalisation sans changement de modèle : ni conflit ni écrasement", same.res.status === 0 && same.report.customized.includes("CLAUDE.md") && readFileSync(path.join(first.out, "CLAUDE.md"), "utf8") === "contenu de l'utilisateur\n");
   rmSync(first.dir, { recursive: true, force: true });
 }
 
@@ -174,19 +183,25 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
     const again = run(cfg(["claude"], { keep: ["CLAUDE.md"] }), [], out);
     check("dépôt existant : fusion idempotente", again.report.merged.length === 0 && again.report.created.length === 0 && again.report.manifest === undefined, JSON.stringify(again.report));
     // JSON invalide dans l'existant : conflit, jamais d'écrasement
-    writeFileSync(path.join(out, ".claude", "settings.json"), "{ pas du json");
-    const broken = run(cfg(["claude"], { keep: ["CLAUDE.md"] }), [], out);
-    check("dépôt existant : settings.json illisible signalé, non écrasé", broken.res.status === 3 && broken.report.conflicts.includes(".claude/settings.json") && read(out, ".claude/settings.json") === "{ pas du json");
     rmSync(dir, { recursive: true, force: true });
+    const dir2 = mkdtempSync(path.join(tmpdir(), "pb-exist2-"));
+    const out2 = path.join(dir2, "repo");
+    mkdirSync(path.join(out2, ".claude"), { recursive: true });
+    writeFileSync(path.join(out2, ".claude", "settings.json"), "{ pas du json");
+    const broken = run(cfg(["claude"]), [], out2);
+    check("dépôt existant : settings.json illisible signalé, non écrasé", broken.res.status === 3 && broken.report.conflicts.includes(".claude/settings.json") && read(out2, ".claude/settings.json") === "{ pas du json");
+    rmSync(dir2, { recursive: true, force: true });
   }
 
   // diff proposé pour un fichier personnalisé
   {
-    const first = run(cfg(["claude"]));
-    writeFileSync(path.join(first.out, "CLAUDE.md"), "perso-unique-xyz\n");
-    const again = run(cfg(["claude"]), ["--diff"], first.out);
+    const dir = mkdtempSync(path.join(tmpdir(), "pb-diff-"));
+    const out = path.join(dir, "repo");
+    mkdirSync(out, { recursive: true });
+    writeFileSync(path.join(out, "CLAUDE.md"), "perso-unique-xyz\n");
+    const again = run(cfg(["claude"]), ["--diff"], out);
     check("--diff : diff fourni pour le fichier en conflit", again.res.status === 3 && /perso-unique-xyz/.test(again.report.diffs?.["CLAUDE.md"] ?? ""), JSON.stringify(again.report.diffs));
-    rmSync(first.dir, { recursive: true, force: true });
+    rmSync(dir, { recursive: true, force: true });
   }
 
   // détection de l'état du dépôt cible
@@ -215,6 +230,106 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
     rmSync(claudeOnly.dir, { recursive: true, force: true });
     rmSync(withSpec.dir, { recursive: true, force: true });
   }
+}
+// mise à jour d'un projet vers une nouvelle version du plugin, adoption, migrations hors fichiers (#44)
+{
+  const cfg = (modules, extra = {}) => ({ ...base, visibility: "private", modules, ...extra });
+  const read = (out, rel) => readFileSync(path.join(out, ...rel.split("/")), "utf8");
+  const exists = (out, rel) => {
+    try { statSync(path.join(out, ...rel.split("/"))); return true; } catch { return false; }
+  };
+  const mkdir = (prefix) => mkdtempSync(path.join(tmpdir(), prefix));
+  // copie du plugin à une version donnée, modifiable pour simuler la version suivante
+  const plugin = (version, mutate = () => {}) => {
+    const dir = mkdir("pb-plugin-");
+    cpSync(path.join(root, "skills"), path.join(dir, "skills"), { recursive: true });
+    cpSync(path.join(root, ".claude-plugin"), path.join(dir, ".claude-plugin"), { recursive: true });
+    const pj = path.join(dir, ".claude-plugin", "plugin.json");
+    writeFileSync(pj, JSON.stringify({ ...JSON.parse(readFileSync(pj, "utf8")), version }));
+    mutate(path.join(dir, "skills", "project-bootstrap"));
+    return { dir, script: path.join(dir, "skills", "project-bootstrap", "scripts", "scaffold.mjs") };
+  };
+  const runScript = (script, args) => {
+    const res = spawnSync(process.execPath, [script, ...args], { encoding: "utf8" });
+    return { res, report: res.status === 0 || res.status === 3 ? JSON.parse(res.stdout) : null };
+  };
+  const withConfig = (config) => {
+    const f = path.join(mkdir("pb-cfg-"), "bootstrap.json");
+    writeFileSync(f, JSON.stringify(config));
+    return f;
+  };
+
+  const v1 = plugin("9.0.0");
+  const v2 = plugin("9.1.0", (skill) => {
+    const t = path.join(skill, "assets", "templates");
+    writeFileSync(path.join(t, "docs", "workflow.md"), readFileSync(path.join(t, "docs", "workflow.md"), "utf8") + "\nNouvelle section v9.1.\n");
+    writeFileSync(path.join(t, "CLAUDE.md"), readFileSync(path.join(t, "CLAUDE.md"), "utf8") + "\nRègle ajoutée en v9.1.\n");
+    writeFileSync(path.join(t, "NOTES.md"), "# Notes\n");
+    const mj = path.join(skill, "assets", "modules.json");
+    const catalog = JSON.parse(readFileSync(mj, "utf8"));
+    catalog.files = catalog.files.filter((f) => f.path !== ".gitattributes");
+    catalog.files.push({ path: "NOTES.md", when: ["core"] });
+    writeFileSync(mj, JSON.stringify(catalog));
+  });
+
+  // génération avec la version N, personnalisation, mise à jour vers N+1
+  const out = path.join(mkdir("pb-upd-"), "repo");
+  runScript(v1.script, ["--config", withConfig(cfg(["claude", "github"])), "--target", out]);
+  writeFileSync(path.join(out, "CLAUDE.md"), "# CLAUDE.md du projet\n");
+  writeFileSync(path.join(out, ".gitignore"), read(out, ".gitignore") + "dist/\n");
+  const up = runScript(v2.script, ["--update", "--target", out, "--diff"]);
+  check("mise à jour : conflit seulement sur le fichier personnalisé dont le modèle a changé (code 3)", up.res.status === 3 && up.report.conflicts.length === 1 && up.report.conflicts[0] === "CLAUDE.md", JSON.stringify(up.report));
+  check("mise à jour : fichier personnalisé conservé, diff proposé", read(out, "CLAUDE.md") === "# CLAUDE.md du projet\n" && /Règle ajoutée en v9\.1/.test(up.report.diffs?.["CLAUDE.md"] ?? ""));
+  check("mise à jour : fichier non modifié remplacé par le nouveau modèle", up.report.updated.includes("docs/workflow.md") && /Nouvelle section v9\.1/.test(read(out, "docs/workflow.md")));
+  check("mise à jour : nouveau fichier du modèle ajouté", up.report.created.includes("NOTES.md") && exists(out, "NOTES.md"));
+  check("mise à jour : personnalisation sans changement de modèle ni conflit ni perte", up.report.customized.includes(".gitignore") && read(out, ".gitignore").includes("dist/"));
+  check("mise à jour : fichier retiré du modèle signalé, jamais supprimé", up.report.retired.includes(".gitattributes") && exists(out, ".gitattributes"));
+  check("mise à jour : versions du plugin consignées", up.report.fromVersion === "9.0.0" && up.report.toVersion === "9.1.0" && JSON.parse(read(out, ".bootstrap/manifest.json")).plugin.version === "9.1.0");
+  const detected = JSON.parse(spawnSync(process.execPath, [v2.script, "--detect", "--target", out], { encoding: "utf8" }).stdout);
+  check("--detect : mise à jour disponible selon la version du manifeste", detected.pluginVersion === "9.1.0" && detected.updateAvailable === false);
+  const detectedOld = JSON.parse(spawnSync(process.execPath, [v1.script, "--detect", "--target", out], { encoding: "utf8" }).stdout);
+  check("--detect : version du manifeste différente de celle du plugin", detectedOld.updateAvailable === true);
+  // idempotence
+  const again = runScript(v2.script, ["--update", "--target", out]);
+  check("mise à jour : idempotente (rien créé, remplacé ni fusionné, manifeste intact)", again.report.created.length === 0 && again.report.updated.length === 0 && again.report.merged.length === 0 && again.report.manifest === undefined && again.report.conflicts.join() === "CLAUDE.md", JSON.stringify(again.report));
+  // après résolution à la main d'un conflit, --adopt le consigne : plus signalé tant que le modèle ne change pas
+  const adopt = runScript(v2.script, ["--update", "--target", out, "--adopt"]);
+  check("--adopt : conflit consigné, code 0", adopt.res.status === 0 && adopt.report.adopted.includes("CLAUDE.md"), JSON.stringify(adopt.report));
+  const after = runScript(v2.script, ["--update", "--target", out]);
+  check("--adopt : fichier adopté plus signalé (modèle inchangé)", after.res.status === 0 && after.report.customized.includes("CLAUDE.md") && after.report.manifest === undefined);
+  check("--update sans manifeste refusé", runScript(v2.script, ["--update", "--target", path.join(mkdir("pb-none-"), "x")]).res.status === 1);
+
+  // adoption d'un projet sans manifeste
+  const adopted = path.join(mkdir("pb-adopt-"), "repo");
+  mkdirSync(adopted, { recursive: true });
+  writeFileSync(path.join(adopted, "CLAUDE.md"), "# Existant\n");
+  const ad = runScript(v1.script, ["--config", withConfig(cfg(["claude"])), "--target", adopted, "--adopt"]);
+  const mf = JSON.parse(read(adopted, ".bootstrap/manifest.json"));
+  check("adoption : fichier existant repris tel quel et consigné", ad.res.status === 0 && ad.report.adopted.includes("CLAUDE.md") && read(adopted, "CLAUDE.md") === "# Existant\n" && mf.files["CLAUDE.md"].status === "adopted");
+  const ad2 = runScript(v1.script, ["--update", "--target", adopted]);
+  check("adoption : relance sans effet", ad2.res.status === 0 && ad2.report.created.length === 0 && ad2.report.manifest === undefined && ad2.report.customized.includes("CLAUDE.md"));
+
+  // migrations hors fichiers
+  const mig = path.join(mkdir("pb-mig-"), "repo");
+  run(cfg(["github", "release"]), [], mig);
+  const calls = [];
+  const fakeGh = (state) => (args) => {
+    calls.push(args.join(" "));
+    return args.includes("PUT") ? "" : JSON.stringify({ can_approve_pull_request_reviews: state, default_workflow_permissions: "read" });
+  };
+  const sim = await runMigrations({ target: mig, repo: "o/r", gh: fakeGh(false) });
+  check("migration : simulation proposée sans rien modifier", sim.length === 1 && sim[0].id === "0001-actions-pr-permission" && sim[0].actions.length === 1 && sim[0].applied === false && !calls.some((c) => c.includes("PUT")));
+  const ok = await runMigrations({ target: mig, repo: "o/r", gh: fakeGh(true), apply: true });
+  check("migration : réglage déjà conforme, rien à faire", ok.length === 1 && ok[0].actions.length === 0 && ok[0].applied === false && !calls.some((c) => c.includes("PUT")));
+  const applied = await runMigrations({ target: mig, repo: "o/r", gh: fakeGh(false), apply: true });
+  check("migration : appliquée et consignée dans le manifeste", applied[0].applied === true && calls.some((c) => c.includes("PUT") && c.includes("can_approve_pull_request_reviews=true")) && JSON.parse(read(mig, ".bootstrap/manifest.json")).migrations.includes("0001-actions-pr-permission"));
+  check("migration : déjà consignée, non rejouée", (await runMigrations({ target: mig, repo: "o/r", gh: fakeGh(false) })).length === 0);
+  const noRelease = path.join(mkdir("pb-mig2-"), "repo");
+  run(cfg(["github"]), [], noRelease);
+  check("migration : ignorée si le module concerné est absent", (await runMigrations({ target: noRelease, repo: "o/r", gh: fakeGh(false) })).length === 0);
+  let threw = false;
+  try { await runMigrations({ target: path.join(mkdir("pb-mig3-"), "x"), repo: "o/r", gh: fakeGh(false) }); } catch { threw = true; }
+  check("migration : projet sans manifeste refusé", threw);
 }
 // dry-run : n'écrit rien
 {

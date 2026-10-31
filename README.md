@@ -20,6 +20,8 @@ skills/project-bootstrap/
   assets/modules.json    catalogue des modules, dépendances, fichiers
   assets/templates/      modèles (blocs @@module:… et paramètres {{…}})
   scripts/scaffold.mjs   génère, met à jour et fusionne les fichiers (manifeste .bootstrap/manifest.json), n'écrase jamais un fichier modifié
+  scripts/migrate.mjs    migrations hors fichiers (réglages côté forge), simulation puis --apply
+  migrations/            une migration par fichier, idempotente
   scripts/resolve-versions.mjs  dernières versions CLI ; SHA d'actions publiés depuis ≥ 14 jours
   references/            pièges connus, configuration, GitHub, vérification
 tests/scaffold.test.mjs  tests du générateur (node tests/scaffold.test.mjs)
