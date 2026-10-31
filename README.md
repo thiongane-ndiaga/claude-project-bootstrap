@@ -25,10 +25,11 @@ skills/project-bootstrap/
   scripts/resolve-versions.mjs  dernières versions CLI ; SHA d'actions publiés depuis ≥ 14 jours
   references/            pièges connus, configuration, GitHub, vérification
 tests/scaffold.test.mjs  tests du générateur (node tests/scaffold.test.mjs)
+tests/matrix.test.mjs    matrice des modules, instantanés (tests/snapshots/) et validation par les CLI réelles
 ```
 
 ## Développement
 
-- `node tests/scaffold.test.mjs` doit passer avant tout commit.
+- `node tests/scaffold.test.mjs` et `node tests/matrix.test.mjs` doivent passer avant tout commit (ensemble : `node .bootstrap/run-checks.mjs`).
 - Un piège découvert sur un nouveau projet va dans `references/pitfalls.md`.
 - Modèles en français ; le skill traduit après génération si le projet utilise une autre langue.

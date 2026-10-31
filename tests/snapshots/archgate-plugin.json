@@ -1,0 +1,17 @@
+{
+  ".archgate/config.json": "61d6f5a218b25df60ad64167e761bf4b387dc95aba6c1a1a9f4bdc57a5a284e0",
+  ".archgate/lint/README.md": "dccb43956dcf07790a26e8ab5de17aaf7a677d4df124d49a66174daf2dcdc54b",
+  ".bootstrap/checks.json": "0653e67071e2464f552db4a37de960b06e64332c27ec4bb891b7357df508f0d7",
+  ".bootstrap/manifest.json": null,
+  ".bootstrap/run-checks.mjs": "469af1333ac019b6d573fe015119069be733baf2814f3cd34814f55bbad13456",
+  ".claude/agents/architecture-explorer.md": "5b0b160c2d6d472e62faadc0aa802938578464a867e351e2154b1e80fb64797d",
+  ".claude/hooks/quality-gate.mjs": "85e9e0d94937cda655b430862ebd00016d752c3abb99cbc1d1c1400e04d673ab",
+  ".claude/hooks/read-only-bash.mjs": "f2a9fbc62196edab6ad2e76adca2fcd1258876a3fe701d52a1295f96e6108c5f",
+  ".claude/settings.json": "5e6ff724ade788449595348d83b3f8e6c2fcdf8862ba6b94f4b4666dfccde4f7",
+  ".gitattributes": "380e0cc171b6bedcfaa42aec15cff80245e3adbbeb10bba6becdbef9143b7f37",
+  ".gitignore": "e9e571edd71a732e006a483cd4aeffcb511bd60a1e77ee4031e0cd215c3314af",
+  "CLAUDE.md": "6ec8250db84a46ba77479f6bd0331750de2f16c613458cb65cc1f9c7dd62dd2e",
+  "docs/architecture/adrs/ARCH-003-emplacement-et-format-des-adr.md": "8c29d2f24d5e701dd795c5ad88826b99625e0097b5c49dd7114dc29ac81ad32d",
+  "docs/architecture/adrs/ARCH-003-emplacement-et-format-des-adr.rules.ts": "8b27b675ab5f10c5964038a986200194e5e405913f92a04353c54c6aebbea041",
+  "docs/workflow.md": "d4a5bdea95946a3d2f5c274590c76fc927b8afc097cf8b12f9873b7176bd6120"
+}

@@ -24,7 +24,7 @@ Le détail est dans `docs/workflow.md`.
 - Quoi : `openspec/specs/` (en vigueur), `openspec/changes/` (en cours).
 - Skill : `skills/project-bootstrap/SKILL.md` ; modèles : `skills/project-bootstrap/assets/templates/` (blocs `@@module:…`, paramètres `{{…}}`) ; catalogue : `assets/modules.json`.
 - Pièges connus : `skills/project-bootstrap/references/pitfalls.md`.
-- Tests : `tests/scaffold.test.mjs`.
+- Tests : `tests/scaffold.test.mjs` (comportements) et `tests/matrix.test.mjs` (matrice des modules, instantanés dans `tests/snapshots/`) ; ensemble : `node .bootstrap/run-checks.mjs`.
 
 ## Règles
 - Tout changement de comportement passe par un changement OpenSpec.

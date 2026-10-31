@@ -1,0 +1,13 @@
+{
+  ".bootstrap/checks.json": "0653e67071e2464f552db4a37de960b06e64332c27ec4bb891b7357df508f0d7",
+  ".bootstrap/manifest.json": null,
+  ".bootstrap/run-checks.mjs": "469af1333ac019b6d573fe015119069be733baf2814f3cd34814f55bbad13456",
+  ".claude/hooks/quality-gate.mjs": "42dcb0116a79771061639a9925bbcb755d1b1b77db67a2e38392437944a1557e",
+  ".claude/hooks/read-only-bash.mjs": "f2a9fbc62196edab6ad2e76adca2fcd1258876a3fe701d52a1295f96e6108c5f",
+  ".claude/settings.json": "3d38f675dca44c48ad886ca06a094486ec01420de6d7abffbfef8a411b1ff59c",
+  ".gitattributes": "380e0cc171b6bedcfaa42aec15cff80245e3adbbeb10bba6becdbef9143b7f37",
+  ".githooks/pre-push": "236a7aa59cce23c34891b7bf99896a2c992733e343e2f6ab9984e8aa3f719a4c",
+  ".gitignore": "bbb7a6669f4e6557474827de0d4e0bb38586aea32f0a639aeb9f82a7cec7e717",
+  "CLAUDE.md": "40f0fd325b3b5a9e16b229b204240524ca6bc9ac2770334d3486fba6322f5d0a",
+  "docs/workflow.md": "5249df456ab65c1a8ff0d604e532cd77b336de3e14f4a42c2c8a092b1f27533e"
+}

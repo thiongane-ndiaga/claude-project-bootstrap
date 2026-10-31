@@ -1,0 +1,21 @@
+{
+  ".bootstrap/checks.json": "0653e67071e2464f552db4a37de960b06e64332c27ec4bb891b7357df508f0d7",
+  ".bootstrap/manifest.json": null,
+  ".bootstrap/run-checks.mjs": "469af1333ac019b6d573fe015119069be733baf2814f3cd34814f55bbad13456",
+  ".gitattributes": "380e0cc171b6bedcfaa42aec15cff80245e3adbbeb10bba6becdbef9143b7f37",
+  ".github/ISSUE_TEMPLATE/bug.yml": "c2ffca1c75450dbe1517b9d47404420f41751a634a4e9e13bfeba1b5240905bb",
+  ".github/ISSUE_TEMPLATE/config.yml": "1f103c6a9dd07cd13a9a6f17ace6b813f47747eb9cb7e00488cb2073caaf91bb",
+  ".github/ISSUE_TEMPLATE/feature.yml": "3dbe0ff940bb0060a821a31e48c1544042784833598a7c19fc546140e4b3a3da",
+  ".github/actions/project-setup/action.yml": "e2f60cae813321c66b10f5a98484d3b119ec4505c0e92737129041802c73e40e",
+  ".github/labels.json": "cbf6e8d6f5d28507afabf573bb4d0b5c7e6b75ee2c9e3083d4a849bf2df74e32",
+  ".github/pull_request_template.md": "7d3abab1facc615ce0f64ceb809376c218c69158b0c93beb7566744367460ea7",
+  ".github/workflows/ci.yml": "ef910db84d10b639646e6789e5018e3b1dec2f3fbd6dc901836579300f821e16",
+  ".github/workflows/release.yml": "b00b35281a6ea5585e1f404ba63d178374514e0581f4de3ecd1dffd060bf8aa6",
+  ".gitignore": "bbb7a6669f4e6557474827de0d4e0bb38586aea32f0a639aeb9f82a7cec7e717",
+  ".release-please-manifest.json": "b9c66e0126774ab9fa34536f15972438356e7035724a2c0f0ca3b125967e6399",
+  "CLAUDE.md": "5a9426db7637b5efb7e00b77b4c42cfc88fb92dc5cb54c674304855f64e8e068",
+  "docs/workflow.md": "7166941cc8a3a35ae25aff1be0fc58852a776b01e80ac58dcf9654792f2b11e1",
+  "release-please-config.json": "c4a900e93d479b4264ac754c5925c6a699cb08272b864af8d0bc0986f27a8e27",
+  "scripts/check-pr-title.mjs": "6bd4d1a35fc2ad9c483c7ae09361b8061d8c3681e4c744528e219f9f2f61c401",
+  "scripts/sync-labels.mjs": "fec29054527bad66276014e15548ce0913ee9e923d14a30881f2b4a3d73e33b6"
+}
