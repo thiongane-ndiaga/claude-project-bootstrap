@@ -95,27 +95,43 @@ Claude Code utilise `gh` en lecture sans demander ; `gh issue create`, `gh pr cr
 
 ## Nouveau poste (Windows natif ou Linux)
 
-- Prérequis : Node.js ≥ 20.19 et git.
+Les étapes marquées « optionnel » ne sont pas nécessaires au fonctionnement du dépôt.
+
+1. **Prérequis** : Node.js ≥ 20.19 et git.
 @@module:github
-- [gh](https://cli.github.com), puis `gh auth login -h github.com -s project`.
+   Installer aussi [gh](https://cli.github.com), puis `gh auth login -h github.com -s project`.
+@@end
+@@module:openspec|archgate
+1. **CLI aux versions épinglées du projet**
+@@module:github
+   (ce sont celles de `.github/workflows/ci.yml`)
 @@end
 @@module:openspec
-- OpenSpec à la version épinglée du projet : `npm install -g @fission-ai/openspec@{{OPENSPEC_VERSION}}`.
+   - OpenSpec : `npm install -g @fission-ai/openspec@{{OPENSPEC_VERSION}}`
 @@end
 @@module:archgate
-- Archgate à la version épinglée du projet : `npm install -g archgate@{{ARCHGATE_VERSION}}`.
+   - Archgate : `npm install -g archgate@{{ARCHGATE_VERSION}}`
+@@end
+   - Si le préfixe npm n'est pas inscriptible (`npm config get prefix`, typiquement `/usr` sous Linux), ajouter `--prefix ~/.local` après avoir vérifié que `~/.local/bin` est dans le `PATH`. Pas de `sudo`.
+1. **Télémétrie** (optionnel) :
+@@module:openspec
+   - `openspec config set telemetry.enabled false`
+@@end
+@@module:archgate
+   - `archgate telemetry disable`
+@@end
 @@end
 @@module:githooks
-- Dans le clone : `git config core.hooksPath .githooks`.
+1. **Hooks git** : dans le clone, `git config core.hooksPath .githooks`.
 @@end
 @@module:archgate-plugin
-- Plugin Archgate : `archgate login`, puis `claude plugin marketplace add https://plugins.archgate.dev/archgate.git` et `claude plugin install archgate@archgate --scope local`. Retirer tout `"agent": "archgate:developer"` ajouté à `.claude/settings.local.json`.
+1. **Plugin Archgate** (optionnel) : `archgate login`, puis `claude plugin marketplace add https://plugins.archgate.dev/archgate.git` et `claude plugin install archgate@archgate --scope local`. Retirer tout `"agent": "archgate:developer"` ajouté à `.claude/settings.local.json`.
 @@end
 @@module:agent-teams
-- Agent teams : `"env": { "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1" }` dans `.claude/settings.local.json`. Affichage in-process par défaut ; split panes seulement sous tmux (`"teammateMode": "auto"` dans `~/.claude/settings.json`).
+1. **Agent teams** (optionnel) : `"env": { "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1" }` dans `.claude/settings.local.json`. Affichage in-process par défaut ; split panes seulement sous tmux (`"teammateMode": "auto"` dans `~/.claude/settings.json`).
 @@end
 @@module:claude
-- Vérifier : `node .claude/hooks/quality-gate.mjs` renvoie 0.
+1. **Vérifier** : `node .claude/hooks/quality-gate.mjs` renvoie 0.
 @@end
 
 Ne jamais partager un même clone entre Windows et WSL.
