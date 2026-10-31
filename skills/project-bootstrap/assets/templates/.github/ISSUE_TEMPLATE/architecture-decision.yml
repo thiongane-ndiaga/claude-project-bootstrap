@@ -1,7 +1,7 @@
 name: Décision d'architecture
 description: Une question d'architecture à trancher par un ADR
 title: "[adr] "
-labels: ["type:adr"]
+labels: ["adr"]
 body:
   - type: textarea
     id: question
