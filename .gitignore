@@ -7,3 +7,11 @@ Thumbs.db
 .claude/settings.local.json
 .claude/agent-memory-local/
 CLAUDE.local.md
+
+# OS / éditeurs
+desktop.ini
+.vscode/
+.idea/
+
+# Fichiers temporaires Office
+~$*

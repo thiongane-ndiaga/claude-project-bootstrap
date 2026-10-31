@@ -1,0 +1,150 @@
+{
+  "schema": 1,
+  "plugin": {
+    "name": "project-bootstrap",
+    "version": "0.1.3"
+  },
+  "modules": [
+    "core",
+    "claude",
+    "github",
+    "release",
+    "githooks"
+  ],
+  "config": {
+    "projectName": "project-bootstrap",
+    "description": "Plugin Claude Code qui recrée l'outillage et le workflow de développement assisté par IA d'un projet.",
+    "visibility": "public",
+    "docLanguageName": "Français",
+    "stack": "Node.js ≥ 20.19, modules ES, sans dépendance",
+    "modules": [
+      "claude",
+      "github",
+      "release",
+      "githooks"
+    ],
+    "versions": {
+      "openspec": "1.16.0",
+      "archgate": "0.61.0",
+      "node": "24"
+    },
+    "actions": {
+      "checkout": {
+        "tag": "v7.0.1",
+        "sha": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "published": "2026-07-20T15:10:05Z"
+      },
+      "setupNode": {
+        "tag": "v7.1.0",
+        "sha": "949feb2413d6458794dcd2491c4babbbce0c15c1",
+        "published": "2026-10-08T02:52:34Z"
+      },
+      "releasePlease": {
+        "tag": "v5.0.0",
+        "sha": "45996ed1f6d02564a971a2fa1b5860e934307cf7",
+        "published": "2026-04-22T18:03:34Z"
+      }
+    },
+    "actionsCreditNote": "sans objet (dépôt public)",
+    "keep": [
+      ".claude/hooks/read-only-bash.mjs",
+      ".claude/agents/traceability-checker.md",
+      ".github/labels.json",
+      "scripts/sync-labels.mjs",
+      ".bootstrap/checks.json"
+    ]
+  },
+  "files": {
+    ".bootstrap/checks.json": {
+      "sha256": "cfa6ff30f4928b914974c726f48a9e6fd2835b9e219f95a656a01eb6cfced131",
+      "generated": "379996a079f9bddcf9e896e274378a397716cbc53713b33be12893442af2bfa6",
+      "status": "kept"
+    },
+    ".bootstrap/run-checks.mjs": {
+      "sha256": "469af1333ac019b6d573fe015119069be733baf2814f3cd34814f55bbad13456",
+      "generated": "469af1333ac019b6d573fe015119069be733baf2814f3cd34814f55bbad13456",
+      "status": "created"
+    },
+    ".claude/hooks/quality-gate.mjs": {
+      "sha256": "42dcb0116a79771061639a9925bbcb755d1b1b77db67a2e38392437944a1557e",
+      "generated": "42dcb0116a79771061639a9925bbcb755d1b1b77db67a2e38392437944a1557e",
+      "status": "created"
+    },
+    ".claude/settings.json": {
+      "sha256": "20df807301daad004ab36f78d353a2191e00372b5105d0c57a0a3a40d98fd11d",
+      "generated": "20df807301daad004ab36f78d353a2191e00372b5105d0c57a0a3a40d98fd11d",
+      "status": "created"
+    },
+    ".gitattributes": {
+      "sha256": "380e0cc171b6bedcfaa42aec15cff80245e3adbbeb10bba6becdbef9143b7f37",
+      "generated": "380e0cc171b6bedcfaa42aec15cff80245e3adbbeb10bba6becdbef9143b7f37",
+      "status": "created"
+    },
+    ".githooks/pre-push": {
+      "sha256": "236a7aa59cce23c34891b7bf99896a2c992733e343e2f6ab9984e8aa3f719a4c",
+      "generated": "236a7aa59cce23c34891b7bf99896a2c992733e343e2f6ab9984e8aa3f719a4c",
+      "status": "created"
+    },
+    ".github/ISSUE_TEMPLATE/bug.yml": {
+      "sha256": "19649e166d8b0ab52286fdfb358d5f0fe654afdba32f77f9e423bbe162d81a5e",
+      "generated": "bf14b2913cdb872bfa0cb8a6e1b8c2696017b6e14948a29311c909a3dbe558de",
+      "status": "adopted"
+    },
+    ".github/ISSUE_TEMPLATE/config.yml": {
+      "sha256": "34dfd37f9a4cc41cf6415724850bc3ccbae2de9a7c3d2bf8bf82a0455a65d05f",
+      "generated": "1f103c6a9dd07cd13a9a6f17ace6b813f47747eb9cb7e00488cb2073caaf91bb",
+      "status": "adopted"
+    },
+    ".github/ISSUE_TEMPLATE/feature.yml": {
+      "sha256": "f27fbdbdb01900bbc8297627df44fc45f266986be6d3abb0fa7414059f864b94",
+      "generated": "42a2f9c58c90dd0308c91bbfa05fe5c8647a66fd177be9706ad818a82079536f",
+      "status": "adopted"
+    },
+    ".github/pull_request_template.md": {
+      "sha256": "fafb895aca2fa60a3ceddd67df716c518fc488f182fce8f6f55d81570b6abb53",
+      "generated": "7d3abab1facc615ce0f64ceb809376c218c69158b0c93beb7566744367460ea7",
+      "status": "adopted"
+    },
+    ".github/workflows/ci.yml": {
+      "sha256": "9b89cc76e13f638d7c88e056e286be9779576668a8546f5e2717e2384395b5a5",
+      "generated": "0941164d4ceecf45046fe79943facf07b27b475ac1a45ca1de7b04a6cb45c393",
+      "status": "adopted"
+    },
+    ".github/workflows/release.yml": {
+      "sha256": "86246623e4bdf6017b3a2c36e8dc6afc81c1221db1616032311df5631764399f",
+      "generated": "86246623e4bdf6017b3a2c36e8dc6afc81c1221db1616032311df5631764399f",
+      "status": "created"
+    },
+    ".gitignore": {
+      "sha256": "69a5095f0f9174fc8a4744912312adc9d97f9885fb39414a3bf449a11f3f2ba0",
+      "generated": "bbb7a6669f4e6557474827de0d4e0bb38586aea32f0a639aeb9f82a7cec7e717",
+      "status": "merged"
+    },
+    ".release-please-manifest.json": {
+      "sha256": "feac73085460f7f2cfa38325def458df035da07e7769078a32f935e8322d774e",
+      "generated": "b9c66e0126774ab9fa34536f15972438356e7035724a2c0f0ca3b125967e6399",
+      "status": "adopted"
+    },
+    "CLAUDE.md": {
+      "sha256": "288d53f19ba0598bf2626b9b30d2d99ad81d462643ce0e164ebf905554fa48c0",
+      "generated": "c8ea32021128144319ca84ece40b1a7c9f205f77bba1e0088cd6e0cfffb7fb29",
+      "status": "adopted"
+    },
+    "docs/workflow.md": {
+      "sha256": "bd24e37ddcb9ca427ef37b1747cb218f4307443853994cee710fb1d04d194177",
+      "generated": "bc82e3c23f4f3db2518a1338942b5df0cecbcf01d5a0f798e181d09be901fc15",
+      "status": "adopted"
+    },
+    "release-please-config.json": {
+      "sha256": "65ce8956e7bb585d5188bbb7e6eb45fcb938621057fca78a091b0ce54e873353",
+      "generated": "c4a900e93d479b4264ac754c5925c6a699cb08272b864af8d0bc0986f27a8e27",
+      "status": "adopted"
+    },
+    "scripts/check-pr-title.mjs": {
+      "sha256": "6bd4d1a35fc2ad9c483c7ae09361b8061d8c3681e4c744528e219f9f2f61c401",
+      "generated": "6bd4d1a35fc2ad9c483c7ae09361b8061d8c3681e4c744528e219f9f2f61c401",
+      "status": "created"
+    }
+  },
+  "migrations": []
+}
