@@ -11,7 +11,7 @@ Chaque couche a un rôle :
 
 ## Étapes
 
-- **Issue** via un formulaire : *Fonctionnalité*, *Bug* ou *Décision d'architecture* (label `type:*` posé par le template).
+- **Issue** via un formulaire : *Fonctionnalité*, *Bug* ou *Décision d'architecture* (label posé par le template : `bug`, `enhancement` ou `adr`).
   Elle arrive dans le Project en *Todo* (auto-add) ; la carte passe en *In Progress* à la création de la branche, en *In Review* à l'ouverture de la PR.
 - **ADR si requis** : issue de type décision, ou changement qui introduit ou remplace une technologie ou une dépendance, une contrainte transverse, un format de données, une interface externe, ou qui contredit un ADR. Exploration (agent `architecture-explorer`, éventuellement en équipe), puis `archgate adr create --title "…" --domain <domaine>`. Statut « Proposé » dans le corps, PR dédiée ; « Accepté » au merge.
 - **Branche** `<type>/<N>-<slug>` (ex. `feat/12-password-reset`).

@@ -60,8 +60,6 @@
     "actionsCreditNote": "sans objet (dépôt public)",
     "keep": [
       ".claude/hooks/read-only-bash.mjs",
-      ".github/labels.json",
-      "scripts/sync-labels.mjs",
       ".bootstrap/checks.json"
     ],
     "date": "2026-10-31"
@@ -138,14 +136,14 @@
       "status": "kept"
     },
     ".github/ISSUE_TEMPLATE/architecture-decision.yml": {
-      "sha256": "9d167a5936e0ef1ef1922febd4bf8f4a70175b920beb986daac5d3486d6ec943",
-      "generated": "9d167a5936e0ef1ef1922febd4bf8f4a70175b920beb986daac5d3486d6ec943",
+      "sha256": "a567f1c033d9f2a01af471d74720a60ca839f35fb7ba81995291d32c3b69cea0",
+      "generated": "a567f1c033d9f2a01af471d74720a60ca839f35fb7ba81995291d32c3b69cea0",
       "status": "created"
     },
     ".github/ISSUE_TEMPLATE/bug.yml": {
       "sha256": "19649e166d8b0ab52286fdfb358d5f0fe654afdba32f77f9e423bbe162d81a5e",
-      "generated": "bf14b2913cdb872bfa0cb8a6e1b8c2696017b6e14948a29311c909a3dbe558de",
-      "status": "adopted"
+      "generated": "c2ffca1c75450dbe1517b9d47404420f41751a634a4e9e13bfeba1b5240905bb",
+      "status": "reconciled"
     },
     ".github/ISSUE_TEMPLATE/config.yml": {
       "sha256": "34dfd37f9a4cc41cf6415724850bc3ccbae2de9a7c3d2bf8bf82a0455a65d05f",
@@ -154,8 +152,13 @@
     },
     ".github/ISSUE_TEMPLATE/feature.yml": {
       "sha256": "f27fbdbdb01900bbc8297627df44fc45f266986be6d3abb0fa7414059f864b94",
-      "generated": "42a2f9c58c90dd0308c91bbfa05fe5c8647a66fd177be9706ad818a82079536f",
-      "status": "adopted"
+      "generated": "3dbe0ff940bb0060a821a31e48c1544042784833598a7c19fc546140e4b3a3da",
+      "status": "reconciled"
+    },
+    ".github/labels.json": {
+      "sha256": "cbf6e8d6f5d28507afabf573bb4d0b5c7e6b75ee2c9e3083d4a849bf2df74e32",
+      "generated": "cbf6e8d6f5d28507afabf573bb4d0b5c7e6b75ee2c9e3083d4a849bf2df74e32",
+      "status": "created"
     },
     ".github/pull_request_template.md": {
       "sha256": "4b5665b552d5c418d1fd2707e52ec3854bdf8a39f0bb52326cbfabad853165e5",
@@ -288,9 +291,9 @@
       "status": "created"
     },
     "docs/workflow.md": {
-      "sha256": "0b956f19e1827f645dd91dd83aed32ba52de064ac40fc97ea66c76afc35aaf81",
-      "generated": "d4929ac098d7256efaf3b122b7576293df79f40a079ebca2fbcf7b5112f3fb10",
-      "status": "adopted"
+      "sha256": "9a835ecf8c806cb5ae9fc56b9e4f309e1b8cd16c4641aa207fb836129d9a4d62",
+      "generated": "ba0ae81dc10fa1cc2c0196411b5403712d3d2444886a77c3355502c87a7c1783",
+      "status": "reconciled"
     },
     "release-please-config.json": {
       "sha256": "65ce8956e7bb585d5188bbb7e6eb45fcb938621057fca78a091b0ce54e873353",
@@ -300,6 +303,11 @@
     "scripts/check-pr-title.mjs": {
       "sha256": "6bd4d1a35fc2ad9c483c7ae09361b8061d8c3681e4c744528e219f9f2f61c401",
       "generated": "6bd4d1a35fc2ad9c483c7ae09361b8061d8c3681e4c744528e219f9f2f61c401",
+      "status": "created"
+    },
+    "scripts/sync-labels.mjs": {
+      "sha256": "fec29054527bad66276014e15548ce0913ee9e923d14a30881f2b4a3d73e33b6",
+      "generated": "fec29054527bad66276014e15548ce0913ee9e923d14a30881f2b4a3d73e33b6",
       "status": "created"
     }
   },
