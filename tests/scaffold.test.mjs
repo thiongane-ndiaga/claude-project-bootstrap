@@ -97,6 +97,25 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
   const r = run({ ...noVersions, visibility: "private", modules: ["github", "openspec"] });
   check("paramètre manquant refusé", r.res.status !== 0 && /OPENSPEC_VERSION/.test(r.res.stderr), r.res.stderr);
 }
+// modules incompatibles (champ « conflicts ») : catalogue de test passé par --catalog
+{
+  const catalog = (modules) => {
+    const f = path.join(mkdtempSync(path.join(tmpdir(), "pb-cat-")), "modules.json");
+    writeFileSync(f, JSON.stringify({ modules: { core: { requires: [] }, ...modules }, files: [] }));
+    return f;
+  };
+  const sel = (modules, cat) => run({ ...base, visibility: "private", modules }, ["--catalog", cat]);
+  const ok = catalog({ a: { requires: [] }, b: { requires: [], conflicts: ["a"] }, c: { requires: ["a"] } });
+  check("conflicts : configuration compatible acceptée", sel(["a", "c"], ok).res.status === 0);
+  const bad = sel(["a", "b"], ok);
+  check("conflicts : modules incompatibles refusés (code 2)", bad.res.status === 2 && /Modules incompatibles : a [/] b/.test(bad.res.stderr), bad.res.stderr);
+  check("conflicts : un seul côté suffit, quel que soit l'ordre", sel(["b", "a"], ok).res.status === 2);
+  check("conflicts : rien n'est écrit en cas de conflit", (() => { try { statSync(bad.out); return false; } catch { return true; } })());
+  check("conflicts : module inconnu dans le catalogue refusé", sel(["a"], catalog({ a: { requires: [], conflicts: ["zzz"] } })).res.status === 1);
+  check("conflicts : conflit avec un module requis refusé", sel(["a", "b"], catalog({ a: { requires: [] }, b: { requires: ["a"], conflicts: ["a"] } })).res.status === 1);
+  check("conflicts : dépendance non satisfaite refusée (code 1)", sel(["c"], ok).res.status === 1);
+  check("conflicts : le catalogue réel n'a aucune incompatibilité interne", Object.entries(manifest.modules).every(([m, d]) => (d.conflicts ?? []).every((c) => manifest.modules[c] && c !== m)));
+}
 // dry-run : n'écrit rien
 {
   const r = run({ ...base, visibility: "private", modules: allModules }, ["--dry-run"]);

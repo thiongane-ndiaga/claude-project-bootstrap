@@ -13,21 +13,21 @@ Lis `references/pitfalls.md` avant la phase 2 : chaque piège qui y figure a dé
 
 ## Modules
 
-Le catalogue fait foi : `assets/modules.json` (dépendances, fichiers, valeurs par défaut).
+Le catalogue fait foi : `assets/modules.json` (dépendances `requires`, incompatibilités `conflicts`, fichiers, valeurs par défaut). Aucun module n'est incompatible avec un autre pour l'instant ; un module qui déclare `conflicts: ["x"]` ne peut pas être sélectionné avec `x`, et `scaffold.mjs` refuse la configuration (code de sortie 2, aucun fichier écrit).
 
-| Module | Apporte | Requiert |
-|---|---|---|
-| `core` (toujours) | `.gitignore`, `.gitattributes`, `CLAUDE.md`, `docs/workflow.md` | — |
-| `claude` | `.claude/settings.json`, hooks Node, agents du projet | — |
-| `openspec` | `openspec init` + conventions `<issue>-<slug>` | — |
-| `archgate` | `.archgate/`, ADR d'outillage + règles dans `docs/architecture/adrs/` | — |
-| `archgate-plugin` | plugin Claude Code d'Archgate (compte Archgate) | archgate, claude |
-| `arc42` | 12 sections avec questions-guides | — |
-| `github` | formulaires d'issues, template de PR, labels, `ci.yml`, dépôt | — |
-| `release` | release-please (changelog, SemVer, tags, Releases) | github |
-| `projects` | tableau GitHub Projects | github |
-| `githooks` | `pre-push` Node qui rejoue le contrôle qualité | claude |
-| `agent-teams` | flag expérimental dans `.claude/settings.local.json` | claude |
+| Module | Apporte | Requiert | Incompatible avec |
+|---|---|---|---|
+| `core` (toujours) | `.gitignore`, `.gitattributes`, `CLAUDE.md`, `docs/workflow.md` | — | — |
+| `claude` | `.claude/settings.json`, hooks Node, agents du projet | — | — |
+| `openspec` | `openspec init` + conventions `<issue>-<slug>` | — | — |
+| `archgate` | `.archgate/`, ADR d'outillage + règles dans `docs/architecture/adrs/` | — | — |
+| `archgate-plugin` | plugin Claude Code d'Archgate (compte Archgate) | archgate, claude | — |
+| `arc42` | 12 sections avec questions-guides | — | — |
+| `github` | formulaires d'issues, template de PR, labels, `ci.yml`, dépôt | — | — |
+| `release` | release-please (changelog, SemVer, tags, Releases) | github | — |
+| `projects` | tableau GitHub Projects | github | — |
+| `githooks` | `pre-push` Node qui rejoue le contrôle qualité | claude | — |
+| `agent-teams` | flag expérimental dans `.claude/settings.local.json` | claude | — |
 
 Les agents générés dépendent des modules : `spec-reviewer` (openspec), `traceability-checker` (github), `architecture-explorer` (archgate), `arc42-keeper` (arc42).
 
@@ -37,7 +37,7 @@ Les agents générés dépendent des modules : `spec-reviewer` (openspec), `trac
 2. Pose les questions (AskUserQuestion), recommandation en premier :
    - nom et description en une phrase ;
    - visibilité : **privé** si des données réelles ou sensibles sont présentes, sinon public (CI Windows gratuite et protection de branche disponible) ;
-   - modules (multi-sélection, défauts de `modules.json`) ;
+   - modules (multi-sélection, défauts de `modules.json`) ; ne propose pas deux modules incompatibles (colonne « Incompatible avec ») ;
    - langue de la documentation (modèles fournis en français) ;
    - Windows natif ou WSL (recommandé : natif ; jamais un même clone partagé entre les deux).
 3. Relève les versions : `claude --version`, `node --version` (≥ 20.19), `git --version`, `gh --version`, `gh auth status` (scope `project` si module projects).

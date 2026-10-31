@@ -1,22 +1,23 @@
 #!/usr/bin/env node
 // Génère les fichiers d'outillage d'un projet à partir des modèles du skill.
-// Usage : node scaffold.mjs --config <bootstrap.json> --target <dossier> [--dry-run]
+// Usage : node scaffold.mjs --config <bootstrap.json> --target <dossier> [--dry-run] [--catalog <modules.json>]
 // Ne remplace jamais un fichier existant : les conflits sont listés, à résoudre à la main.
+// --catalog : catalogue de modules alternatif (tests) ; par défaut assets/modules.json.
+// Codes de sortie : 0 succès ; 1 configuration ou catalogue invalide ; 2 modules incompatibles ; 3 fichiers en conflit.
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const assets = path.join(here, "..", "assets");
-const manifest = JSON.parse(readFileSync(path.join(assets, "modules.json"), "utf8"));
-
 const args = Object.fromEntries(
   process.argv.slice(2).reduce((acc, a, i, all) => (a.startsWith("--") ? [...acc, [a.slice(2), all[i + 1]?.startsWith("--") || all[i + 1] === undefined ? true : all[i + 1]]] : acc), []),
 );
 if (!args.config || !args.target) {
-  console.error("Usage : node scaffold.mjs --config <bootstrap.json> --target <dossier> [--dry-run]");
+  console.error("Usage : node scaffold.mjs --config <bootstrap.json> --target <dossier> [--dry-run] [--catalog <modules.json>]");
   process.exit(1);
 }
+const manifest = JSON.parse(readFileSync(typeof args.catalog === "string" ? args.catalog : path.join(assets, "modules.json"), "utf8"));
 const config = JSON.parse(readFileSync(args.config, "utf8"));
 const target = path.resolve(args.target);
 const dryRun = args["dry-run"] === true;
@@ -24,6 +25,13 @@ const dryRun = args["dry-run"] === true;
 // --- modules sélectionnés et dépendances ---
 const selected = new Set(["core", ...(config.modules ?? [])]);
 const errors = [];
+// catalogue : `conflicts` ne cite que des modules connus, jamais le module lui-même ni l'un de ses `requires`
+for (const [m, def] of Object.entries(manifest.modules)) {
+  for (const c of def.conflicts ?? []) {
+    if (!manifest.modules[c]) errors.push(`Catalogue invalide : ${m} est incompatible avec le module inconnu ${c}`);
+    else if (c === m || def.requires.includes(c)) errors.push(`Catalogue invalide : ${m} ne peut pas être incompatible avec ${c}`);
+  }
+}
 for (const m of selected) {
   const def = manifest.modules[m];
   if (!def) errors.push(`Module inconnu : ${m}`);
@@ -33,6 +41,15 @@ if (!["private", "public"].includes(config.visibility)) errors.push("visibility 
 if (errors.length) {
   console.error(errors.join("\n"));
   process.exit(1);
+}
+// incompatibilités : la déclaration d'un seul des deux modules suffit
+const incompatible = new Set();
+for (const m of selected) {
+  for (const c of manifest.modules[m].conflicts ?? []) if (selected.has(c)) incompatible.add([m, c].sort().join(" / "));
+}
+if (incompatible.size) {
+  console.error([...incompatible].map((p) => `Modules incompatibles : ${p}`).join("\n"));
+  process.exit(2);
 }
 // pseudo-modules utilisés par les blocs conditionnels
 const active = new Set([...selected, `visibility-${config.visibility}`]);
