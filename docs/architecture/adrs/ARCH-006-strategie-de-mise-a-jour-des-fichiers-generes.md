@@ -9,7 +9,7 @@ rules: false
 
 ## Statut
 
-Proposé.
+Accepté.
 
 ## Context
 
