@@ -1,0 +1,26 @@
+name: Décision d'architecture
+description: Une question d'architecture à trancher par un ADR
+title: "[adr] "
+labels: ["type:adr"]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Question à trancher
+    validations:
+      required: true
+  - type: textarea
+    id: contraintes
+    attributes:
+      label: Contraintes et objectifs de qualité concernés
+      description: Renvoyer aux sections arc42 (1, 2, 10) quand c'est possible.
+    validations:
+      required: true
+  - type: textarea
+    id: options
+    attributes:
+      label: Options pressenties
+  - type: textarea
+    id: echeance
+    attributes:
+      label: Ce que la décision débloque

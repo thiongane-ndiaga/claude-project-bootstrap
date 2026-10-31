@@ -1,0 +1,7 @@
+{
+  "domains": {},
+  "baseBranch": "main",
+  "paths": {
+    "adrs": "docs/architecture/adrs"
+  }
+}

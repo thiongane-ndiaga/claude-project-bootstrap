@@ -15,3 +15,7 @@ desktop.ini
 
 # Fichiers temporaires Office
 ~$*
+
+# Archgate : types régénérés par la CLI
+.archgate/rules.d.ts
+docs/architecture/rules.d.ts

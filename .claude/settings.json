@@ -16,6 +16,10 @@
       "PowerShell(git rev-parse *)",
       "Bash(git ls-files *)",
       "PowerShell(git ls-files *)",
+      "Bash(openspec *)",
+      "PowerShell(openspec *)",
+      "Bash(archgate *)",
+      "PowerShell(archgate *)",
       "Bash(node .claude/hooks/quality-gate.mjs)",
       "PowerShell(node .claude/hooks/quality-gate.mjs)",
       "Bash(gh auth status *)",
@@ -43,9 +47,30 @@
       "Bash(gh release view *)",
       "PowerShell(gh release view *)",
       "Bash(gh label list *)",
-      "PowerShell(gh label list *)"
+      "PowerShell(gh label list *)",
+      "Bash(gh project list *)",
+      "PowerShell(gh project list *)",
+      "Bash(gh project view *)",
+      "PowerShell(gh project view *)",
+      "Bash(gh project item-list *)",
+      "PowerShell(gh project item-list *)"
     ],
-    "ask": []
+    "ask": [
+      "Bash(openspec install *)",
+      "PowerShell(openspec install *)",
+      "Bash(openspec feedback *)",
+      "PowerShell(openspec feedback *)",
+      "Bash(openspec config *)",
+      "PowerShell(openspec config *)",
+      "Bash(archgate login *)",
+      "PowerShell(archgate login *)",
+      "Bash(archgate upgrade *)",
+      "PowerShell(archgate upgrade *)",
+      "Bash(archgate plugin *)",
+      "PowerShell(archgate plugin *)",
+      "Bash(archgate telemetry *)",
+      "PowerShell(archgate telemetry *)"
+    ]
   },
   "hooks": {
     "TaskCompleted": [
