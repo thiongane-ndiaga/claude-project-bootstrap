@@ -13,6 +13,11 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  OPENSPEC_VERSION: 1.16.0
+  OPENSPEC_TELEMETRY: "0"
+  ARCHGATE_VERSION: 0.61.0
+
 jobs:
   # systèmes de la CI : « ciOs » de .bootstrap/checks.json
   plan:
@@ -43,6 +48,16 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
+      - name: OpenSpec validate
+        shell: bash
+        run: |
+          npm install -g "@fission-ai/openspec@${OPENSPEC_VERSION}"
+          openspec validate --all --strict --no-interactive
+      - name: Archgate check
+        shell: bash
+        run: |
+          npm install -g "archgate@${ARCHGATE_VERSION}"
+          archgate check --output github
       # Installer ici la chaîne d'outils de la stack choisie (langage, dépendances) avant les commandes du projet
       - name: Commandes du projet (.bootstrap/checks.json)
         run: node .bootstrap/run-checks.mjs

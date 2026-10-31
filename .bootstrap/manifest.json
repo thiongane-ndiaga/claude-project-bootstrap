@@ -9,7 +9,13 @@
     "claude",
     "github",
     "release",
-    "githooks"
+    "githooks",
+    "openspec",
+    "archgate",
+    "archgate-plugin",
+    "arc42",
+    "projects",
+    "agent-teams"
   ],
   "config": {
     "projectName": "project-bootstrap",
@@ -21,7 +27,13 @@
       "claude",
       "github",
       "release",
-      "githooks"
+      "githooks",
+      "openspec",
+      "archgate",
+      "archgate-plugin",
+      "arc42",
+      "projects",
+      "agent-teams"
     ],
     "versions": {
       "openspec": "1.16.0",
@@ -48,13 +60,22 @@
     "actionsCreditNote": "sans objet (dépôt public)",
     "keep": [
       ".claude/hooks/read-only-bash.mjs",
-      ".claude/agents/traceability-checker.md",
       ".github/labels.json",
       "scripts/sync-labels.mjs",
       ".bootstrap/checks.json"
     ]
   },
   "files": {
+    ".archgate/config.json": {
+      "sha256": "61d6f5a218b25df60ad64167e761bf4b387dc95aba6c1a1a9f4bdc57a5a284e0",
+      "generated": "61d6f5a218b25df60ad64167e761bf4b387dc95aba6c1a1a9f4bdc57a5a284e0",
+      "status": "created"
+    },
+    ".archgate/lint/README.md": {
+      "sha256": "dccb43956dcf07790a26e8ab5de17aaf7a677d4df124d49a66174daf2dcdc54b",
+      "generated": "dccb43956dcf07790a26e8ab5de17aaf7a677d4df124d49a66174daf2dcdc54b",
+      "status": "created"
+    },
     ".bootstrap/checks.json": {
       "sha256": "cfa6ff30f4928b914974c726f48a9e6fd2835b9e219f95a656a01eb6cfced131",
       "generated": "379996a079f9bddcf9e896e274378a397716cbc53713b33be12893442af2bfa6",
@@ -65,14 +86,39 @@
       "generated": "469af1333ac019b6d573fe015119069be733baf2814f3cd34814f55bbad13456",
       "status": "created"
     },
+    ".claude/agents/arc42-keeper.md": {
+      "sha256": "487e09f2cb74ee98d3ecf894ed1774cac84d4597dfe7f4c73820729d111baea1",
+      "generated": "487e09f2cb74ee98d3ecf894ed1774cac84d4597dfe7f4c73820729d111baea1",
+      "status": "created"
+    },
+    ".claude/agents/architecture-explorer.md": {
+      "sha256": "5b0b160c2d6d472e62faadc0aa802938578464a867e351e2154b1e80fb64797d",
+      "generated": "5b0b160c2d6d472e62faadc0aa802938578464a867e351e2154b1e80fb64797d",
+      "status": "created"
+    },
+    ".claude/agents/spec-reviewer.md": {
+      "sha256": "91897672927ce1aa2172a76ffad17acdb7387c545ee294d9709d62ecaf2e7d79",
+      "generated": "91897672927ce1aa2172a76ffad17acdb7387c545ee294d9709d62ecaf2e7d79",
+      "status": "created"
+    },
+    ".claude/agents/traceability-checker.md": {
+      "sha256": "60113bbb80b7f81b3d288233774d3a3f621fe92a6b827fcf9d1ad6fbbff39bbe",
+      "generated": "60113bbb80b7f81b3d288233774d3a3f621fe92a6b827fcf9d1ad6fbbff39bbe",
+      "status": "created"
+    },
     ".claude/hooks/quality-gate.mjs": {
-      "sha256": "42dcb0116a79771061639a9925bbcb755d1b1b77db67a2e38392437944a1557e",
-      "generated": "42dcb0116a79771061639a9925bbcb755d1b1b77db67a2e38392437944a1557e",
+      "sha256": "c13266a67922f74e3dbc1573a24c0c8f0db79c8c0edf2d3d8f0dde0aad071501",
+      "generated": "c13266a67922f74e3dbc1573a24c0c8f0db79c8c0edf2d3d8f0dde0aad071501",
+      "status": "created"
+    },
+    ".claude/hooks/restrict-path.mjs": {
+      "sha256": "fcc4373eadfb57dbdb11daaf1b8f4ddf76ec0b872796665b9284fbff03c6ebfb",
+      "generated": "fcc4373eadfb57dbdb11daaf1b8f4ddf76ec0b872796665b9284fbff03c6ebfb",
       "status": "created"
     },
     ".claude/settings.json": {
-      "sha256": "20df807301daad004ab36f78d353a2191e00372b5105d0c57a0a3a40d98fd11d",
-      "generated": "20df807301daad004ab36f78d353a2191e00372b5105d0c57a0a3a40d98fd11d",
+      "sha256": "141faca021cd41b6da894cb30acaedcd47c6c4b744fc29e1c287455a7f6ea117",
+      "generated": "141faca021cd41b6da894cb30acaedcd47c6c4b744fc29e1c287455a7f6ea117",
       "status": "created"
     },
     ".gitattributes": {
@@ -83,6 +129,11 @@
     ".githooks/pre-push": {
       "sha256": "236a7aa59cce23c34891b7bf99896a2c992733e343e2f6ab9984e8aa3f719a4c",
       "generated": "236a7aa59cce23c34891b7bf99896a2c992733e343e2f6ab9984e8aa3f719a4c",
+      "status": "created"
+    },
+    ".github/ISSUE_TEMPLATE/architecture-decision.yml": {
+      "sha256": "9d167a5936e0ef1ef1922febd4bf8f4a70175b920beb986daac5d3486d6ec943",
+      "generated": "9d167a5936e0ef1ef1922febd4bf8f4a70175b920beb986daac5d3486d6ec943",
       "status": "created"
     },
     ".github/ISSUE_TEMPLATE/bug.yml": {
@@ -101,14 +152,14 @@
       "status": "adopted"
     },
     ".github/pull_request_template.md": {
-      "sha256": "fafb895aca2fa60a3ceddd67df716c518fc488f182fce8f6f55d81570b6abb53",
-      "generated": "7d3abab1facc615ce0f64ceb809376c218c69158b0c93beb7566744367460ea7",
+      "sha256": "4b5665b552d5c418d1fd2707e52ec3854bdf8a39f0bb52326cbfabad853165e5",
+      "generated": "f70c111301c4e46bbdb119d91b6dc6c0512fc354fbff38a8dbf709d009ec8a46",
       "status": "adopted"
     },
     ".github/workflows/ci.yml": {
-      "sha256": "9b89cc76e13f638d7c88e056e286be9779576668a8546f5e2717e2384395b5a5",
-      "generated": "0941164d4ceecf45046fe79943facf07b27b475ac1a45ca1de7b04a6cb45c393",
-      "status": "adopted"
+      "sha256": "cd65b566cfa39fb7867c9ae2355580322dbe5257cbdd6f5a28d84fd583112ae8",
+      "generated": "cd65b566cfa39fb7867c9ae2355580322dbe5257cbdd6f5a28d84fd583112ae8",
+      "status": "created"
     },
     ".github/workflows/release.yml": {
       "sha256": "86246623e4bdf6017b3a2c36e8dc6afc81c1221db1616032311df5631764399f",
@@ -116,8 +167,8 @@
       "status": "created"
     },
     ".gitignore": {
-      "sha256": "69a5095f0f9174fc8a4744912312adc9d97f9885fb39414a3bf449a11f3f2ba0",
-      "generated": "bbb7a6669f4e6557474827de0d4e0bb38586aea32f0a639aeb9f82a7cec7e717",
+      "sha256": "28c4a0abf868f83b8cfd57093e2a21a9d1a20753c4cc5b153720b14ec6d33d8b",
+      "generated": "e9e571edd71a732e006a483cd4aeffcb511bd60a1e77ee4031e0cd215c3314af",
       "status": "merged"
     },
     ".release-please-manifest.json": {
@@ -126,13 +177,113 @@
       "status": "adopted"
     },
     "CLAUDE.md": {
-      "sha256": "288d53f19ba0598bf2626b9b30d2d99ad81d462643ce0e164ebf905554fa48c0",
-      "generated": "c8ea32021128144319ca84ece40b1a7c9f205f77bba1e0088cd6e0cfffb7fb29",
+      "sha256": "1729a74e28746650cd82f386b7dc437eeb557d31e9fae19fefca263d92e9d1e7",
+      "generated": "dea45fecf8ec4ba08095a996aea0da75122b3f4a1a6ae2a5592e14297d5ce779",
       "status": "adopted"
     },
+    "docs/architecture/adrs/ARCH-001-documentation-d-architecture-arc42-et-adr.md": {
+      "sha256": "a2ed9c6d772f81fa702e324edb363c8ac7a61a3886b6beb245e890cb7c5d1f46",
+      "generated": "a2ed9c6d772f81fa702e324edb363c8ac7a61a3886b6beb245e890cb7c5d1f46",
+      "status": "created"
+    },
+    "docs/architecture/adrs/ARCH-001-documentation-d-architecture-arc42-et-adr.rules.ts": {
+      "sha256": "f264d3cc34168d5de5556bd86a4b32dfccf001397a2ed12a7c9e36ac43f37d08",
+      "generated": "f264d3cc34168d5de5556bd86a4b32dfccf001397a2ed12a7c9e36ac43f37d08",
+      "status": "created"
+    },
+    "docs/architecture/adrs/ARCH-002-workflow-spec-driven-avec-openspec.md": {
+      "sha256": "e73fb0dfd7b7197dcc1d28b618cd76b97dc058118ff69b46164293e14f67ee49",
+      "generated": "e73fb0dfd7b7197dcc1d28b618cd76b97dc058118ff69b46164293e14f67ee49",
+      "status": "created"
+    },
+    "docs/architecture/adrs/ARCH-003-emplacement-et-format-des-adr.md": {
+      "sha256": "8c29d2f24d5e701dd795c5ad88826b99625e0097b5c49dd7114dc29ac81ad32d",
+      "generated": "8c29d2f24d5e701dd795c5ad88826b99625e0097b5c49dd7114dc29ac81ad32d",
+      "status": "created"
+    },
+    "docs/architecture/adrs/ARCH-003-emplacement-et-format-des-adr.rules.ts": {
+      "sha256": "8b27b675ab5f10c5964038a986200194e5e405913f92a04353c54c6aebbea041",
+      "generated": "8b27b675ab5f10c5964038a986200194e5e405913f92a04353c54c6aebbea041",
+      "status": "created"
+    },
+    "docs/architecture/adrs/ARCH-004-github-comme-forge-avec-actions-et-releases.md": {
+      "sha256": "03b40f1030a868cd190bacee1f34109a422156c75c7f00ca79b9e38d175a1c2f",
+      "generated": "03b40f1030a868cd190bacee1f34109a422156c75c7f00ca79b9e38d175a1c2f",
+      "status": "created"
+    },
+    "docs/architecture/adrs/ARCH-004-github-comme-forge-avec-actions-et-releases.rules.ts": {
+      "sha256": "c16143ffb8bd83168e6a8dd6005d9bc3a4a6bb4d0551988800d28ac6d82faeae",
+      "generated": "c16143ffb8bd83168e6a8dd6005d9bc3a4a6bb4d0551988800d28ac6d82faeae",
+      "status": "created"
+    },
+    "docs/architecture/adrs/ARCH-005-conventions-de-branches-commits-et-versionnement.md": {
+      "sha256": "8c702a34c889d30af1608a843357a8bd8b75c93a859d2ecaf31474a9577ea126",
+      "generated": "8c702a34c889d30af1608a843357a8bd8b75c93a859d2ecaf31474a9577ea126",
+      "status": "created"
+    },
+    "docs/architecture/arc42/01-introduction-et-objectifs.md": {
+      "sha256": "0791077be56cb9985611351529f4040e3d44ec99221250fcabe1c24b77d89526",
+      "generated": "0791077be56cb9985611351529f4040e3d44ec99221250fcabe1c24b77d89526",
+      "status": "created"
+    },
+    "docs/architecture/arc42/02-contraintes.md": {
+      "sha256": "9e22b0d2ff0eaf182842e6a34b8724ed9cd4b55e3cbc4510dcf79250de35f141",
+      "generated": "9e22b0d2ff0eaf182842e6a34b8724ed9cd4b55e3cbc4510dcf79250de35f141",
+      "status": "created"
+    },
+    "docs/architecture/arc42/03-contexte-et-perimetre.md": {
+      "sha256": "cc2888ca814019a359c894a92603bb56bfb48b48e2600fe0675c2bb051825448",
+      "generated": "cc2888ca814019a359c894a92603bb56bfb48b48e2600fe0675c2bb051825448",
+      "status": "created"
+    },
+    "docs/architecture/arc42/04-strategie-de-solution.md": {
+      "sha256": "de31f60ad5b525a8bd51b7228f3601f2a618d06ae2fa101d1d20bb089834446a",
+      "generated": "de31f60ad5b525a8bd51b7228f3601f2a618d06ae2fa101d1d20bb089834446a",
+      "status": "created"
+    },
+    "docs/architecture/arc42/05-vue-en-briques.md": {
+      "sha256": "d66f516dcbb452919e27b6cbda8dd62b4b5dbe3bb820cfaa679e4ca94f9e85e8",
+      "generated": "d66f516dcbb452919e27b6cbda8dd62b4b5dbe3bb820cfaa679e4ca94f9e85e8",
+      "status": "created"
+    },
+    "docs/architecture/arc42/06-vue-d-execution.md": {
+      "sha256": "1799f12706a2b99255ce1948ad23198abb9fd28d25b79e3aa6e394d34f8b9d2d",
+      "generated": "1799f12706a2b99255ce1948ad23198abb9fd28d25b79e3aa6e394d34f8b9d2d",
+      "status": "created"
+    },
+    "docs/architecture/arc42/07-vue-de-deploiement.md": {
+      "sha256": "9b18541f38bb43f72e9f6bdf343bd32d275bf418ba3bb821f73ee84245d52d74",
+      "generated": "9b18541f38bb43f72e9f6bdf343bd32d275bf418ba3bb821f73ee84245d52d74",
+      "status": "created"
+    },
+    "docs/architecture/arc42/08-concepts-transverses.md": {
+      "sha256": "36379e6019899f657c2bcd4e416cdf293cd56573f29f3bb9a97e8c5df21d4809",
+      "generated": "36379e6019899f657c2bcd4e416cdf293cd56573f29f3bb9a97e8c5df21d4809",
+      "status": "created"
+    },
+    "docs/architecture/arc42/09-decisions-d-architecture.md": {
+      "sha256": "2c3c59dca1063839746542f17a005d7fc4ad76d2dfb02819f8019d81f7d6a147",
+      "generated": "2c3c59dca1063839746542f17a005d7fc4ad76d2dfb02819f8019d81f7d6a147",
+      "status": "created"
+    },
+    "docs/architecture/arc42/10-exigences-de-qualite.md": {
+      "sha256": "fa484a5dff8a8ec4b73630376a8cf50bd4a96de365429ae683ca621722780c87",
+      "generated": "fa484a5dff8a8ec4b73630376a8cf50bd4a96de365429ae683ca621722780c87",
+      "status": "created"
+    },
+    "docs/architecture/arc42/11-risques-et-dette-technique.md": {
+      "sha256": "881b3fb55998e5c575dfdda25a71cecf4e764066a3291f64d9f8eb6b00f54041",
+      "generated": "881b3fb55998e5c575dfdda25a71cecf4e764066a3291f64d9f8eb6b00f54041",
+      "status": "created"
+    },
+    "docs/architecture/arc42/12-glossaire.md": {
+      "sha256": "83d031c21025254f642f9b4affb6687e4f9d7e3143051354aade49cf29834dab",
+      "generated": "83d031c21025254f642f9b4affb6687e4f9d7e3143051354aade49cf29834dab",
+      "status": "created"
+    },
     "docs/workflow.md": {
-      "sha256": "bd24e37ddcb9ca427ef37b1747cb218f4307443853994cee710fb1d04d194177",
-      "generated": "bc82e3c23f4f3db2518a1338942b5df0cecbcf01d5a0f798e181d09be901fc15",
+      "sha256": "f01c5e28cf613712cac7391d5c68c9d319551c26f42c1877d0f11f60c112c2ee",
+      "generated": "7e763021ad41dcbc5f8c26e8d3009bbc206776033897ee999a534ac0cdb3e792",
       "status": "adopted"
     },
     "release-please-config.json": {

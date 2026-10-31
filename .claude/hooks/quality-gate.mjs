@@ -5,6 +5,8 @@ import { spawnSync } from "node:child_process";
 import { runChecks } from "../../.bootstrap/run-checks.mjs";
 
 const checks = [
+  ["openspec", ["validate", "--all", "--strict", "--no-interactive"]],
+  ["archgate", ["check", "--output", "console"]],
 ];
 
 const failures = [];
