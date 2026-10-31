@@ -9,6 +9,7 @@ Constatés lors de la mise en place de référence (Claude Code 2.1.31x, OpenSpe
 - Pas de champ `status` dans le frontmatter Archgate : le statut vit dans `## Statut`.
 - `archgate check` n'a besoin ni de TypeScript ni de node_modules (binaire autonome).
 - Le plugin exige `archgate login` (compte Archgate) ; la CLI seule, non.
+- **`archgate login` échoue à stocker le jeton sans credential helper git** (« Signed in, but the credentials could not be stored ») : l'autorisation dans le navigateur réussit, mais `archgate login status` répond « Not logged in ». → Vérifier `git config --show-origin --get-all credential.helper`, puis, avec l'accord de l'utilisateur, `git config --global credential.https://auth.archgate.dev.helper store` (limité à ce domaine, jeton en clair dans `~/.git-credentials`), et relancer `archgate login`. Sous Linux, l'utilisateur lance la commande avec `!` : elle attend 120 s la validation dans le navigateur.
 
 ## OpenSpec
 - `openspec init` génère `.claude/skills/openspec-*` et `.claude/commands/opsx/` : ne pas les éditer, `openspec update` les régénère.
@@ -20,10 +21,11 @@ Constatés lors de la mise en place de référence (Claude Code 2.1.31x, OpenSpe
 - Les définitions de `.claude/agents/` et les plugins **ne sont chargés qu'au démarrage** : redémarrer après les avoir créés.
 - Les règles de permission `Bash(...)` et `PowerShell(...)` sont distinctes : déclarer les deux formes.
 - Hooks : forme exec (`"command": "node"`, `"args": [...]`) pour la portabilité ; `${CLAUDE_PROJECT_DIR}` est développé dans `args`.
-- Les **hooks de frontmatter d'un agent ne s'appliquent pas quand il tourne en teammate** : en équipe, seules les règles allow/ask du lead protègent. Les champs `tools`, `model` et le corps sont, eux, repris.
+- Les **hooks de frontmatter d'un agent ne sont pas garantis quand il tourne en teammate** : la documentation des agent teams n'en dit rien, et aucune vérification n'a été faite ici. En équipe, fais reposer la protection sur les règles allow/deny du lead, que les teammates in-process appliquent en direct. Sont repris : `tools`, `disallowedTools`, `model`, le corps ; `effort` en in-process seulement. Le champ `skills` n'est pas appliqué à un teammate.
 - Un teammate se lance en passant `name` à l'outil Agent (flag actif, session interactive) ; pas de teammates en `-p`.
 - Le classificateur du mode auto peut refuser `gh repo create --push` ou une installation de plugin : ne pas contourner, faire lancer la commande par l'utilisateur avec `!`.
 - Un hook « lecture seule » par liste blanche doit refuser sauts de ligne, guillemets, redirections, et les options abrégées (`git diff --outp=x`) : le modèle `read-only-bash.mjs` le fait.
+- Ce même hook n'autorise que les caractères `[\w ./:@^~=,#+-]` : `git log --format=%s` (le `%`) est refusé avec « caractère non autorisé », alors que `git log main..HEAD` passe. Le `traceability-checker` doit donc éviter `--format=` ; l'outil Read, lui, n'est pas soumis au hook.
 
 ## Windows
 - `winget install GitHub.cli` échoue (MSI 1603) sans élévation : l'utilisateur doit le lancer en administrateur.
@@ -36,6 +38,9 @@ Constatés lors de la mise en place de référence (Claude Code 2.1.31x, OpenSpe
 - `gh` ne remplit pas les formulaires d'issue YAML en mode non interactif : reproduire leurs sections dans `--body-file`.
 - `gh project link` exige `--owner <login>` explicite (pas `@me`) quand le dépôt est cité.
 - La colonne *In Review* s'ajoute par la mutation GraphQL `updateProjectV2Field`. Les automatisations de Projects (auto-add, item added → Todo, item closed / PR merged → Done) **se règlent dans l'interface web** ; *item closed* et *PR merged* peuvent être désactivés par défaut.
+- *Auto-add to project* peut cibler un **autre dépôt** (constaté : le dépôt d'un projet précédent) : vérifier le dépôt cible dans ⋯ → Workflows. Il ne rattrape pas les issues créées avant la correction ; les ajouter avec `gh project item-add <n> --owner <login> --url <issue>`, le workflow *Item added → Todo* leur donne alors le statut Todo.
+- `gh auth refresh -s project` échoue hors terminal interactif (« --hostname required ») : utiliser `gh auth refresh -h github.com -s project`.
+- `git update-index --chmod=+x .githooks/pre-push` ne change que l'index : si le fichier est en 644 sur disque, git ignore le hook (« le crochet a été ignoré parce qu'il n'est pas marqué comme exécutable ») et un `git commit -a` n'enregistre pas le mode. → Faire aussi `chmod +x .githooks/pre-push` avant le premier push, puis vérifier avec `git ls-tree HEAD .githooks/` (100755).
 
 ## release-please
 - Sans release précédente, la première version proposée est **1.0.0** : fixer `"initial-version": "0.0.1"` (déjà dans le modèle).
