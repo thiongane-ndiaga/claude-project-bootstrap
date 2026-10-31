@@ -5,7 +5,7 @@
 //   os : facultatif (toutes les plateformes par défaut) ; blocking : facultatif (true par défaut), sinon signalé seulement.
 // Usage : node .bootstrap/run-checks.mjs [--print-os]   (--print-os : systèmes de la CI, en JSON)
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const OS_NAMES = ["linux", "windows", "macos"];
@@ -41,7 +41,8 @@ export function runChecks() {
   return { failures, warnings };
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+// chemins réels : argv[1] peut passer par un lien symbolique (ex. /var → /private/var sous macOS), pas import.meta.url
+if (realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   try {
     if (process.argv.includes("--print-os")) {
       console.log(JSON.stringify(loadConfig().ciOs));
