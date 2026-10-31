@@ -475,7 +475,7 @@ function checkWorkstation(ctx, opts) {
         accessSync(dir, constants.W_OK);
         results.push(ok("poste-npm", `préfixe npm ${prefix} inscriptible`));
       } catch {
-        results.push(ecart("poste-npm", `préfixe npm ${prefix} non inscriptible`, "npm install -g --prefix ~/.local <paquet> (avec ~/.local/bin dans le PATH), sans sudo"));
+        results.push(ecart("poste-npm", `préfixe npm ${prefix} non inscriptible`, "npm install -g --prefix ~/.local <paquet> (avec ~/.local/bin dans le PATH) : aucun droit administrateur n'est nécessaire"));
       }
     }
   }
