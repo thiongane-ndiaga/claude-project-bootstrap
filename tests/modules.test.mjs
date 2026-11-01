@@ -2,6 +2,7 @@
 // Lance les tests propres aux modules : assets/modules/<module>/tests/*.test.mjs (ARCH-010).
 // Usage : node tests/modules.test.mjs [--root <dossier du plugin>]   (--root : copie du plugin, pour les essais)
 // Code de sortie : 0 si tous les tests de module passent (ou s'il n'y en a aucun), 1 sinon.
+import "./tmp-root.mjs"; // dossier temporaire propre à l'exécution, supprimé à la sortie
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";

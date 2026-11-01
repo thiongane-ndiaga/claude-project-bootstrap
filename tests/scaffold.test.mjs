@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 // Tests de scaffold.mjs sur plusieurs combinaisons de modules. Usage : node tests/scaffold.test.mjs
+import "./tmp-root.mjs"; // dossier temporaire propre à l'exécution, supprimé à la sortie
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, writeFileSync, readFileSync, readdirSync, realpathSync, statSync, rmSync, symlinkSync } from "node:fs";
@@ -1775,6 +1776,24 @@ for (const dirName of ["templates", "templates.en"]) {
   check("mainAgent avec un agent déjà déclaré : clé conservée, avertissement dans le rapport", adopt.res.status === 0 && JSON.parse(readFileSync(ownSettings, "utf8")).agent === "mon-agent" && (adopt.report?.warnings ?? []).some((w) => /mon-agent/.test(w)), JSON.stringify(adopt.report?.warnings ?? adopt.report));
   const withArchgatePlugin = gen([...full, "archgate-plugin"], { mainAgent: "project-lead" });
   check("mainAgent avec archgate-plugin : combinaison acceptée, sans conflit", withArchgatePlugin.res.status === 0 && settingsOf(withArchgatePlugin).agent === "project-lead", withArchgatePlugin.res.stderr);
+}
+
+// dossier temporaire des suites (#117) : supprimé à la sortie, conservé avec KEEP_TMP
+{
+  const probe = path.join(root, "tests", "tmp-root.mjs").replace(/\\/g, "/");
+  const script = `import "file:///${probe}"; import { mkdtempSync, writeFileSync } from "node:fs"; import { tmpdir } from "node:os"; import path from "node:path";
+const d = mkdtempSync(path.join(tmpdir(), "pb-sonde-")); writeFileSync(path.join(d, "x"), "x"); console.log("RACINE=" + process.env.PB_TMP_ROOT + "|DIR=" + d);`;
+  const probeRun = (env) => {
+    const res = spawnSync(process.execPath, ["--input-type=module", "-e", script], { encoding: "utf8", env: { ...process.env, ...env, PB_TMP_ROOT: "" } });
+    const m = /RACINE=(.*)\|DIR=(.*)/.exec(res.stdout) ?? [];
+    return { status: res.status, root: m[1], dir: m[2], out: res.stdout };
+  };
+  const plain = probeRun({});
+  check("dossier temporaire : le dossier créé par une suite est sous la racine de l'exécution, supprimé à la sortie", plain.status === 0 && plain.dir?.startsWith(plain.root) && !existsSync(plain.root) && !existsSync(plain.dir), plain.out);
+  const kept = probeRun({ KEEP_TMP: "1" });
+  check("dossier temporaire : KEEP_TMP conserve les dossiers et affiche la racine", kept.status === 0 && existsSync(kept.dir) && kept.out.includes("KEEP_TMP") && kept.out.includes(kept.root), kept.out);
+  if (kept.root && existsSync(kept.root)) rmSync(kept.root, { recursive: true, force: true });
+  check("dossier temporaire : cette exécution crée ses dossiers sous sa propre racine", process.env.PB_TMP_ROOT && tmpdir() === process.env.PB_TMP_ROOT, tmpdir());
 }
 
 console.log(failed ? `\n${failed} échec(s)` : "\nTous les tests passent");
