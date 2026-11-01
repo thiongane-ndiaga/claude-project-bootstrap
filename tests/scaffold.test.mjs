@@ -541,7 +541,7 @@ for (const c of cases) {
   check("--list-modules : sans --target, JSON des 13 modules avec leurs champs et les langues", list.status === 0 && listed.modules.length === 13 && listed.modules.find((m) => m.name === "release").requires.join() === "github" && listed.modules.find((m) => m.name === "dependabot").default === false && listed.languages.join() === "fr,en", list.stderr);
   const table = spawnSync(process.execPath, [scaffold, "--list-modules", "--format", "table"], { encoding: "utf8" });
   const apQuestions = listed.modules.find((m) => m.name === "agent-profiles")?.questions ?? [];
-  check("--list-modules : agent-profiles déclare la question de phase 0 sur mainAgent (défaut non), listée aussi dans le tableau", apQuestions.length === 1 && /mainAgent/.test(apQuestions[0]) && /Défaut : non/.test(apQuestions[0]) && /project-lead/.test(table.stdout.split("\n").find((l) => l.startsWith("| `agent-profiles`")) ?? ""));
+  check("--list-modules : agent-profiles déclare les questions de phase 0 sur mainAgent et sur profiles (défaut non / aucun), listées aussi dans le tableau", apQuestions.length === 2 && /mainAgent/.test(apQuestions[0]) && /Défaut : non/.test(apQuestions[0]) && /profiles/.test(apQuestions[1]) && /Défaut : aucun/.test(apQuestions[1]) && /project-lead/.test(table.stdout.split("\n").find((l) => l.startsWith("| `agent-profiles`")) ?? ""));
   check("--list-modules --format table : tableau markdown avec les questions de phase 0", table.status === 0 && /^\| Module \| Apporte \| Requiert \| Incompatible avec \| Par défaut \| Questions de phase 0 \|/.test(table.stdout) && table.stdout.split("\n").filter((l) => l.startsWith("| `")).length === 13);
   const badCatalog = spawnSync(process.execPath, [scaffold, "--list-modules", "--catalog", path.join(mkdtempSync(path.join(tmpdir(), "pb-vide-")), "rien")], { encoding: "utf8" });
   check("--catalog invalide : code 1 et message", badCatalog.status === 1 && /Catalogue introuvable/.test(badCatalog.stderr));
@@ -1794,6 +1794,65 @@ const d = mkdtempSync(path.join(tmpdir(), "pb-sonde-")); writeFileSync(path.join
   check("dossier temporaire : KEEP_TMP conserve les dossiers et affiche la racine", kept.status === 0 && existsSync(kept.dir) && kept.out.includes("KEEP_TMP") && kept.out.includes(kept.root), kept.out);
   if (kept.root && existsSync(kept.root)) rmSync(kept.root, { recursive: true, force: true });
   check("dossier temporaire : cette exécution crée ses dossiers sous sa propre racine", process.env.PB_TMP_ROOT && tmpdir() === process.env.PB_TMP_ROOT, tmpdir());
+}
+
+// profils optionnels (#34) : clé profiles
+{
+  const gen = (modules, extra = {}) => run({ ...base, visibility: "private", modules, ...extra });
+  const txt = (r, rel) => readFileSync(path.join(r.out, ...rel.split("/")), "utf8");
+  const front = (text) => text.match(/^---\n([\s\S]*?)\n---/)[1];
+  const tools = (text) => /^tools: (.*)$/m.exec(front(text))[1].split(",").map((t) => t.trim());
+  const full = ["claude", "github", "openspec", "archgate", "arc42", "agent-profiles"];
+  const all = ["business-analyst", "developer", "product-owner"];
+  const has = (r, name) => existsSync(path.join(r.out, ".claude/agents", name + ".md"));
+
+  const none = gen(full);
+  check("profiles absent : aucun profil optionnel, aucune clé au manifeste", all.every((n) => !has(none, n)) && JSON.parse(txt(none, ".bootstrap/manifest.json")).config.profiles === undefined);
+  const three = gen(full, { profiles: ["product-owner", "developer", "business-analyst", "developer"] });
+  check("profiles : les trois profils sont générés, consignés triés sans doublon au manifeste", three.res.status === 0 && all.every((n) => has(three, n)) && JSON.parse(txt(three, ".bootstrap/manifest.json")).config.profiles.join() === all.join(), three.res.stderr);
+  const onlyDev = gen(full, { profiles: ["developer"] });
+  check("profiles : seuls les profils listés sont générés", has(onlyDev, "developer") && !has(onlyDev, "product-owner") && !has(onlyDev, "business-analyst"));
+  for (const n of all) {
+    const text = txt(three, `.claude/agents/${n}.md`);
+    check(`profil ${n} : nom = fichier, sans hooks de frontmatter, sans Agent`, new RegExp(`^name: ${n}$`, "m").test(front(text)) && !/^hooks:/m.test(front(text)) && !tools(text).includes("Agent"));
+  }
+  check("developer : outils d'écriture et Bash, sans Skill", ["Write", "Edit", "Bash"].every((t) => tools(txt(three, ".claude/agents/developer.md")).includes(t)) && !tools(txt(three, ".claude/agents/developer.md")).includes("Skill"));
+  check("product-owner : lecture seule (ni Write ni Edit)", !tools(txt(three, ".claude/agents/product-owner.md")).some((t) => ["Write", "Edit"].includes(t)));
+  check("business-analyst : Skill et outils d'écriture, bornés au dossier des changements", tools(txt(three, ".claude/agents/business-analyst.md")).includes("Skill") && /write: \["openspec\/changes\/"\]/.test(txt(three, ".claude/hooks/profile-guard.mjs")));
+  check("qui écrit ne relit pas : présent dans les trois profils optionnels, en français et en anglais", all.every((n) => /Qui écrit ne relit pas/.test(txt(three, `.claude/agents/${n}.md`))) && all.every((n) => /Whoever writes does not review/.test(txt(gen(full, { profiles: all, docLanguage: "en" }), `.claude/agents/${n}.md`))));
+  const bare = gen(["claude", "agent-profiles"], { profiles: ["product-owner", "developer"] });
+  check("profils optionnels sans archgate, openspec, github ni arc42 : aucune référence à ces modules", ["product-owner", "developer"].every((n) => !/archgate|openspec|opsx|gh |arc42|spec-reviewer/i.test(txt(bare, `.claude/agents/${n}.md`))), txt(bare, ".claude/agents/developer.md"));
+  check("project-lead : délègue à developer et business-analyst quand ils existent (consigne inchangée)", /sinon écris-les toi-même/.test(txt(three, ".claude/agents/project-lead.md")));
+
+  // refus
+  const bad = gen(full, { profiles: ["devops-engineer"] });
+  check("profiles : nom inconnu refusé (code 1, noms permis)", bad.res.status === 1 && /profiles doit être une liste de noms parmi/.test(bad.res.stderr), bad.res.stderr);
+  const notList = gen(full, { profiles: "developer" });
+  check("profiles : une chaîne au lieu d'une liste refusée", notList.res.status === 1, notList.res.stderr);
+  const noModule = gen(["claude", "github"], { profiles: ["developer"] });
+  check("profiles sans agent-profiles refusé (code 1, aucun fichier écrit)", noModule.res.status === 1 && /profiles exige le module agent-profiles/.test(noModule.res.stderr) && !existsSync(path.join(noModule.out, ".claude/settings.json")), noModule.res.stderr);
+  const baNoOpenspec = gen(["claude", "agent-profiles"], { profiles: ["business-analyst"] });
+  check("business-analyst sans openspec refusé", baNoOpenspec.res.status === 1 && /business-analyst exige le module openspec/.test(baNoOpenspec.res.stderr), baNoOpenspec.res.stderr);
+
+  // --update : héritage, désactivation
+  const upd = run({ ...base, visibility: "private", modules: full }, ["--update"], three.out);
+  check("--update sans profiles dans la configuration : la liste du manifeste est conservée", upd.res.status === 0 && all.every((n) => has(three, n)) && JSON.parse(txt(three, ".bootstrap/manifest.json")).config.profiles.join() === all.join(), upd.res.stderr);
+  const off = run({ ...base, visibility: "private", modules: full, profiles: [] }, ["--update"], three.out);
+  check("profiles [] : désactive la clé (ni héritée ni consignée), les fichiers sont retirés du manifeste", off.res.status === 0 && JSON.parse(txt(three, ".bootstrap/manifest.json")).config.profiles === undefined && (off.report?.retired ?? []).length === 3, JSON.stringify(off.report?.retired));
+  check("profiles [] : les fichiers de profils restent sur le disque (signalés, jamais supprimés)", all.every((n) => has(three, n)));
+  const viaNull = run({ ...base, visibility: "private", modules: full, profiles: null }, ["--update"], onlyDev.out);
+  check("profiles null : désactive la clé comme []", viaNull.res.status === 0 && JSON.parse(txt(onlyDev, ".bootstrap/manifest.json")).config.profiles === undefined, viaNull.res.stderr);
+  const baInherited = gen(full, { profiles: ["business-analyst"] });
+  const dropOpenspec = run({ ...base, visibility: "private", modules: ["claude", "github", "agent-profiles"] }, ["--update"], baInherited.out);
+  check("--update qui retire openspec alors que business-analyst est hérité : échec (code 1)", dropOpenspec.res.status === 1 && /business-analyst exige le module openspec/.test(dropOpenspec.res.stderr), dropOpenspec.res.stderr);
+  const dropModule = run({ ...base, visibility: "private", modules: ["claude", "github", "openspec"] }, ["--update"], baInherited.out);
+  check("--update qui retire agent-profiles alors que profiles est hérité : échec (code 1)", dropModule.res.status === 1 && /profiles exige le module agent-profiles/.test(dropModule.res.stderr), dropModule.res.stderr);
+  const keepHook = gen(full, { profiles: ["developer"], keep: [".claude/hooks/profile-guard.mjs"] });
+  check("hook conservé par keep : avertissement dans le rapport", keepHook.res.status === 0 && (keepHook.report?.warnings ?? []).some((w) => /profile-guard\.mjs est dans keep/.test(w)), JSON.stringify(keepHook.report?.warnings));
+  check("developer, product-owner et business-analyst : la table du hook borne developer par une liste d'exclusion sans lister src/", /writeExcept: \[/.test(txt(three, ".claude/hooks/profile-guard.mjs")) && !/writeExcept: \[[^\]]*"src\//.test(txt(three, ".claude/hooks/profile-guard.mjs")));
+  check("developer : consigne de ne rien publier et de ne cocher que les tâches", /ne publies rien/.test(txt(three, ".claude/agents/developer.md")) && /tu ne modifies pas les autres fichiers du changement/.test(txt(three, ".claude/agents/developer.md")));
+  const removed = run({ ...base, visibility: "private", modules: ["claude", "github"], profiles: [] }, ["--update"], onlyDev.out);
+  check("retrait du module agent-profiles avec profiles [] : accepté", removed.res.status === 0, removed.res.stderr);
 }
 
 console.log(failed ? `\n${failed} échec(s)` : "\nTous les tests passent");

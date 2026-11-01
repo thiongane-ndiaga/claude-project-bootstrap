@@ -48,7 +48,8 @@ Voir [ARCH-009](../adrs/ARCH-009-etat-de-reprise-et-journal-des-effets.md).
 
 ## Briques liées aux profils d'agents
 
-- `skills/project-bootstrap/assets/modules/agent-profiles/` : le module ; trois profils, `architect`, `qa-engineer` et `project-lead`, générés dans `.claude/agents/`, avec des références conditionnelles aux autres modules (blocs `@@module`).
+- `skills/project-bootstrap/assets/modules/agent-profiles/` : le module ; trois profils fixes, `architect`, `qa-engineer` et `project-lead`, et des profils optionnels (`product-owner`, `developer`, `business-analyst`), générés dans `.claude/agents/`, avec des références conditionnelles aux autres modules (blocs `@@module`).
+- Clé de configuration `profiles` (liste de noms de profils optionnels) : seuls les profils listés sont générés ; absente, aucun ; `[]` ou `null` la désactive (ni héritée ni consignée). Un nom inconnu, une valeur qui n'est pas une liste ou la clé sans le module `agent-profiles` font échouer `scaffold.mjs`. La liste est consignée au manifeste triée et sans doublon, et héritée par `--update`. Chaque profil a un pseudo-module `profile-<nom>`, cité dans le `when` de son fichier ; `business-analyst` exige le module `openspec`. Retirer un profil le signale (`retired`) sans supprimer son fichier.
 - `.claude/agents/project-lead.md` : chef de projet, toujours généré (français et anglais), hors de la table `PROFILES`. Il délègue à `architect` et `qa-engineer` et porte dans son prompt l'échelle d'arbitrage et les règles de sécurité.
 - Clé de configuration facultative `mainAgent` (seule valeur : `project-lead`) : présente, `buildSettings` écrit `"agent": "project-lead"` dans `.claude/settings.json` ; absente, aucune clé `agent`. Elle est consignée au manifeste seulement si présente, héritée par `--update`, et refusée sans le module `agent-profiles`. Aucun champ `conflicts` avec `archgate-plugin`.
 - `.claude/hooks/profile-guard.mjs` (modèle du module) : hook unique de bornage. Il porte la table `PROFILES` (préfixes d'écriture, commandes de shell, agents et skills lançables permis par profil) que le projet adapte à sa stack.
@@ -57,6 +58,6 @@ Voir [ARCH-009](../adrs/ARCH-009-etat-de-reprise-et-journal-des-effets.md).
 - Agents existants du module `claude` (`architecture-explorer`, `arc42-keeper`, `spec-reviewer`, `traceability-checker`) : inchangés ; ils coexistent avec les profils, dont `architect` qui écrit aussi dans `docs/architecture/arc42/`.
 - `skills/project-bootstrap/assets/modules/agent-profiles/tests/profile-guard.test.mjs` : teste la table avec un `agent_type` de sous-agent et de teammate ; `tests/matrix.test.mjs` vérifie les profils et la déclaration dans `settings.json`.
 
-Voir [ARCH-011](../adrs/ARCH-011-profils-d-agents-bornes-par-un-hook-unique.md) et [ARCH-013](../adrs/ARCH-013-chef-de-projet-comme-agent-principal-active-par-mainagent.md).
+Voir [ARCH-011](../adrs/ARCH-011-profils-d-agents-bornes-par-un-hook-unique.md), [ARCH-013](../adrs/ARCH-013-chef-de-projet-comme-agent-principal-active-par-mainagent.md) et [ARCH-014](../adrs/ARCH-014-profils-optionnels-choisis-par-la-cle-profiles.md).
 
 _Le reste de la section reste à rédiger._

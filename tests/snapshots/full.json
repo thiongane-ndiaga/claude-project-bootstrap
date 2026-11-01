@@ -11,7 +11,7 @@
   ".claude/agents/qa-engineer.md": "b07af1454ff167b8ac98d2223917a75e304a61f35ebd5b9d5df16306b405a2c6",
   ".claude/agents/spec-reviewer.md": "91897672927ce1aa2172a76ffad17acdb7387c545ee294d9709d62ecaf2e7d79",
   ".claude/agents/traceability-checker.md": "7c5e027196e723d5b2011ba106853d18835da06bfc140006906156405935e08b",
-  ".claude/hooks/profile-guard.mjs": "f882443f2ed10bf26837bf52b03d7e2b0325bbc496ec89da600f65a613b2eabe",
+  ".claude/hooks/profile-guard.mjs": "e77b2d813fec407f83d5a2bbb12345bee861b3887fb64380982ce1fca12db1ec",
   ".claude/hooks/quality-gate.mjs": "c13266a67922f74e3dbc1573a24c0c8f0db79c8c0edf2d3d8f0dde0aad071501",
   ".claude/hooks/read-only-bash.mjs": "f2a9fbc62196edab6ad2e76adca2fcd1258876a3fe701d52a1295f96e6108c5f",
   ".claude/hooks/restrict-path.mjs": "fcc4373eadfb57dbdb11daaf1b8f4ddf76ec0b872796665b9284fbff03c6ebfb",

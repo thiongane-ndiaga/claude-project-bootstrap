@@ -5,7 +5,7 @@
   ".claude/agents/architect.md": "c5258cd62d0ca46148af31fada09c62ab632ff74909b578e80bd2c9b4e215de7",
   ".claude/agents/project-lead.md": "a22d11e493c22a4b6a4ca4df80651474fe53f567d104e70eee30501d221ee4bb",
   ".claude/agents/qa-engineer.md": "90e732a5da1add993b2d36b9e91155a9f4b39a15ac62dc82aea1ef0fa42a6be5",
-  ".claude/hooks/profile-guard.mjs": "f882443f2ed10bf26837bf52b03d7e2b0325bbc496ec89da600f65a613b2eabe",
+  ".claude/hooks/profile-guard.mjs": "e77b2d813fec407f83d5a2bbb12345bee861b3887fb64380982ce1fca12db1ec",
   ".claude/hooks/quality-gate.mjs": "961058e2b9d4c75192991ec9d900efa9ace35fc7700409d605abb100d975b1ab",
   ".claude/hooks/read-only-bash.mjs": "f2a9fbc62196edab6ad2e76adca2fcd1258876a3fe701d52a1295f96e6108c5f",
   ".claude/settings.json": "1bda362c5158ad85566978a0d096f7f61732cb74084104ed9497acca3c8c043c",

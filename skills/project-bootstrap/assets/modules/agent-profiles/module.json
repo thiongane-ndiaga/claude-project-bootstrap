@@ -1,14 +1,18 @@
 {
-  "description": "Profils d'agents architect et qa-engineer, chef de projet project-lead (agent principal avec mainAgent), bornés par un hook unique selon agent_type",
+  "description": "Profils d'agents architect, qa-engineer et project-lead (agent principal avec mainAgent), profils optionnels choisis par la clé profiles, bornés par un hook unique selon agent_type",
   "requires": ["claude"],
   "default": false,
   "files": [
     {"path": ".claude/agents/architect.md"},
+    {"path": ".claude/agents/business-analyst.md", "when": ["profile-business-analyst"]},
+    {"path": ".claude/agents/developer.md", "when": ["profile-developer"]},
+    {"path": ".claude/agents/product-owner.md", "when": ["profile-product-owner"]},
     {"path": ".claude/agents/project-lead.md"},
     {"path": ".claude/agents/qa-engineer.md"},
     {"path": ".claude/hooks/profile-guard.mjs"}
   ],
   "questions": [
-    "Faire de project-lead l'agent principal des sessions du projet (clé mainAgent) ? Le choix s'applique à toutes les sessions du clone et remplace l'agent par défaut, y compris celui du plugin Archgate. Défaut : non."
+    "Faire de project-lead l'agent principal des sessions du projet (clé mainAgent) ? Le choix s'applique à toutes les sessions du clone et remplace l'agent par défaut, y compris celui du plugin Archgate. Défaut : non.",
+    "Quels profils optionnels générer (clé profiles) parmi product-owner, developer et business-analyst ? business-analyst exige le module openspec. Défaut : aucun."
   ]
 }

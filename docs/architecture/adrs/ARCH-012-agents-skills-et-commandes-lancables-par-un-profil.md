@@ -10,7 +10,7 @@ files: ["skills/project-bootstrap/assets/modules/agent-profiles/**"]
 
 ## Statut
 
-Accepté. Complète ARCH-011 pour les outils `Agent`, `Skill` et pour les commandes de shell.
+Accepté. Complète ARCH-011 pour les outils `Agent`, `Skill` et pour les commandes de shell. ARCH-014 ajoute à la table les profils optionnels.
 
 ## Context
 
