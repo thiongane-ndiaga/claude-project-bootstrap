@@ -100,6 +100,33 @@ for (const c of cases) {
   rmSync(first.dir, { recursive: true, force: true });
 }
 
+// module dependabot (opt-in)
+{
+  const without = run({ ...base, visibility: "private", modules: ["github"] });
+  check("dependabot absent : pas de .github/dependabot.yml", without.res.status === 0 && !walk(without.out).some((f) => f.endsWith("dependabot.yml")));
+  const withIt = run({ ...base, visibility: "private", modules: ["github", "dependabot"] });
+  const file = path.join(withIt.out, ".github", "dependabot.yml");
+  const text = withIt.res.status === 0 ? readFileSync(file, "utf8") : "";
+  check("dependabot : fichier généré et consigné au manifeste", withIt.res.status === 0 && Object.keys(JSON.parse(readFileSync(path.join(withIt.out, ".bootstrap", "manifest.json"), "utf8")).files).includes(".github/dependabot.yml"));
+  check("dependabot : contenu attendu", ['package-ecosystem: "github-actions"', '- "/"', '- "/.github/actions/*"', "default-days: 14", 'prefix: "ci"', 'include: "scope"', '- "chore"', '- "*"'].every((s) => text.includes(s)), text);
+  check("dependabot : aucun résidu de modèle", !/\{\{|@@/.test(text));
+  check("dependabot sans github refusé", run({ ...base, visibility: "private", modules: ["dependabot"] }).res.status === 1);
+  const titleCheck = (title) => spawnSync(process.execPath, [path.join(withIt.out, "scripts", "check-pr-title.mjs")], { env: { ...process.env, PR_TITLE: title }, encoding: "utf8" }).status;
+  check("dependabot : titre ci(deps) accepté par check-pr-title", titleCheck("ci(deps): bump the actions group with 2 updates") === 0);
+  check("dependabot : titre groupé réel accepté par check-pr-title", titleCheck("ci(deps): bump the actions group across 1 directory with 2 updates") === 0);
+
+  // exception de traçabilité présente avec le module, absente sans
+  const trace = [".claude/agents/traceability-checker.md", "docs/workflow.md", "docs/architecture/adrs/ARCH-005-conventions-de-branches-commits-et-versionnement.md"];
+  const full = run({ ...base, visibility: "private", modules: ["claude", "github", "archgate", "openspec", "dependabot"] });
+  const plain = run({ ...base, visibility: "private", modules: ["claude", "github", "archgate", "openspec"] });
+  check("dependabot : exception de traçabilité dans workflow.md, ARCH-005 et traceability-checker", trace.every((f) => /dependabot\//.test(readFileSync(path.join(full.out, f), "utf8"))));
+  check("sans dependabot : aucun de ces fichiers ne mentionne Dependabot", trace.every((f) => !/dependabot/i.test(readFileSync(path.join(plain.out, f), "utf8"))));
+
+  // ajout du module à un projet existant : seul dependabot.yml est créé
+  const added = run({ ...base, visibility: "private", modules: ["github", "dependabot"] }, [], without.out);
+  check("ajout de dependabot à un projet existant : seul .github/dependabot.yml créé", added.res.status === 0 && added.report.created.length === 1 && added.report.created[0] === ".github/dependabot.yml" && added.report.conflicts.length === 0, JSON.stringify(added.report));
+}
+
 // erreurs de configuration
 check("dépendance manquante refusée", run({ ...base, visibility: "private", modules: ["release"] }).res.status === 1);
 check("module inconnu refusé", run({ ...base, visibility: "private", modules: ["nope"] }).res.status === 1);
@@ -803,6 +830,15 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
     mfa.config.actions.checkout.sha = "1".repeat(40);
     writeFileSync(path.join(a2, ".bootstrap", "manifest.json"), JSON.stringify(mfa, null, 2));
     check("audit : SHA d'une action différent du manifeste -> écart", by(await audit(a2), "actions-epinglees")?.statut === "ecart");
+    const a3 = mkProject();
+    const mf3 = JSON.parse(read(a3, ".bootstrap/manifest.json"));
+    mf3.modules = [...new Set([...mf3.modules, "dependabot"])];
+    mf3.config.actions.checkout.sha = "1".repeat(40);
+    writeFileSync(path.join(a3, ".bootstrap", "manifest.json"), JSON.stringify(mf3, null, 2));
+    check("audit avec dependabot : SHA des workflows différent du manifeste -> pas d'écart", by(await audit(a3), "actions-epinglees")?.statut === "ok");
+    const rel3 = path.join(a3, ".github", "workflows", "release.yml");
+    writeFileSync(rel3, readFileSync(rel3, "utf8") + "\n      - uses: actions/checkout@" + "0".repeat(40) + "\n");
+    check("audit avec dependabot : SHA différent entre ci.yml et release.yml -> écart", by(await audit(a3), "actions-epinglees")?.statut === "ecart");
 
     // --- outils du projet, réglages
     const t1 = await audit(healthy, { check: res(1, "violation ARCH-004") });

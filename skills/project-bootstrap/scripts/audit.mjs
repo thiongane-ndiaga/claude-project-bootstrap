@@ -294,7 +294,8 @@ function checkActions(ctx) {
       if (seen[action] && seen[action].sha !== sha) bad.push(`${action} : ${seen[action].file} ${seen[action].sha.slice(0, 7)} ≠ ${file} ${sha.slice(0, 7)}`);
       seen[action] ??= { file, sha };
       const key = ACTION_KEYS[action];
-      if (key && pins[key]?.sha && pins[key].sha !== sha) bad.push(`${action} dans ${file} (${sha.slice(0, 7)}) ≠ manifeste (${pins[key].sha.slice(0, 7)})`);
+      // avec Dependabot, les SHA des workflows avancent sans le manifeste : seule la cohérence entre workflows reste contrôlée
+      if (!ctx.modules?.has("dependabot") && key && pins[key]?.sha && pins[key].sha !== sha) bad.push(`${action} dans ${file} (${sha.slice(0, 7)}) ≠ manifeste (${pins[key].sha.slice(0, 7)})`);
     }
   }
   return bad.length ? [ecart("actions-epinglees", bad.join(" ; "), "aligner les SHA des workflows et config.actions du manifeste")] : [ok("actions-epinglees", "SHA des actions cohérents")];

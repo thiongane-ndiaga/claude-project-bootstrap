@@ -25,6 +25,7 @@ Le catalogue fait foi : `assets/modules.json` (dépendances `requires`, incompat
 | `arc42` | 12 sections avec questions-guides | — | — |
 | `github` | formulaires d'issues, template de PR, labels, `ci.yml`, dépôt | — | — |
 | `release` | release-please (changelog, SemVer, tags, Releases) | github | — |
+| `dependabot` | mise à jour groupée des actions épinglées (`.github/dependabot.yml`, optionnel) | github | — |
 | `projects` | tableau GitHub Projects | github | — |
 | `githooks` | `pre-push` Node qui rejoue le contrôle qualité | claude | — |
 | `agent-teams` | flag expérimental dans `.claude/settings.local.json` | claude | — |

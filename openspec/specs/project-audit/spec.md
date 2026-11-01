@@ -122,11 +122,19 @@ L'audit SHALL comparer les versions d'OpenSpec et d'Archgate déclarées dans `c
 - **THEN** le contrôle est un écart qui donne les deux versions
 
 ### Requirement: Actions épinglées
-L'audit SHALL comparer les SHA des actions de `ci.yml` et `release.yml` à ceux de `config.actions` du manifeste, et vérifier qu'une même action porte le même SHA dans les deux workflows.
+L'audit SHALL vérifier qu'une même action porte le même SHA dans `ci.yml` et `release.yml`, et, sauf si le module `dependabot` est actif, comparer ces SHA à ceux de `config.actions` du manifeste. Quand le module `dependabot` est actif, les SHA des workflows avancent avec ses PR : l'audit MUST NOT signaler l'écart avec le manifeste.
 
 #### Scenario: Action différente entre deux workflows
 - **WHEN** une action a un SHA dans `ci.yml` et un autre dans `release.yml`
 - **THEN** le contrôle est un écart qui nomme l'action
+
+#### Scenario: SHA différent du manifeste, sans Dependabot
+- **WHEN** le module `dependabot` est absent et le SHA d'une action diffère de `config.actions`
+- **THEN** le contrôle est un écart
+
+#### Scenario: SHA différent du manifeste, avec Dependabot
+- **WHEN** le module `dependabot` est actif et les SHA des workflows diffèrent de `config.actions` mais restent cohérents entre eux
+- **THEN** le contrôle ne signale aucun écart
 
 ### Requirement: Contrôles des outils du projet
 L'audit SHALL appeler `archgate check`, `openspec validate --all --strict --no-interactive` et `openspec doctor --json` pour les modules actifs, vérifier d'abord la présence de la CLI, et rapporter un échec comme écart. Pour `openspec doctor`, il SHALL lire le JSON (racine non saine ou statut d'erreur) et vérifier que la racine rapportée est la cible.

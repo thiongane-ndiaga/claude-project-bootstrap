@@ -42,6 +42,11 @@ Une entrée du catalogue (`assets/modules.json`) marquée `"owned": true` est cr
 
 Mise à jour d'un projet généré avant ce point d'extension : l'action est créée ; `ci.yml` est remplacé s'il est resté tel que généré, fusionné à partir de sa base si la modification du projet est éloignée de l'ancien commentaire d'installation (rapporté `reconciled` : le relire), et sinon signalé en conflit. Pour résoudre le conflit : déplacer l'étape d'installation dans l'action, reprendre le `ci.yml` du modèle (ou `--adopt`), puis relancer `--update`.
 
+## Actions épinglées et module `dependabot`
+`resolve-versions.mjs` choisit chaque action par **numéro de version** (pas par date de publication, car une action peut publier un correctif sur une ancienne majeure après la dernière majeure), parmi les versions publiées depuis au moins 14 jours. `scaffold.mjs` écrit la référence `<sha> # <tag>` : le commentaire `# <tag>` est ce que Dependabot met à jour avec le SHA.
+
+Le module optionnel `dependabot` (requiert `github`) ajoute `.github/dependabot.yml` : écosystème `github-actions`, une seule PR hebdomadaire pour toutes les actions, `cooldown` de 14 jours (même délai que `resolve-versions.mjs`), titres `ci(deps): …` acceptés par `scripts/check-pr-title.mjs`. Il couvre aussi les `uses:` de l'action composite locale `.github/actions/project-setup` (l'action locale elle-même n'a pas de version). Les PR de Dependabot font avancer les SHA des workflows : avec le module, l'audit ne les compare plus à `config.actions` du manifeste, mais exige le même SHA dans `ci.yml` et `release.yml`. Ces PR n'ont ni branche `<type>/<issue>-<slug>` ni `Closes #N` (exception consignée dans `workflow.md` du projet). Le délai de 14 jours du `cooldown` est fixe dans le modèle; `resolve-versions.mjs --min-age-days` peut en choisir un autre pour la résolution initiale.
+
 ## Migrations hors fichiers
 Ce qui n'est pas un fichier (réglage du dépôt, labels, protection de branche) se corrige par une migration dans `migrations/`, un module `.mjs` par migration, numéroté (`0001-…`) :
 
