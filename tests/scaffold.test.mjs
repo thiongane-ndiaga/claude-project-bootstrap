@@ -539,6 +539,8 @@ for (const c of cases) {
   const listed = JSON.parse(list.stdout);
   check("--list-modules : sans --target, JSON des 13 modules avec leurs champs et les langues", list.status === 0 && listed.modules.length === 13 && listed.modules.find((m) => m.name === "release").requires.join() === "github" && listed.modules.find((m) => m.name === "dependabot").default === false && listed.languages.join() === "fr,en", list.stderr);
   const table = spawnSync(process.execPath, [scaffold, "--list-modules", "--format", "table"], { encoding: "utf8" });
+  const apQuestions = listed.modules.find((m) => m.name === "agent-profiles")?.questions ?? [];
+  check("--list-modules : agent-profiles déclare la question de phase 0 sur mainAgent (défaut non), listée aussi dans le tableau", apQuestions.length === 1 && /mainAgent/.test(apQuestions[0]) && /Défaut : non/.test(apQuestions[0]) && /project-lead/.test(table.stdout.split("\n").find((l) => l.startsWith("| `agent-profiles`")) ?? ""));
   check("--list-modules --format table : tableau markdown avec les questions de phase 0", table.status === 0 && /^\| Module \| Apporte \| Requiert \| Incompatible avec \| Par défaut \| Questions de phase 0 \|/.test(table.stdout) && table.stdout.split("\n").filter((l) => l.startsWith("| `")).length === 13);
   const badCatalog = spawnSync(process.execPath, [scaffold, "--list-modules", "--catalog", path.join(mkdtempSync(path.join(tmpdir(), "pb-vide-")), "rien")], { encoding: "utf8" });
   check("--catalog invalide : code 1 et message", badCatalog.status === 1 && /Catalogue introuvable/.test(badCatalog.stderr));
