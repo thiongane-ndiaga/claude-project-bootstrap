@@ -6,7 +6,7 @@
 - Pas de retour en arrière géré : une mise à jour se défait avec git.
 
 ## Ce qu'une release change pour un projet généré
-Un changement de **modèle** (`assets/templates/`), du **catalogue** (`assets/modules.json`) ou d'une **migration** touche les projets générés. Dans ce cas, le commit utilise le scope `templates`, `scaffold` ou `migrations` (`fix(templates): …`) pour que le journal des modifications le fasse apparaître. Un changement de documentation ou de test n'a aucun effet sur eux.
+Un changement de **modèle** (`assets/modules/<module>/templates*/`), du **catalogue** (`assets/modules/<module>/module.json`) ou d'une **migration** touche les projets générés. Dans ce cas, le commit utilise le scope `templates`, `scaffold` ou `migrations` (`fix(templates): …`) pour que le journal des modifications le fasse apparaître. Un changement de documentation ou de test n'a aucun effet sur eux.
 
 À la mise à jour (`scaffold.mjs --update`), chaque fichier est classé d'après le manifeste :
 
@@ -32,7 +32,7 @@ Un changement de **modèle** (`assets/templates/`), du **catalogue** (`assets/mo
 - Les bases de fichiers que le modèle ne produit plus restent en place (rien n'est supprimé).
 
 ## Fichiers propres au projet
-Une entrée du catalogue (`assets/modules.json`) marquée `"owned": true` est créée à la première génération, puis appartient au projet : jamais remplacée, fusionnée ni signalée en conflit, consignée `kept` dans le manifeste. C'est le cas de `.bootstrap/checks.json` (commandes de tests et systèmes de la CI). Pas besoin de la lister dans `keep`.
+Une entrée de `files` d'un descripteur de module (`assets/modules/<module>/module.json`) marquée `"owned": true` est créée à la première génération, puis appartient au projet : jamais remplacée, fusionnée ni signalée en conflit, consignée `kept` dans le manifeste. C'est le cas de `.bootstrap/checks.json` (commandes de tests et systèmes de la CI). Pas besoin de la lister dans `keep`.
 
 ## Audit d'un projet
 `scripts/audit.mjs --target <dépôt>` inspecte un projet généré en lecture seule et propose une correction pour chaque écart (voir `SKILL.md`, phase 3). Il réutilise `scaffold.mjs --update --dry-run` pour la mise à jour en attente et les bases invalides, et `plan()` de **toutes** les migrations applicables (avec `--forge`), consignées ou non : une migration consignée dont la forge a dérivé depuis apparaît comme un écart. Codes de sortie : 0 aucun écart, 1 au moins un écart, 2 erreur d'usage (les autres scripts n'ont pas de rapport). À lancer après chaque mise à jour du projet.

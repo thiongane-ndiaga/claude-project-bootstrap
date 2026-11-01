@@ -26,7 +26,7 @@ Entrée de `scripts/scaffold.mjs`. Fusionne la sortie de `scripts/resolve-versio
 |---|---|---|
 | `projectName`, `description`, `visibility` | toujours | titre de CLAUDE.md, ADR ARCH-004, matrice CI (`public` → ubuntu + windows) |
 | `modules` | toujours | `core` est ajouté d'office ; dépendances vérifiées |
-| `docLanguage` | — | langue de la documentation générée : `fr` (défaut, clé à omettre) ou le code d'un dossier `assets/templates.<code>` (`en`) ; une langue indisponible est refusée (code 1). Consignée au manifeste seulement si présente et reprise par `--update` |
+| `docLanguage` | — | langue de la documentation générée : `fr` (défaut, clé à omettre) ou le code d'un dossier `templates.<code>` du module `core` (`en`) ; une langue indisponible est refusée (code 1). Consignée au manifeste seulement si présente et reprise par `--update` |
 | `docLanguageName` | — | libellé affiché de la langue (défaut : « Français », « English » selon `docLanguage`) ; à omettre sauf libellé voulu (« English (US) »), car une valeur explicite l'emporte |
 | `stack` | — | stack déjà connue, en une ligne ; absente, `CLAUDE.md` dit que la stack n'est pas choisie |
 | `cliInstall` | — | installation des CLI : `global` (défaut, clé à omettre), `user` ou `local`. `local` exige `openspec` ou `archgate` et crée `package.json` (voir ARCH-007) ; la clé est consignée au manifeste seulement si elle est présente |

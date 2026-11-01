@@ -12,7 +12,11 @@ Les projets générés appellent `openspec` et `archgate` par leur nom. Le mode 
 
 ## Langue de la documentation générée
 
-Les modèles de référence sont en français (`assets/templates/`) ; une langue ajoute un dossier `assets/templates.<code>/` qui ne contient que les fichiers ayant du texte, le reste est lu dans `assets/templates/`. La langue est choisie par la clé `docLanguage` (défaut `fr`) et le skill ne traduit plus. Voir [ARCH-008](../adrs/ARCH-008-modeles-de-documentation-par-langue.md).
+Les modèles de référence sont en français (`templates/` de chaque module) ; une langue ajoute un dossier `templates.<code>/` dans les modules concernés, qui ne contient que les fichiers ayant du texte, le reste est lu dans `templates/`. La langue est disponible si le module `core` la fournit. Elle est choisie par la clé `docLanguage` (défaut `fr`) et le skill ne traduit plus. Voir [ARCH-008](../adrs/ARCH-008-modeles-de-documentation-par-langue.md).
+
+## Modules auto-décrits
+
+Un module est un dossier `skills/project-bootstrap/assets/modules/<nom>/` qui porte son descripteur, ses modèles et ses tests ; ajouter un module ne modifie aucun fichier hors de ce dossier. Le catalogue est assemblé et validé au chargement, et le tableau des modules est produit par `scaffold.mjs --list-modules`. Voir [ARCH-010](../adrs/ARCH-010-modules-auto-decrits.md).
 
 ## Reprise et traçabilité des effets
 

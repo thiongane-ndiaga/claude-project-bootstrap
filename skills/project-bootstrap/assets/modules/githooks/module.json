@@ -1,0 +1,8 @@
+{
+  "description": "Hook pre-push Node qui rejoue le contrôle qualité (indispensable en dépôt privé)",
+  "requires": ["claude"],
+  "default": true,
+  "files": [
+    {"path": ".githooks/pre-push"}
+  ]
+}

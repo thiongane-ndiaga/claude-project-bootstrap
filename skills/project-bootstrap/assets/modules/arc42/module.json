@@ -1,0 +1,20 @@
+{
+  "description": "Squelette arc42 (12 sections, questions-guides) dans docs/architecture/arc42/",
+  "default": true,
+  "files": [
+    {"path": ".claude/hooks/restrict-path.mjs", "when": ["claude"]},
+    {"path": ".claude/agents/arc42-keeper.md", "when": ["claude"]},
+    {"path": "docs/architecture/arc42/01-introduction-et-objectifs.md"},
+    {"path": "docs/architecture/arc42/02-contraintes.md"},
+    {"path": "docs/architecture/arc42/03-contexte-et-perimetre.md"},
+    {"path": "docs/architecture/arc42/04-strategie-de-solution.md"},
+    {"path": "docs/architecture/arc42/05-vue-en-briques.md"},
+    {"path": "docs/architecture/arc42/06-vue-d-execution.md"},
+    {"path": "docs/architecture/arc42/07-vue-de-deploiement.md"},
+    {"path": "docs/architecture/arc42/08-concepts-transverses.md"},
+    {"path": "docs/architecture/arc42/09-decisions-d-architecture.md"},
+    {"path": "docs/architecture/arc42/10-exigences-de-qualite.md"},
+    {"path": "docs/architecture/arc42/11-risques-et-dette-technique.md"},
+    {"path": "docs/architecture/arc42/12-glossaire.md"}
+  ]
+}

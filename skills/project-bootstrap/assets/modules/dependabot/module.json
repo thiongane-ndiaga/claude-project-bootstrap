@@ -1,0 +1,8 @@
+{
+  "description": "Dependabot : mise à jour groupée des actions GitHub épinglées (délai de 14 jours, titres ci(deps))",
+  "requires": ["github"],
+  "default": false,
+  "files": [
+    {"path": ".github/dependabot.yml"}
+  ]
+}

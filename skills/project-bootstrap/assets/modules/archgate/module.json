@@ -1,0 +1,17 @@
+{
+  "description": "ADR exécutables avec Archgate, rangés dans docs/architecture/adrs/",
+  "default": true,
+  "files": [
+    {"path": ".claude/agents/architecture-explorer.md", "when": ["claude"]},
+    {"path": ".archgate/config.json", "merge": "json"},
+    {"path": ".archgate/lint/README.md"},
+    {"path": "docs/architecture/adrs/ARCH-003-emplacement-et-format-des-adr.md"},
+    {"path": "docs/architecture/adrs/ARCH-003-emplacement-et-format-des-adr.rules.ts"},
+    {"path": "docs/architecture/adrs/ARCH-001-documentation-d-architecture-arc42-et-adr.md", "when": ["arc42"]},
+    {"path": "docs/architecture/adrs/ARCH-001-documentation-d-architecture-arc42-et-adr.rules.ts", "when": ["arc42"]},
+    {"path": "docs/architecture/adrs/ARCH-002-workflow-spec-driven-avec-openspec.md", "when": ["openspec"]},
+    {"path": "docs/architecture/adrs/ARCH-004-github-comme-forge-avec-actions-et-releases.md", "when": ["github"]},
+    {"path": "docs/architecture/adrs/ARCH-004-github-comme-forge-avec-actions-et-releases.rules.ts", "when": ["github"]},
+    {"path": "docs/architecture/adrs/ARCH-005-conventions-de-branches-commits-et-versionnement.md", "when": ["github"]}
+  ]
+}

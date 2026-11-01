@@ -1,0 +1,17 @@
+{
+  "description": "Formulaires d'issues, template de PR, labels, CI (ci.yml), dépôt GitHub",
+  "default": true,
+  "files": [
+    {"path": ".claude/agents/traceability-checker.md", "when": ["claude"]},
+    {"path": ".github/ISSUE_TEMPLATE/config.yml"},
+    {"path": ".github/ISSUE_TEMPLATE/feature.yml"},
+    {"path": ".github/ISSUE_TEMPLATE/bug.yml"},
+    {"path": ".github/pull_request_template.md"},
+    {"path": ".github/labels.json"},
+    {"path": ".github/workflows/ci.yml"},
+    {"path": ".github/actions/project-setup/action.yml", "owned": true},
+    {"path": "scripts/sync-labels.mjs"},
+    {"path": "scripts/check-pr-title.mjs"},
+    {"path": ".github/ISSUE_TEMPLATE/architecture-decision.yml", "when": ["archgate"]}
+  ]
+}

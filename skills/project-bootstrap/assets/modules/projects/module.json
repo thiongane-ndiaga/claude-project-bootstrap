@@ -1,0 +1,5 @@
+{
+  "description": "Tableau GitHub Projects (Todo, In Progress, In Review, Done) lié au dépôt",
+  "requires": ["github"],
+  "default": true
+}

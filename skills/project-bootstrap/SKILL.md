@@ -22,22 +22,7 @@ Le bootstrap impose un redémarrage de Claude Code et le contexte d'une session 
 
 ## Modules
 
-Le catalogue fait foi : `assets/modules.json` (dépendances `requires`, incompatibilités `conflicts`, fichiers, valeurs par défaut). Aucun module n'est incompatible avec un autre pour l'instant ; un module qui déclare `conflicts: ["x"]` ne peut pas être sélectionné avec `x`, et `scaffold.mjs` refuse la configuration (code de sortie 2, aucun fichier écrit).
-
-| Module | Apporte | Requiert | Incompatible avec |
-|---|---|---|---|
-| `core` (toujours) | `.gitignore`, `.gitattributes`, `CLAUDE.md`, `docs/workflow.md` | — | — |
-| `claude` | `.claude/settings.json`, hooks Node, agents du projet | — | — |
-| `openspec` | `openspec init` + conventions `<issue>-<slug>` | — | — |
-| `archgate` | `.archgate/`, ADR d'outillage + règles dans `docs/architecture/adrs/` | — | — |
-| `archgate-plugin` | plugin Claude Code d'Archgate (compte Archgate) | archgate, claude | — |
-| `arc42` | 12 sections avec questions-guides | — | — |
-| `github` | formulaires d'issues, template de PR, labels, `ci.yml`, dépôt | — | — |
-| `release` | release-please (changelog, SemVer, tags, Releases) | github | — |
-| `dependabot` | mise à jour groupée des actions épinglées (`.github/dependabot.yml`, optionnel) | github | — |
-| `projects` | tableau GitHub Projects | github | — |
-| `githooks` | `pre-push` Node qui rejoue le contrôle qualité | claude | — |
-| `agent-teams` | flag expérimental dans `.claude/settings.local.json` | claude | — |
+Chaque module est un dossier `assets/modules/<nom>/` qui se décrit lui-même (`module.json` : description, `requires`, `default`, `conflicts`, `questions` de phase 0, fichiers) ; le catalogue n'est donc **pas recopié ici**. Liste-le avec `node scripts/scaffold.mjs --list-modules` (JSON ; `--format table` pour un tableau markdown) : nom, description, dépendances, incompatibilités, valeur par défaut, questions. `core` est toujours inclus. Un module qui déclare `conflicts: ["x"]` ne peut pas être sélectionné avec `x` : `scaffold.mjs` refuse la configuration (code de sortie 2, aucun fichier écrit) ; ne propose jamais deux modules incompatibles. Un descripteur invalide fait échouer toute commande de `scaffold.mjs` (code 1, fichier fautif nommé).
 
 Les agents générés dépendent des modules : `spec-reviewer` (openspec), `traceability-checker` (github), `architecture-explorer` (archgate), `arc42-keeper` (arc42).
 
@@ -67,9 +52,9 @@ Les agents générés dépendent des modules : `spec-reviewer` (openspec), `trac
    - nom et description en une phrase ;
    - stack : déjà connue (la décrire en une ligne, elle remplace « la stack n'est pas choisie » dans `CLAUDE.md`) ou à décider plus tard ;
    - visibilité : **privé** si des données réelles ou sensibles sont présentes, sinon public (CI Windows gratuite et protection de branche disponible) ;
-   - modules (multi-sélection, défauts de `modules.json`) ; ne propose pas deux modules incompatibles (colonne « Incompatible avec ») ;
+   - modules (multi-sélection, défauts et incompatibilités de `scaffold.mjs --list-modules`) ; pose aussi les `questions` déclarées par chaque module choisi ;
    - **installation des CLI** (modules `openspec` ou `archgate`), clé `cliInstall` : `global` (`npm install -g`), `user` (`npm install -g --prefix ~/.local`, sans objet sous Windows où il équivaut à `global`) ou `local` (`devDependencies` dans un `package.json`, ajoute `package.json` et lockfile à un projet « sans stack »). Détecte le défaut dès maintenant : test d'écriture dans le préfixe npm (`npm config get prefix` ; `<préfixe>/lib/node_modules`, ou `<préfixe>` sous Windows) ; **recommande `user` s'il n'est pas inscriptible hors Windows, sinon `global`** ; ne propose `local` que si l'utilisateur le demande. Omets la clé pour `global` ;
-   - langue de la documentation, parmi les langues disponibles (`languages` de `scaffold.mjs --detect` : `fr` et `en` aujourd'hui), clé `docLanguage` (omise pour `fr`) ; ne propose pas une langue sans modèles : indique `fr` ou `en` et, pour en ajouter une, la procédure de `CONTRIBUTING.md` (copier `assets/templates.en/`, traduire, lancer les tests) ;
+   - langue de la documentation, parmi les langues disponibles (`languages` de `scaffold.mjs --list-modules` ou `--detect` : `fr` et `en` aujourd'hui), clé `docLanguage` (omise pour `fr`) ; ne propose pas une langue sans modèles : indique `fr` ou `en` et, pour en ajouter une, la procédure de `CONTRIBUTING.md` (ajouter un dossier `templates.<code>/` à chaque module qui a du texte, traduire, lancer les tests) ;
    - Windows natif ou WSL (recommandé : natif ; jamais un même clone partagé entre les deux).
 3. Relève les versions : `claude --version`, `node --version` (≥ 20.19), `git --version`, `gh --version`, `gh auth status` (scope `project` si module projects).
 4. **Revérifie les conditions du plan GitHub Free** dans la doc actuelle (voir `references/github-free.md`) au lieu de citer des chiffres de mémoire.

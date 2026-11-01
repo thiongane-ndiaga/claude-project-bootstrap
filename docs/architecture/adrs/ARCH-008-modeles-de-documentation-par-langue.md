@@ -18,8 +18,8 @@ Les modèles du plugin sont en français. Pour un projet dans une autre langue, 
 
 ## Decision
 
-1. Les modèles de référence restent dans `assets/templates/` (français). Une langue `<code>` ajoute `assets/templates.<code>/`, qui ne contient que les fichiers ayant du texte ; tout fichier absent est lu dans `assets/templates/`.
-2. Langues disponibles = `fr` et les dossiers `templates.*` (hors `templates.fr`). La clé `docLanguage` de `bootstrap.json` choisit la langue (défaut `fr`, consignée au manifeste seulement si présente, héritée du manifeste par `--update`). Une langue indisponible est refusée.
+1. Dans chaque module (ARCH-010), les modèles de référence sont dans `templates/` (français). Une langue `<code>` ajoute `templates.<code>/`, qui ne contient que les fichiers ayant du texte ; tout fichier absent est lu dans le `templates/` du même module.
+2. Langues disponibles = `fr` et les dossiers `templates.<code>` du module `core` (`templates.fr` est refusé ; un `templates.<code>` absent de `core` aussi). La clé `docLanguage` de `bootstrap.json` choisit la langue (défaut `fr`, consignée au manifeste seulement si présente, héritée du manifeste par `--update`). Une langue indisponible est refusée.
 3. Les noms de fichiers sont identiques dans toutes les langues, y compris les slugs français d'arc42 et des ADR : l'arborescence est le contrat.
 4. Les paramètres qui portent du texte se résolvent dans une table par langue ; le skill ne traduit plus.
 5. Parité testée : mêmes marqueurs `@@module` et paramètres `{{…}}` ; mêmes squelettes de code pour les scripts (chaînes et commentaires retirés, littéraux de regex conservés pour les hooks) ; les règles `.rules.ts` d'ADR sont comparées sans chaînes, commentaires ni regex car leur vocabulaire (`## Status`, statuts) suit la langue. Un modèle sans version anglaise ne contient aucune lettre accentuée.
@@ -35,7 +35,7 @@ Les modèles du plugin sont en français. Pour un projet dans une autre langue, 
 ### Don't
 
 - Ne pas faire traduire des fichiers générés par le skill.
-- Ne pas créer `assets/templates.fr/`.
+- Ne pas créer `templates.fr/`.
 
 ## Consequences
 

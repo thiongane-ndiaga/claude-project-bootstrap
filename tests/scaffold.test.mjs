@@ -2,17 +2,50 @@
 // Tests de scaffold.mjs sur plusieurs combinaisons de modules. Usage : node tests/scaffold.test.mjs
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, writeFileSync, readFileSync, readdirSync, statSync, rmSync } from "node:fs";
+import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, writeFileSync, readFileSync, readdirSync, statSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { runMigrations } from "../skills/project-bootstrap/scripts/migrate.mjs";
-import { syncLabels } from "../skills/project-bootstrap/assets/templates/scripts/sync-labels.mjs";
+import { loadCatalog, templatePath } from "../skills/project-bootstrap/scripts/catalog.mjs";
+import { syncLabels } from "../skills/project-bootstrap/assets/modules/github/templates/scripts/sync-labels.mjs";
 import { formatReport, isGhWrite, parseArgs, parseFormLabels, realExec, runAudit } from "../skills/project-bootstrap/scripts/audit.mjs";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const scaffold = path.join(root, "skills", "project-bootstrap", "scripts", "scaffold.mjs");
-const manifest = JSON.parse(readFileSync(path.join(root, "skills", "project-bootstrap", "assets", "modules.json"), "utf8"));
+const modulesRoot = path.join(root, "skills", "project-bootstrap", "assets", "modules");
+const manifest = loadCatalog(modulesRoot);
+// modèle d'un fichier généré, retrouvé dans le module qui le déclare (dans le plugin ou dans une copie)
+const templateIn = (skillDir, rel, lang = "fr") => {
+  const entry = loadCatalog(path.join(skillDir, "assets", "modules")).files.find((f) => f.path === rel);
+  if (!entry) throw new Error(`aucun module ne déclare ${rel}`);
+  return templatePath(entry, lang);
+};
+const realSkill = path.join(root, "skills", "project-bootstrap");
+const tplFile = (rel, lang = "fr") => templateIn(realSkill, rel, lang);
+// retire un fichier du catalogue d'une copie du plugin (entrée du descripteur et modèle)
+const dropFile = (skillDir, rel) => {
+  for (const name of readdirSync(path.join(skillDir, "assets", "modules"))) {
+    const mj = path.join(skillDir, "assets", "modules", name, "module.json");
+    const data = JSON.parse(readFileSync(mj, "utf8"));
+    if (!(data.files ?? []).some((f) => f.path === rel)) continue;
+    data.files = data.files.filter((f) => f.path !== rel);
+    writeFileSync(mj, JSON.stringify(data, null, 2));
+    for (const tree of ["templates", "templates.en"]) rmSync(path.join(skillDir, "assets", "modules", name, tree, ...rel.split("/")), { force: true });
+    return;
+  }
+  throw new Error(`aucun module ne déclare ${rel}`);
+};
+// ajoute un fichier (descripteur et modèle) à un module d'une copie du plugin
+const addFile = (skillDir, moduleName, rel, content) => {
+  const dir = path.join(skillDir, "assets", "modules", moduleName);
+  const mj = path.join(dir, "module.json");
+  const data = JSON.parse(readFileSync(mj, "utf8"));
+  data.files = [...(data.files ?? []), { path: rel }];
+  writeFileSync(mj, JSON.stringify(data, null, 2));
+  mkdirSync(path.dirname(path.join(dir, "templates", ...rel.split("/"))), { recursive: true });
+  writeFileSync(path.join(dir, "templates", ...rel.split("/")), content);
+};
 const sha = (c) => ({ tag: "v1.0.0", sha: c.repeat(40) });
 const base = {
   projectName: "Test",
@@ -190,11 +223,13 @@ for (const c of cases) {
 
   // validation du catalogue : `when` ne cite que des modules ou pseudo-modules connus
   const catDir = mkdtempSync(path.join(tmpdir(), "pb-cat-"));
-  const cat = JSON.parse(JSON.stringify(manifest));
-  cat.files.push({ path: "CLAUDE.md", when: ["inconnu"] });
-  writeFileSync(path.join(catDir, "modules.json"), JSON.stringify(cat));
-  const badCat = run({ ...base, visibility: "private", modules: [] }, ["--catalog", path.join(catDir, "modules.json")]);
-  check("catalogue : `when` avec un module inconnu refusé (code 1)", badCat.res.status === 1 && /module inconnu inconnu/.test(badCat.res.stderr), badCat.res.stderr);
+  cpSync(modulesRoot, catDir, { recursive: true });
+  const claudeJson = path.join(catDir, "claude", "module.json");
+  const claude = JSON.parse(readFileSync(claudeJson, "utf8"));
+  claude.files[0].when = ["inconnu"];
+  writeFileSync(claudeJson, JSON.stringify(claude));
+  const badCat = run({ ...base, visibility: "private", modules: [] }, ["--catalog", catDir]);
+  check("catalogue : `when` avec un module inconnu refusé (code 1, descripteur nommé)", badCat.res.status === 1 && /module inconnu inconnu/.test(badCat.res.stderr) && /claude[/\\]module\.json/.test(badCat.res.stderr), badCat.res.stderr);
 }
 
 // langue de la documentation (docLanguage) : génération, héritage à la mise à jour
@@ -246,10 +281,6 @@ for (const c of cases) {
 
 // parité entre les modèles français et anglais (ARCH-008)
 {
-  const assetsDir = path.join(root, "skills", "project-bootstrap", "assets");
-  const frRoot = path.join(assetsDir, "templates");
-  const enRoot = path.join(assetsDir, "templates.en");
-  const rel = (dir) => walk(dir).map((f) => path.relative(dir, f).split(path.sep).join("/")).sort();
   const readLf = (f) => readFileSync(f, "utf8").replace(/\r\n/g, "\n");
   const ACCENT = /[àâäéèêëîïôöùûüç]/i;
   const markers = (t) => t.split("\n").map((l) => /@@(module:[\w|-]+|end)/.exec(l)?.[1]).filter(Boolean);
@@ -339,26 +370,192 @@ for (const c of cases) {
     return issues;
   }
 
-  const frFiles = rel(frRoot);
-  const enFiles = rel(enRoot);
-  const orphans = enFiles.filter((f) => !frFiles.includes(f));
-  check("aucun modèle anglais sans équivalent français", orphans.length === 0, orphans.join(", "));
-  const issues = frFiles.flatMap((f) => parity(f, readLf(path.join(frRoot, f)), enFiles.includes(f) ? readLf(path.join(enRoot, f)) : null));
+  const frFiles = manifest.files.map((f) => f.path);
+  const enFiles = manifest.files.filter((f) => templatePath(f, "en") !== templatePath(f, "fr")).map((f) => f.path);
+  const frOf = (rel) => readLf(templatePath(manifest.files.find((f) => f.path === rel), "fr"));
+  const enOf = (rel) => readLf(templatePath(manifest.files.find((f) => f.path === rel), "en"));
+  // une version localisée sans modèle de référence dans son module est refusée par le chargeur
+  const orphanCopy = mkdtempSync(path.join(tmpdir(), "pb-orphan-"));
+  cpSync(modulesRoot, orphanCopy, { recursive: true });
+  mkdirSync(path.join(orphanCopy, "github", "templates.en"), { recursive: true });
+  writeFileSync(path.join(orphanCopy, "github", "templates.en", "ORPHELIN.md"), "x\n");
+  let orphanError = "";
+  try {
+    loadCatalog(orphanCopy);
+  } catch (err) {
+    orphanError = err.message;
+  }
+  check("aucun modèle anglais sans équivalent français : refusé par le chargeur, fichier nommé", /ORPHELIN\.md/.test(orphanError) && /sans modèle de référence/.test(orphanError), orphanError);
+  const issues = frFiles.flatMap((f) => parity(f, frOf(f), enFiles.includes(f) ? enOf(f) : null));
   check("parité des modèles : marqueurs, paramètres, squelette de code, structure, titres, accents", issues.length === 0, issues.join(" | "));
   check("des modèles anglais existent (le test de parité n'est pas vide)", enFiles.length >= 30, String(enFiles.length));
 
   // le test de parité détecte bien chaque sorte d'écart
-  const frWf = readLf(path.join(frRoot, "docs", "workflow.md"));
-  const enWf = readLf(path.join(enRoot, "docs", "workflow.md"));
+  const frWf = frOf("docs/workflow.md");
+  const enWf = enOf("docs/workflow.md");
   check("parité : marqueur perdu -> écart", parity("docs/workflow.md", frWf, enWf.replace("@@module:projects\n", "")).some((i) => /marqueurs/.test(i)));
   check("parité : paramètre perdu -> écart", parity("docs/workflow.md", frWf, enWf.replace("{{CI_BLOCKING_NOTE}}", "x")).some((i) => /paramètres/.test(i)));
-  const frHook = readLf(path.join(frRoot, ".claude", "hooks", "read-only-bash.mjs"));
-  const enHook = readLf(path.join(enRoot, ".claude", "hooks", "read-only-bash.mjs"));
+  const frHook = frOf(".claude/hooks/read-only-bash.mjs");
+  const enHook = enOf(".claude/hooks/read-only-bash.mjs");
   check("parité : code modifié dans un hook -> écart", parity(".claude/hooks/read-only-bash.mjs", frHook, enHook.replace("process.exit(2)", "process.exit(0)")).some((i) => /squelette/.test(i)));
   check("parité : regex de la liste blanche modifiée dans un hook -> écart", parity(".claude/hooks/read-only-bash.mjs", frHook, enHook.replace("(validate|show|list|status)", "(validate|show|list|status|archive)")).some((i) => /squelette/.test(i)));
   check("parité : chaîne ou commentaire traduit -> pas d'écart", parity(".claude/hooks/read-only-bash.mjs", frHook, enHook.replace("// closed character set", "// jeu fermé")).length === 0);
   check("parité : modèle sans version anglaise avec une lettre accentuée -> écart", parity("x.md", "voilà", null).length === 1 && parity("x.md", "plain", null).length === 0);
   check("parité : YAML dont la structure change -> écart", parity("a.yml", "name: A\nbody:\n  - x: 1\n", "name: B\nbody:\n  - x: 1\n  - y: 2\n").length === 1 && parity("a.yml", "name: A\nbody:\n  - x: 1\n", "name: B\nbody:\n  - x: 1\n").length === 0);
+}
+
+// catalogue de modules : dossiers auto-décrits, chargeur, liste, module de démonstration (ARCH-010)
+{
+  const copy = () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "pb-mod-"));
+    cpSync(modulesRoot, dir, { recursive: true });
+    return dir;
+  };
+  const rewrite = (dir, name, mutate) => {
+    const f = path.join(dir, name, "module.json");
+    const data = JSON.parse(readFileSync(f, "utf8"));
+    mutate(data);
+    writeFileSync(f, JSON.stringify(data, null, 2));
+  };
+  const problem = (dir) => {
+    try {
+      loadCatalog(dir);
+      return "";
+    } catch (err) {
+      return err.message;
+    }
+  };
+  const refused = (label, prepare, pattern) => {
+    const dir = copy();
+    prepare(dir);
+    const msg = problem(dir);
+    check(`chargeur : ${label}`, pattern.test(msg), msg || "(accepté)");
+  };
+
+  // catalogue réel
+  const names = Object.keys(manifest.modules);
+  check("catalogue réel : 12 modules dont core, chacun avec une description", names.length === 12 && names[0] === "core" && names.every((n) => manifest.modules[n].description.length > 10));
+  check("catalogue réel : fichiers triés par chemin, propriétaire en tête de la condition de génération", manifest.files.every((f, i, a) => i === 0 || a[i - 1].path < f.path) && manifest.files.every((f) => f.when[0] === f.module));
+  check("catalogue réel : langues disponibles fournies par core (en)", manifest.languages.join() === "en");
+  const adrOwner = (rel) => manifest.files.find((f) => f.path === rel);
+  check("propriété : ADR d'outillage dans archgate avec le module concerné en when, formulaire d'ADR dans github", ["ARCH-001-documentation-d-architecture-arc42-et-adr.md", "ARCH-002-workflow-spec-driven-avec-openspec.md", "ARCH-004-github-comme-forge-avec-actions-et-releases.md", "ARCH-005-conventions-de-branches-commits-et-versionnement.md"].every((n) => adrOwner(`docs/architecture/adrs/${n}`)?.module === "archgate") && adrOwner(".github/ISSUE_TEMPLATE/architecture-decision.yml").module === "github" && adrOwner(".github/ISSUE_TEMPLATE/architecture-decision.yml").when.join() === "github,archgate");
+  check("condition de génération : openspec + claude pour spec-reviewer", adrOwner(".claude/agents/spec-reviewer.md").when.join() === "openspec,claude");
+
+  // refus du chargeur : chaque cause nomme le fichier fautif
+  refused("descripteur illisible", (d) => writeFileSync(path.join(d, "github", "module.json"), "{ pas du json"), /github[/\\]module\.json.*illisible/);
+  refused("clé inconnue", (d) => rewrite(d, "github", (m) => (m.surprise = 1)), /clé inconnue « surprise »/);
+  refused("description absente", (d) => rewrite(d, "github", (m) => delete m.description), /« description » est obligatoire/);
+  refused("requires vers un module inconnu", (d) => rewrite(d, "github", (m) => (m.requires = ["zzz"])), /« requires » cite le module inconnu zzz/);
+  refused("pseudo-module dans requires", (d) => rewrite(d, "github", (m) => (m.requires = ["cli-local"])), /« requires » cite le module inconnu cli-local/);
+  refused("conflicts avec soi-même", (d) => rewrite(d, "github", (m) => (m.conflicts = ["github"])), /ne peut pas être incompatible avec github/);
+  refused("conflicts avec un module requis", (d) => rewrite(d, "release", (m) => (m.conflicts = ["github"])), /ne peut pas être incompatible avec github/);
+  refused("modèle manquant", (d) => rewrite(d, "github", (m) => m.files.push({ path: "NOUVEAU.md" })), /modèle manquant.*NOUVEAU\.md/);
+  refused("modèle non déclaré", (d) => writeFileSync(path.join(d, "github", "templates", "ORPHELIN.md"), "x\n"), /ORPHELIN\.md.*non déclaré/);
+  refused("chemin déclaré par deux modules", (d) => rewrite(d, "release", (m) => m.files.push({ path: ".github/labels.json" })), /Chemin déclaré deux fois : \.github\/labels\.json \(modules github et release\)/);
+  refused("chemins qui ne diffèrent que par la casse", (d) => rewrite(d, "release", (m) => m.files.push({ path: "CLAUDE.MD" })), /ne diffèrent que par la casse/);
+  refused("module core absent", (d) => rmSync(path.join(d, "core"), { recursive: true }), /module « core » est absent/);
+  refused("when vers un module inconnu", (d) => rewrite(d, "github", (m) => (m.files[0].when = ["zzz"])), /« when » cite le module inconnu zzz/);
+  refused("merge invalide", (d) => rewrite(d, "github", (m) => (m.files[0].merge = "magie")), /« merge » doit valoir/);
+  for (const reserved of [".claude/settings.json", "package.json", ".bootstrap/manifest.json", ".bootstrap/base/x.base", ".bootstrap/local/state.json", ".git/config"]) {
+    refused(`chemin réservé au générateur ${reserved}`, (d) => rewrite(d, "github", (m) => m.files.push({ path: reserved })), /chemin réservé au générateur/);
+  }
+  for (const [label, p] of [["« .. »", "a/../b.md"], ["absolu", "/etc/x"], ["antislash", "a\\b.md"], ["nom réservé Windows", "aux/x.md"], ["deux-points", "a:b.md"], ["point final", "dossier./x.md"]]) {
+    refused(`chemin invalide (${label})`, (d) => rewrite(d, "github", (m) => m.files.push({ path: p })), /refusé/);
+  }
+  refused("numéro d'ADR utilisé deux fois", (d) => {
+    rewrite(d, "release", (m) => m.files.push({ path: "docs/architecture/adrs/ARCH-002-autre.md" }));
+    mkdirSync(path.join(d, "release", "templates", "docs", "architecture", "adrs"), { recursive: true });
+    writeFileSync(path.join(d, "release", "templates", "docs", "architecture", "adrs", "ARCH-002-autre.md"), "x\n");
+  }, /Numéro d'ADR ARCH-002 utilisé par deux fichiers/);
+  refused("dossier nommé comme un pseudo-module", (d) => {
+    mkdirSync(path.join(d, "cli-local"));
+    writeFileSync(path.join(d, "cli-local", "module.json"), JSON.stringify({ description: "x" }));
+  }, /« cli-local » est un pseudo-module/);
+  refused("nom de dossier invalide", (d) => {
+    mkdirSync(path.join(d, "Mon Module"));
+    writeFileSync(path.join(d, "Mon Module", "module.json"), JSON.stringify({ description: "x" }));
+  }, /nom de module invalide/);
+  refused("langue absente de core", (d) => {
+    mkdirSync(path.join(d, "github", "templates.de"), { recursive: true });
+    writeFileSync(path.join(d, "github", "templates.de", "x.md"), "x\n");
+  }, /langue de n'est pas fournie par le module core/);
+  refused("templates.fr interdit", (d) => mkdirSync(path.join(d, "github", "templates.fr")), /templates\.fr.*interdit/);
+  refused("version localisée sans modèle de référence", (d) => writeFileSync(path.join(d, "github", "templates.en", "ORPHELIN.md"), "x\n"), /sans modèle de référence/);
+  {
+    // lien symbolique : jamais suivi (sauf si le système refuse d'en créer)
+    const d = copy();
+    let made = true;
+    try {
+      symlinkSync(path.join(d, "github", "templates", "scripts"), path.join(d, "github", "templates", "alias"), "dir");
+    } catch {
+      made = false;
+    }
+    if (made) check("chargeur : lien symbolique dans un dossier de modèles refusé", /lien symbolique refusé/.test(problem(d)), problem(d));
+    else console.log("skip chargeur : lien symbolique (création refusée par le système)");
+  }
+  {
+    const d = copy();
+    rewrite(d, "github", (m) => (m.files[0].when = ["github", "github", "cli-local"]));
+    const cat = loadCatalog(d);
+    const entry = cat.files.find((f) => f.path === JSON.parse(readFileSync(path.join(d, "github", "module.json"), "utf8")).files[0].path);
+    check("chargeur : when peut citer un pseudo-module, le module propriétaire (toléré) et un doublon", entry.when.join() === "github,cli-local");
+  }
+
+  // --list-modules et --catalog
+  const list = spawnSync(process.execPath, [scaffold, "--list-modules"], { encoding: "utf8" });
+  const listed = JSON.parse(list.stdout);
+  check("--list-modules : sans --target, JSON des 12 modules avec leurs champs et les langues", list.status === 0 && listed.modules.length === 12 && listed.modules.find((m) => m.name === "release").requires.join() === "github" && listed.modules.find((m) => m.name === "dependabot").default === false && listed.languages.join() === "fr,en", list.stderr);
+  const table = spawnSync(process.execPath, [scaffold, "--list-modules", "--format", "table"], { encoding: "utf8" });
+  check("--list-modules --format table : tableau markdown avec les questions de phase 0", table.status === 0 && /^\| Module \| Apporte \| Requiert \| Incompatible avec \| Par défaut \| Questions de phase 0 \|/.test(table.stdout) && table.stdout.split("\n").filter((l) => l.startsWith("| `")).length === 12);
+  const badCatalog = spawnSync(process.execPath, [scaffold, "--list-modules", "--catalog", path.join(mkdtempSync(path.join(tmpdir(), "pb-vide-")), "rien")], { encoding: "utf8" });
+  check("--catalog invalide : code 1 et message", badCatalog.status === 1 && /Catalogue introuvable/.test(badCatalog.stderr));
+  const brokenDir = copy();
+  writeFileSync(path.join(brokenDir, "github", "module.json"), "{");
+  const detectBroken = spawnSync(process.execPath, [scaffold, "--detect", "--target", mkdtempSync(path.join(tmpdir(), "pb-det-")), "--catalog", brokenDir], { encoding: "utf8" });
+  check("--detect avec un catalogue invalide : code 1 (le catalogue est validé avant toute commande)", detectBroken.status === 1 && /illisible/.test(detectBroken.stderr));
+
+  // module de démonstration : un dossier, rien d'autre
+  const plugin = mkdtempSync(path.join(tmpdir(), "pb-demo-"));
+  cpSync(path.join(root, "skills"), path.join(plugin, "skills"), { recursive: true });
+  cpSync(path.join(root, ".claude-plugin"), path.join(plugin, ".claude-plugin"), { recursive: true });
+  const digest = (dir) =>
+    Object.fromEntries(walk(dir).map((f) => [path.relative(dir, f).split(path.sep).join("/"), createHash("sha256").update(readFileSync(f)).digest("hex")]));
+  const before = digest(path.join(plugin, "skills"));
+  const demo = path.join(plugin, "skills", "project-bootstrap", "assets", "modules", "demo");
+  mkdirSync(path.join(demo, "templates", "docs"), { recursive: true });
+  mkdirSync(path.join(demo, "templates.en", "docs"), { recursive: true });
+  mkdirSync(path.join(demo, "tests"), { recursive: true });
+  writeFileSync(path.join(demo, "module.json"), JSON.stringify({ description: "Module de démonstration", requires: [], default: false, questions: ["Quel nom pour la démo ?"], files: [{ path: "docs/DEMO.md", when: ["claude"] }] }, null, 2));
+  writeFileSync(path.join(demo, "templates", "docs", "DEMO.md"), "# Démo de {{PROJECT_NAME}}\n");
+  writeFileSync(path.join(demo, "templates.en", "docs", "DEMO.md"), "# Demo of {{PROJECT_NAME}}\n");
+  writeFileSync(path.join(demo, "tests", "demo.test.mjs"), 'console.log("démo ok");\n');
+  const after = digest(path.join(plugin, "skills"));
+  const changed = Object.keys({ ...before, ...after }).filter((k) => before[k] !== after[k]);
+  check("module de démonstration : seul son dossier est ajouté au plugin", changed.length > 0 && changed.every((k) => k.startsWith("project-bootstrap/assets/modules/demo/")), changed.join(", "));
+  const demoScaffold = path.join(plugin, "skills", "project-bootstrap", "scripts", "scaffold.mjs");
+  const demoList = JSON.parse(spawnSync(process.execPath, [demoScaffold, "--list-modules"], { encoding: "utf8" }).stdout);
+  const demoModule = demoList.modules.find((m) => m.name === "demo");
+  check("module de démonstration : listé avec sa description et ses questions", demoModule?.questions.join() === "Quel nom pour la démo ?" && demoModule.files === 1 && /\| `demo` \|/.test(spawnSync(process.execPath, [demoScaffold, "--list-modules", "--format", "table"], { encoding: "utf8" }).stdout));
+  const gen = (modules, extra = {}) => {
+    const cfgDir = mkdtempSync(path.join(tmpdir(), "pb-demo-cfg-"));
+    const cfgFile = path.join(cfgDir, "bootstrap.json");
+    writeFileSync(cfgFile, JSON.stringify({ ...base, ...extra, visibility: "private", modules }));
+    const out = path.join(cfgDir, "projet");
+    const res = spawnSync(process.execPath, [demoScaffold, "--config", cfgFile, "--target", out], { encoding: "utf8" });
+    return { res, out };
+  };
+  const g1 = gen(["claude", "demo"]);
+  check("module de démonstration : ses fichiers sont générés quand il est choisi avec claude", g1.res.status === 0 && readFileSync(path.join(g1.out, "docs", "DEMO.md"), "utf8") === "# Démo de Test\n");
+  const g2 = gen(["demo"]);
+  check("module de démonstration : sans claude (when), son fichier n'est pas généré", g2.res.status === 0 && !existsSync(path.join(g2.out, "docs", "DEMO.md")));
+  const g3 = gen(["claude", "demo"], { docLanguage: "en" });
+  check("module de démonstration : version localisée utilisée en anglais", readFileSync(path.join(g3.out, "docs", "DEMO.md"), "utf8") === "# Demo of Test\n");
+  const runner = path.join(root, "tests", "modules.test.mjs");
+  const ok = spawnSync(process.execPath, [runner, "--root", plugin], { encoding: "utf8" });
+  check("tests de module : le test du module de démonstration est lancé et passe", ok.status === 0 && /ok +module demo : demo\.test\.mjs/.test(ok.stdout), ok.stdout + ok.stderr);
+  writeFileSync(path.join(demo, "tests", "demo.test.mjs"), "process.exit(3);\n");
+  const ko = spawnSync(process.execPath, [runner, "--root", plugin], { encoding: "utf8" });
+  check("tests de module : un test en échec fait échouer le lanceur en nommant le module", ko.status === 1 && /FAIL module demo : demo\.test\.mjs/.test(ko.stdout) && /demo\/demo\.test\.mjs/.test(ko.stdout));
 }
 
 // erreurs de configuration
@@ -373,9 +570,12 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
 // modules incompatibles (champ « conflicts ») : catalogue de test passé par --catalog
 {
   const catalog = (modules) => {
-    const f = path.join(mkdtempSync(path.join(tmpdir(), "pb-cat-")), "modules.json");
-    writeFileSync(f, JSON.stringify({ modules: { core: { requires: [] }, ...modules }, files: [] }));
-    return f;
+    const dir = mkdtempSync(path.join(tmpdir(), "pb-cat-"));
+    for (const [name, def] of Object.entries({ core: { requires: [] }, ...modules })) {
+      mkdirSync(path.join(dir, name));
+      writeFileSync(path.join(dir, name, "module.json"), JSON.stringify({ description: `module ${name}`, ...def }));
+    }
+    return dir;
   };
   const sel = (modules, cat) => run({ ...base, visibility: "private", modules }, ["--catalog", cat]);
   const ok = catalog({ a: { requires: [] }, b: { requires: [], conflicts: ["a"] }, c: { requires: ["a"] } });
@@ -524,15 +724,12 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
 
   const v1 = plugin("9.0.0");
   const v2 = plugin("9.1.0", (skill) => {
-    const t = path.join(skill, "assets", "templates");
-    writeFileSync(path.join(t, "docs", "workflow.md"), readFileSync(path.join(t, "docs", "workflow.md"), "utf8") + "\nNouvelle section v9.1.\n");
-    writeFileSync(path.join(t, "CLAUDE.md"), readFileSync(path.join(t, "CLAUDE.md"), "utf8") + "\nRègle ajoutée en v9.1.\n");
-    writeFileSync(path.join(t, "NOTES.md"), "# Notes\n");
-    const mj = path.join(skill, "assets", "modules.json");
-    const catalog = JSON.parse(readFileSync(mj, "utf8"));
-    catalog.files = catalog.files.filter((f) => f.path !== ".gitattributes");
-    catalog.files.push({ path: "NOTES.md", when: ["core"] });
-    writeFileSync(mj, JSON.stringify(catalog));
+    const wf = templateIn(skill, "docs/workflow.md");
+    writeFileSync(wf, readFileSync(wf, "utf8") + "\nNouvelle section v9.1.\n");
+    const claudeMd = templateIn(skill, "CLAUDE.md");
+    writeFileSync(claudeMd, readFileSync(claudeMd, "utf8") + "\nRègle ajoutée en v9.1.\n");
+    dropFile(skill, ".gitattributes");
+    addFile(skill, "core", "NOTES.md", "# Notes\n");
   });
 
   // génération avec la version N, personnalisation, mise à jour vers N+1
@@ -567,7 +764,7 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
     const WF = "docs/workflow.md";
     const baseOf = (rel) => ".bootstrap/base/" + rel + ".base";
     const appendTo = (rel, text) => (skill) => {
-      const f = path.join(skill, "assets", "templates", ...rel.split("/"));
+      const f = templateIn(skill, rel);
       writeFileSync(f, readFileSync(f, "utf8") + text);
     };
     const p1 = plugin("9.4.0");
@@ -696,7 +893,7 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
   // fichier propre au projet (owned) : créé une fois, jamais touché ensuite, même si le modèle change
   const own1 = plugin("9.2.0");
   const own2 = plugin("9.3.0", (skill) => {
-    const f = path.join(skill, "assets", "templates", ".bootstrap", "checks.json");
+    const f = templateIn(skill, ".bootstrap/checks.json");
     writeFileSync(f, readFileSync(f, "utf8") + "\n");
   });
   const ownOut = path.join(mkdir("pb-own-"), "repo");
@@ -711,7 +908,7 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
 
   // labels natifs de la forge : formulaires, synchronisation non destructive, migration 0002 (#29)
   {
-    const tpl = (rel) => readFileSync(path.join(root, "skills", "project-bootstrap", "assets", "templates", ...rel.split("/")), "utf8");
+    const tpl = (rel) => readFileSync(tplFile(rel), "utf8");
     const modelLabels = JSON.parse(tpl(".github/labels.json"));
     const names = modelLabels.map((l) => l.name);
     check("labels : le modèle ne décrit que bug, enhancement, adr et chore (noms plats, sans needs-adr)", JSON.stringify(names) === JSON.stringify(["bug", "enhancement", "adr", "chore"]) && !names.some((n) => n.includes(":")));
@@ -747,7 +944,7 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
     let syncThrew = false;
     try { syncLabels({ labels: modelLabels, gh: s4.gh }); } catch { syncThrew = true; }
     check("sync : lecture des labels impossible -> erreur, aucune création", syncThrew && creates(s4.calls).length === 0);
-    const noGh = spawnSync(process.execPath, [path.join(root, "skills", "project-bootstrap", "assets", "templates", "scripts", "sync-labels.mjs")], { encoding: "utf8", env: { ...process.env, PATH: "", Path: "" } });
+    const noGh = spawnSync(process.execPath, [tplFile("scripts/sync-labels.mjs")], { encoding: "utf8", env: { ...process.env, PATH: "", Path: "" } });
     check("sync : script lancé sans gh -> code non nul", noGh.status === 1, noGh.stderr);
 
     // --- documentation du skill (exigences documentaires de la spec forge-labels)
@@ -1255,7 +1452,7 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
     const ACTION = ".github/actions/project-setup/action.yml";
     const o1 = plugin("9.8.0");
     const o2 = plugin("9.9.0", (skill) => {
-      const f = path.join(skill, "assets", "templates", ...ACTION.split("/"));
+      const f = templateIn(skill, ACTION);
       writeFileSync(f, readFileSync(f, "utf8") + "# modèle v9.9\n");
     });
     const out = path.join(mkdir("pb-setup-"), "repo");
@@ -1282,12 +1479,9 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
     const CI = ".github/workflows/ci.yml";
     const oldComment = "      # Installer ici la chaîne d'outils de la stack choisie (langage, dépendances) avant les commandes du projet\n";
     const legacy = plugin("9.7.0", (skill) => {
-      const f = path.join(skill, "assets", "templates", ...CI.split("/"));
+      const f = templateIn(skill, CI);
       writeFileSync(f, readFileSync(f, "utf8").replace(/ {6}# Chaîne d'outils[^\n]*\n {6}- name: Chaîne d'outils du projet[^\n]*\n {8}uses: \.\/\.github\/actions\/project-setup\n/, oldComment));
-      const mj = path.join(skill, "assets", "modules.json");
-      const catalog = JSON.parse(readFileSync(mj, "utf8"));
-      catalog.files = catalog.files.filter((e) => e.path !== ACTION);
-      writeFileSync(mj, JSON.stringify(catalog));
+      dropFile(skill, ACTION);
     });
     const old = () => {
       const dir = path.join(mkdir("pb-setup-old-"), "repo");
@@ -1390,16 +1584,16 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
 }
 // agents en lecture seule : chaque commande citée dans leur modèle doit passer le hook read-only-bash.mjs (modèles français et anglais)
 for (const dirName of ["templates", "templates.en"]) {
-  const tpl = path.join(root, "skills", "project-bootstrap", "assets", dirName, ".claude");
-  const hook = path.join(tpl, "hooks", "read-only-bash.mjs");
-  const agentsDir = path.join(tpl, "agents");
+  const lang = dirName === "templates" ? "fr" : "en";
+  const hook = tplFile(".claude/hooks/read-only-bash.mjs", lang);
+  const agentFiles = manifest.files.filter((f) => f.path.startsWith(".claude/agents/")).map((f) => [path.basename(f.path), templatePath(f, lang)]);
   const verdict = (command) =>
     spawnSync(process.execPath, [hook], { input: JSON.stringify({ tool_input: { command } }), encoding: "utf8" }).status;
   check(`hook lecture seule (${dirName}) : commande autorisée acceptée`, verdict("git log main..HEAD --oneline") === 0);
   check(`hook lecture seule (${dirName}) : caractère % refusé`, verdict("git log main..HEAD --format=%s") === 2);
   check(`hook lecture seule (${dirName}) : commande hors liste et option git d'écriture refusées`, verdict("rm -rf x") === 2 && verdict("git diff --output=x") === 2);
-  for (const file of readdirSync(agentsDir)) {
-    const text = readFileSync(path.join(agentsDir, file), "utf8");
+  for (const [file, agentPath] of agentFiles) {
+    const text = readFileSync(agentPath, "utf8");
     if (!text.includes("read-only-bash.mjs")) continue;
     const refused = [];
     for (const line of text.split("\n")) {
@@ -1412,16 +1606,16 @@ for (const dirName of ["templates", "templates.en"]) {
     check(`${dirName}/${file} : commandes citées acceptées par le hook`, refused.length === 0, refused.join(" | "));
   }
   // restrict-path et check-pr-title : mêmes codes de sortie dans toutes les langues
-  const restrict = path.join(tpl, "hooks", "restrict-path.mjs");
+  const restrict = tplFile(".claude/hooks/restrict-path.mjs", lang);
   const rp = (file) => spawnSync(process.execPath, [restrict, "docs/architecture/arc42/"], { input: JSON.stringify({ tool_input: { file_path: file }, cwd: root }), encoding: "utf8", env: { ...process.env, CLAUDE_PROJECT_DIR: root } }).status;
   check(`restrict-path (${dirName}) : écriture dans le préfixe autorisée, hors préfixe refusée`, rp(path.join(root, "docs", "architecture", "arc42", "01.md")) === 0 && rp(path.join(root, "README.md")) === 2);
-  const titleScript = path.join(root, "skills", "project-bootstrap", "assets", dirName, "scripts", "check-pr-title.mjs");
+  const titleScript = tplFile("scripts/check-pr-title.mjs", lang);
   const title = (v) => spawnSync(process.execPath, [titleScript], { env: { ...process.env, PR_TITLE: v }, encoding: "utf8" }).status;
   check(`check-pr-title (${dirName}) : titre valide accepté, titre invalide refusé`, title("feat(x): add y") === 0 && title("add y") === 1);
 }
 // sync-labels anglais : mêmes appels gh que le français
 {
-  const enSync = await import("../skills/project-bootstrap/assets/templates.en/scripts/sync-labels.mjs");
+  const enSync = await import("../skills/project-bootstrap/assets/modules/github/templates.en/scripts/sync-labels.mjs");
   const calls = [];
   const gh = (args) => (calls.push(args.join(" ")), args[0] === "label" && args[1] === "list" ? JSON.stringify([{ name: "Bug" }]) : "");
   const r = enSync.syncLabels({ labels: [{ name: "bug", color: "d73a4a", description: "d", native: true }, { name: "chore", color: "c5def5", description: "d" }], gh });

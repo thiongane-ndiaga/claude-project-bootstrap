@@ -18,11 +18,21 @@
 
 Voir [ARCH-007](../adrs/ARCH-007-installation-des-cli-d-outillage.md).
 
+## Briques liées aux modules
+
+- `skills/project-bootstrap/assets/modules/<nom>/` : un module ; `module.json` (description, `requires`, `default`, `conflicts`, `questions`, `files`), `templates/`, `templates.<lang>/`, `tests/*.test.mjs`. Le dossier `core` est obligatoire.
+- `skills/project-bootstrap/scripts/catalog.mjs` : découvre les dossiers, valide les descripteurs (messages qui nomment le fichier fautif) et assemble le catalogue.
+- `skills/project-bootstrap/scripts/scaffold.mjs` : utilise le chargeur ; `--list-modules` produit le tableau des modules.
+- `tests/modules.test.mjs` : lance les tests de chaque module ; `tests/scaffold.test.mjs` valide le chargeur et `tests/matrix.test.mjs` la matrice.
+- Hors du dossier d'un module : permissions de `.claude/settings.json` (`buildSettings`), étapes de `state.mjs`, contrôles de `audit.mjs`, migrations, blocs `@@module` des fichiers transverses.
+
+Voir [ARCH-010](../adrs/ARCH-010-modules-auto-decrits.md).
+
 ## Briques liées à `docLanguage`
 
-- `skills/project-bootstrap/assets/templates/` : modèles de référence (français).
-- `skills/project-bootstrap/assets/templates.<code>/` (ex. `templates.en/`) : version traduite, mêmes chemins de fichiers ; un fichier absent est lu dans `assets/templates/`.
-- `skills/project-bootstrap/scripts/scaffold.mjs` : déduit les langues disponibles des dossiers `templates.*`, refuse une langue indisponible, résout les paramètres textuels dans une table par langue et consigne `config.docLanguage` au manifeste seulement si la clé est présente ; `--update` reprend la langue du manifeste.
+- `skills/project-bootstrap/assets/modules/<nom>/templates/` : modèles de référence (français).
+- `skills/project-bootstrap/assets/modules/<nom>/templates.<code>/` (ex. `templates.en/`) : version traduite, mêmes chemins de fichiers ; un fichier absent est lu dans `templates/` du même module.
+- `skills/project-bootstrap/scripts/scaffold.mjs` : déduit les langues disponibles des dossiers `templates.*` du module `core`, refuse une langue indisponible, résout les paramètres textuels dans une table par langue et consigne `config.docLanguage` au manifeste seulement si la clé est présente ; `--update` reprend la langue du manifeste.
 - `tests/scaffold.test.mjs` (parité) et `tests/matrix.test.mjs` (combinaisons `default-en` et `full-en`, instantanés dans `tests/snapshots/`).
 
 Voir [ARCH-008](../adrs/ARCH-008-modeles-de-documentation-par-langue.md).

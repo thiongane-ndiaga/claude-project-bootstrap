@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 // Génère les fichiers d'outillage d'un projet à partir des modèles du skill.
-// Usage : node scaffold.mjs --config <bootstrap.json> --target <dossier> [--dry-run] [--diff] [--catalog <modules.json>]
+// Usage : node scaffold.mjs --config <bootstrap.json> --target <dossier> [--dry-run] [--diff] [--catalog <dossier>]
+//         node scaffold.mjs --list-modules [--format table]   (catalogue des modules, lu dans leurs descripteurs)
 //         node scaffold.mjs --detect --target <dossier>     (état du dépôt : existant, déjà bootstrappé)
 // Écrit .bootstrap/manifest.json (modules, version du plugin, empreinte de chaque fichier généré).
 // N'écrase jamais un fichier modifié : les conflits sont listés (diff avec --diff), à résoudre à la main.
 // Un fichier resté tel que généré est remplacé par le modèle actuel ; .gitignore, .gitattributes et
 // .claude/settings.json sont fusionnés avec l'existant ; config.keep liste les fichiers à ne pas toucher.
-// --catalog : catalogue de modules alternatif (tests) ; par défaut assets/modules.json.
+// --catalog : dossier de modules alternatif (tests) ; par défaut assets/modules/ (un dossier par module : module.json, templates/).
 // Codes de sortie : 0 succès ; 1 configuration ou catalogue invalide ; 2 modules incompatibles ; 3 fichiers en conflit.
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
@@ -14,6 +15,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, mkdtempSync, readdi
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { CatalogError, PSEUDO_MODULES, describeModules, loadCatalog, modulesTable, templatePath } from "./catalog.mjs";
 import { mergeJson, mergeLines, mergeThreeWay } from "./merge.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -21,18 +23,31 @@ const assets = path.join(here, "..", "assets");
 const args = Object.fromEntries(
   process.argv.slice(2).reduce((acc, a, i, all) => (a.startsWith("--") ? [...acc, [a.slice(2), all[i + 1]?.startsWith("--") || all[i + 1] === undefined ? true : all[i + 1]]] : acc), []),
 );
+const catalogDir = typeof args.catalog === "string" ? path.resolve(args.catalog) : path.join(assets, "modules");
+let manifest;
+try {
+  manifest = loadCatalog(catalogDir);
+} catch (err) {
+  if (!(err instanceof CatalogError)) throw err;
+  console.error(err.message);
+  process.exit(1);
+}
+if (args["list-modules"] === true) {
+  console.log(args.format === "table" ? modulesTable(manifest) : JSON.stringify({ modules: describeModules(manifest), languages: ["fr", ...manifest.languages] }, null, 2));
+  process.exit(0);
+}
 if (!args.target || (!args.config && args.detect !== true && args.update !== true)) {
   console.error(
-    "Usage : node scaffold.mjs --config <bootstrap.json> --target <dossier> [--dry-run] [--diff] [--adopt] [--catalog <modules.json>]\n" +
+    "Usage : node scaffold.mjs --config <bootstrap.json> --target <dossier> [--dry-run] [--diff] [--adopt] [--catalog <dossier>]\n" +
       "        node scaffold.mjs --update --target <dossier> [--dry-run] [--diff] [--adopt]   (configuration lue dans le manifeste)\n" +
-      "        node scaffold.mjs --detect --target <dossier>",
+      "        node scaffold.mjs --detect --target <dossier>\n" +
+      "        node scaffold.mjs --list-modules [--format table]",
   );
   process.exit(1);
 }
-const manifest = JSON.parse(readFileSync(typeof args.catalog === "string" ? args.catalog : path.join(assets, "modules.json"), "utf8"));
 const target = path.resolve(args.target);
-// langues disponibles : « fr » (assets/templates) et chaque dossier assets/templates.<code> (« templates.fr » est ignoré)
-const languageDirs = () => readdirSync(assets).flatMap((n) => (/^templates\.[a-z][\w-]*$/.test(n) && n !== "templates.fr" ? [n.slice("templates.".length)] : []));
+// langues disponibles : « fr » et chaque dossier templates.<code> rencontré dans un module (« templates.fr » est refusé par le chargeur)
+const languageDirs = () => manifest.languages;
 
 // --- manifeste du projet (.bootstrap/manifest.json) et version du plugin en cours d'exécution ---
 const MANIFEST = ".bootstrap/manifest.json";
@@ -107,18 +122,6 @@ const dryRun = args["dry-run"] === true;
 // --- modules sélectionnés et dépendances ---
 const selected = new Set(["core", ...(config.modules ?? [])]);
 const errors = [];
-// catalogue : `conflicts` ne cite que des modules connus, jamais le module lui-même ni l'un de ses `requires`
-for (const [m, def] of Object.entries(manifest.modules)) {
-  for (const c of def.conflicts ?? []) {
-    if (!manifest.modules[c]) errors.push(`Catalogue invalide : ${m} est incompatible avec le module inconnu ${c}`);
-    else if (c === m || def.requires.includes(c)) errors.push(`Catalogue invalide : ${m} ne peut pas être incompatible avec ${c}`);
-  }
-}
-// `when` ne cite que des modules du catalogue ou des pseudo-modules connus
-const PSEUDO_MODULES = ["visibility-private", "visibility-public", "stack-chosen", "stack-open", "cli-npm-global", "cli-default", "cli-user", "cli-local"];
-for (const { path: rel, when } of manifest.files) {
-  for (const m of when) if (!manifest.modules[m] && !PSEUDO_MODULES.includes(m)) errors.push(`Catalogue invalide : ${rel} cite le module inconnu ${m}`);
-}
 for (const m of selected) {
   const def = manifest.modules[m];
   if (!def) errors.push(`Module inconnu : ${m}`);
@@ -257,11 +260,11 @@ function buildPackageJson() {
 // --- génération ---
 const outputs = [];
 try {
-  for (const { path: rel, when, merge, owned } of manifest.files) {
+  for (const entry of manifest.files) {
+    const { path: rel, when, merge, owned } = entry;
     if (!when.every((m) => active.has(m))) continue;
-    // langue autre que « fr » : version de templates.<code> si elle existe, sinon le modèle de référence
-    const localized = docLanguage === "fr" ? null : path.join(assets, `templates.${docLanguage}`, rel);
-    const raw = readFileSync(localized && existsSync(localized) ? localized : path.join(assets, "templates", rel), "utf8").replace(/\r\n/g, "\n");
+    // langue autre que « fr » : version de templates.<code> du module si elle existe, sinon son modèle de référence
+    const raw = readFileSync(templatePath(entry, docLanguage), "utf8").replace(/\r\n/g, "\n");
     outputs.push({ rel, merge, owned, content: applyParams(applyBlocks(raw, rel), rel) });
   }
 } catch (err) {

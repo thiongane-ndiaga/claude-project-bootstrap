@@ -9,11 +9,12 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSyn
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { loadCatalog } from "../skills/project-bootstrap/scripts/catalog.mjs";
 import { localBinExec, realExec, runAudit } from "../skills/project-bootstrap/scripts/audit.mjs";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const scaffold = path.join(root, "skills", "project-bootstrap", "scripts", "scaffold.mjs");
-const catalog = JSON.parse(readFileSync(path.join(root, "skills", "project-bootstrap", "assets", "modules.json"), "utf8"));
+const catalog = loadCatalog(path.join(root, "skills", "project-bootstrap", "assets", "modules"));
 const SNAPSHOTS = path.join(root, "tests", "snapshots");
 const UPDATE = process.env.UPDATE_SNAPSHOTS === "1";
 const IN_CI = Boolean(process.env.CI);
