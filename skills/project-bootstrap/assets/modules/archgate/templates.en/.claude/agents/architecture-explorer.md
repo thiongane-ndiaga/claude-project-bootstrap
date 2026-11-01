@@ -3,6 +3,8 @@ name: architecture-explorer
 description: Explores and compares options for an architecture decision before an ADR is written (criteria, trade-offs, sources). Use for an "architecture decision" issue, alone or in a team (one explorer per option). Does not write the ADR.
 tools: Read, Glob, Grep, WebSearch, WebFetch
 model: opus
+effort: high
+maxTurns: 40
 color: cyan
 ---
 

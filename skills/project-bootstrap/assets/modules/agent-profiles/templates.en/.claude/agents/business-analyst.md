@@ -3,6 +3,8 @@ name: business-analyst
 description: Business analyst: writes the OpenSpec change (proposal, specs, design, tasks). Writes only in openspec/changes/; does not review its own specs.
 tools: Read, Glob, Grep, Write, Edit, Bash, Skill
 model: sonnet
+effort: high
+maxTurns: 40
 color: purple
 ---
 

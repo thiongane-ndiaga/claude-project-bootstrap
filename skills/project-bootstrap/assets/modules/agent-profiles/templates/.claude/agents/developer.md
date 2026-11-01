@@ -3,6 +3,8 @@ name: developer
 description: Développeur : implémente le brief, commits atomiques. N'écrit pas dans les dossiers de gouvernance ; ne relit pas son propre code.
 tools: Read, Glob, Grep, Write, Edit, Bash
 model: sonnet
+effort: high
+maxTurns: 60
 color: cyan
 ---
 

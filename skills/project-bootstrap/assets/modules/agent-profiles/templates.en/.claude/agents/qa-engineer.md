@@ -3,6 +3,8 @@ name: qa-engineer
 description: Code review, tests and checks. Writes only in tests/ and test/; reports defects without fixing them or reviewing its own code.
 tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 model: opus
+effort: high
+maxTurns: 40
 color: green
 ---
 

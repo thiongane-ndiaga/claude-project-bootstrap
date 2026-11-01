@@ -58,4 +58,13 @@ Voir [ARCH-011](../adrs/ARCH-011-profils-d-agents-bornes-par-un-hook-unique.md) 
 
 Le plugin n'écrit pas dans un projet généré un réglage payant ou expérimental de l'utilisateur (par exemple `advisorModel`) ; il le documente. Seule exception encadrée : `settings.local.json`, avec l'accord de l'utilisateur. Voir [ARCH-015](../adrs/ARCH-015-le-plugin-n-ecrit-pas-de-reglage-payant-ou-experimental.md).
 
+## Modèle, effort et bornes des agents générés
+
+- Chaque agent généré porte `model`, `effort` et `maxTurns` en valeurs fixes dans son frontmatter ; le projet les édite, ou les surcharge par l'environnement (`CLAUDE_CODE_SUBAGENT_MODEL`, `CLAUDE_CODE_EFFORT_LEVEL`). Le coût de ces valeurs est documenté dans ARCH-015 et `pitfalls.md`.
+- `maxTurns` est une borne de coût : un sous-agent arrêté par la limite rend une sortie partielle (comportement de Claude Code, non vérifié ici) ; sa reprise par un teammate n'est pas constatée.
+- Une surcharge de modèle peut laisser la consigne de l'advisor sur un profil devenu `opus`, et un niveau `effort` peut ne pas exister sur le modèle de remplacement (non vérifié).
+- Contrôle automatique : le frontmatter de tous les agents générés n'utilise que les champs documentés des agents de projet (un champ inconnu est ignoré en silence), avec `effort` et `maxTurns` valides et un nom de fichier égal à `name`.
+
+Voir [ARCH-015](../adrs/ARCH-015-le-plugin-n-ecrit-pas-de-reglage-payant-ou-experimental.md).
+
 _Le reste de la section reste à rédiger._

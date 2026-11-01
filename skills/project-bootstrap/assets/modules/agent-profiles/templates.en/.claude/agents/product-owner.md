@@ -3,6 +3,8 @@ name: product-owner
 description: Product owner: need, acceptance criteria, out of scope, business coverage of the specs. Read-only; does not settle scope.
 tools: Read, Glob, Grep, Bash
 model: sonnet
+effort: medium
+maxTurns: 20
 color: yellow
 ---
 

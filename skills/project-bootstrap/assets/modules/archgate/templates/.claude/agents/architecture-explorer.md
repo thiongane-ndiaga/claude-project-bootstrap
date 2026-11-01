@@ -3,6 +3,8 @@ name: architecture-explorer
 description: Explore et compare des options pour une décision d'architecture avant la rédaction d'un ADR (critères, compromis, sources). À utiliser pour une issue de type « décision d'architecture », seul ou à plusieurs en équipe (un explorateur par option). Ne rédige pas l'ADR.
 tools: Read, Glob, Grep, WebSearch, WebFetch
 model: opus
+effort: high
+maxTurns: 40
 color: cyan
 ---
 

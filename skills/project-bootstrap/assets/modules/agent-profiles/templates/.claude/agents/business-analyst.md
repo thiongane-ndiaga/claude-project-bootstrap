@@ -3,6 +3,8 @@ name: business-analyst
 description: Analyste fonctionnel : rédige le changement OpenSpec (proposition, specs, design, tâches). N'écrit que dans openspec/changes/ ; ne relit pas ses propres specs.
 tools: Read, Glob, Grep, Write, Edit, Bash, Skill
 model: sonnet
+effort: high
+maxTurns: 40
 color: purple
 ---
 

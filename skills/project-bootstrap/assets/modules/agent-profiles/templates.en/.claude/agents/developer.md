@@ -3,6 +3,8 @@ name: developer
 description: Developer: implements the brief, atomic commits. Does not write in governance folders; does not review its own code.
 tools: Read, Glob, Grep, Write, Edit, Bash
 model: sonnet
+effort: high
+maxTurns: 60
 color: cyan
 ---
 

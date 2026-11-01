@@ -3,6 +3,8 @@ name: arc42-keeper
 description: Updates the arc42 documentation after an accepted ADR or the archiving of an OpenSpec change. Writes only in docs/architecture/arc42/. Use as a subagent.
 tools: Read, Glob, Grep, Edit, Write
 model: sonnet
+effort: medium
+maxTurns: 30
 color: green
 hooks:
   PreToolUse:

@@ -3,6 +3,8 @@ name: traceability-checker
 description: Vérifie la chaîne issue ↔ changement ↔ branche ↔ PR ↔ ADR, le template de PR et l'état de la CI. À utiliser avant d'ouvrir ou de merger une PR. Lecture seule.
 tools: Read, Glob, Grep, Bash
 model: sonnet
+effort: medium
+maxTurns: 25
 color: yellow
 hooks:
   PreToolUse:

@@ -98,6 +98,25 @@ Constatés lors de la mise en place de référence (Claude Code 2.1.31x, OpenSpe
 - L'advisor (`/advisor`, `"advisorModel"`, `--advisor`) est expérimental et réservé à l'API Anthropic (pas Bedrock, Google Cloud ni Foundry). Le plugin n'écrit jamais `advisorModel` : le réglage est payant et accepté dans n'importe quel fichier de réglages, donc l'écrire dans le projet l'imposerait à tous.
 - La documentation ne donne pas de version minimale pour la fonction de base : « 2.1.260 » est la version de `/advisor` hors terminal (`-p`, SDK, desktop). Ne pas la citer comme minimum.
 - `DISABLE_TELEMETRY` (comme `DISABLE_GROWTHBOOK`, `DO_NOT_TRACK` et `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`, des variables qui sautent la récupération des feature flags) laisse l'advisor désactivé ; `CLAUDE_CODE_DISABLE_ADVISOR_TOOL=1` le coupe aussi. Le plugin ne définit aucune de ces variables. Ne pas confondre avec la télémétrie d'OpenSpec et d'Archgate.
-- C'est Claude qui décide de l'appeler : aucun réglage ne l'impose ni ne le plafonne. La consigne portée par les profils sonnet et haiku (clé `advisor`) est une incitation, pas un mécanisme. Un sous-agent à liste `tools:` fermée dispose quand même de l'outil advisor quand la session en a un (essai de #126, 2.1.316 : `tools: [Read]` donne `Read` et `advisor`) ; pour un teammate, l'appel n'est pas garanti (#114). Le plugin ne peut pas activer l'advisor par profil : c'est un réglage de session, les sous-agents l'héritent. `architect`, `qa-engineer` (opus) et `project-lead` n'ont pas la consigne ; la règle est vérifiée par un test sur le `model:` des modèles de profils, à revoir quand le modèle deviendra configurable (#37).
+- C'est Claude qui décide de l'appeler : aucun réglage ne l'impose ni ne le plafonne. La consigne portée par les profils sonnet et haiku (clé `advisor`) est une incitation, pas un mécanisme. Un sous-agent à liste `tools:` fermée dispose quand même de l'outil advisor quand la session en a un (essai de #126, 2.1.316 : `tools: [Read]` donne `Read` et `advisor`) ; pour un teammate, l'appel n'est pas garanti (#114). Le plugin ne peut pas activer l'advisor par profil : c'est un réglage de session, les sous-agents l'héritent. `architect`, `qa-engineer` (opus) et `project-lead` n'ont pas la consigne ; la règle est vérifiée par un test sur le `model:` des modèles de profils. `CLAUDE_CODE_SUBAGENT_MODEL` peut faire passer un profil sonnet en opus alors qu'il porte encore la consigne (l'advisor doit être au moins aussi capable que le modèle appelant).
 - Le modèle de l'advisor doit être au moins aussi capable que le modèle principal ; sinon Claude Code ne l'attache pas, sans erreur. Il voit toute la conversation : il n'est pas indépendant de l'orchestrateur.
 - Les sous-agents héritent de l'advisor (coût multiplié) ; pour les teammates, la documentation est muette et l'usage n'est établi que par leur rapport (#114).
+
+## Modèle, effort et maxTurns des agents (#37, documentation lue le 2026-11-01)
+- Les agents générés portent des valeurs de départ fixes, sans clé de configuration :
+
+  | Agent | model | effort | maxTurns |
+  |---|---|---|---|
+  | `architect`, `qa-engineer`, `architecture-explorer` | opus | high | 40 |
+  | `spec-reviewer` | opus | high | 30 |
+  | `developer` | sonnet | high | 60 |
+  | `business-analyst` | sonnet | high | 40 |
+  | `product-owner` | sonnet | medium | 20 |
+  | `arc42-keeper` | sonnet | medium | 30 |
+  | `traceability-checker` | sonnet | medium | 25 |
+
+  `project-lead`, agent principal, suit la session et n'en déclare aucun. Pour changer une valeur, édite le frontmatter du projet.
+- Surcharges : le paramètre d'appel remplace `model` ; `CLAUDE_CODE_EFFORT_LEVEL` l'emporte sur `effort` ; `CLAUDE_CODE_SUBAGENT_MODEL` remplace le modèle des sous-agents ; les plafonds d'organisation (réglages gérés) bornent les modèles et niveaux permis.
+- Coût : `opus` et `high` sont les valeurs les plus chères ; un compte sans accès à `opus` retombe sur l'ordre de modèles de Claude Code, d'où l'intérêt d'éditer le frontmatter. Les niveaux d'`effort` dépendent du modèle : un niveau peut ne pas exister sur un modèle de remplacement (non vérifié).
+- `maxTurns` : un sous-agent arrêté par la limite rend, selon la documentation, une sortie marquée partielle que l'on peut reprendre (non vérifié ici). Un teammate ne reprend que `tools`, `disallowedTools`, `model` et le corps, et `effort` en in-process seulement : pour `maxTurns`, la borne ne vaut sûrement qu'en sous-agent.
+- Un champ de frontmatter inconnu ou mal orthographié est ignoré sans erreur : le test du générateur valide les champs, `effort`, `maxTurns` et le nommage des fichiers de tous les agents générés.
