@@ -17,7 +17,9 @@ export class CatalogError extends Error {
 }
 
 // pseudo-modules calculés par scaffold.mjs : autorisés seulement dans `when`, jamais des dossiers
-export const PSEUDO_MODULES = ["visibility-private", "visibility-public", "stack-chosen", "stack-open", "cli-npm-global", "cli-default", "cli-user", "cli-local"];
+// profils optionnels d'agent-profiles, choisis par la clé de configuration « profiles » (un pseudo-module profile-<nom> par profil)
+export const OPTIONAL_PROFILES = ["business-analyst", "developer", "product-owner"];
+export const PSEUDO_MODULES = ["visibility-private", "visibility-public", "stack-chosen", "stack-open", "cli-npm-global", "cli-default", "cli-user", "cli-local", ...OPTIONAL_PROFILES.map((p) => `profile-${p}`)];
 // chemins écrits par le générateur ou par state.mjs : aucun module ne peut les déclarer
 export const RESERVED_PATHS = [".claude/settings.json", "package.json", ".bootstrap/manifest.json"];
 export const RESERVED_PREFIXES = [".bootstrap/base/", ".bootstrap/local/", ".git/"];

@@ -2,7 +2,7 @@
 // Tests du hook profile-guard.mjs (ARCH-011) : table des profils, écritures, shell, sous-agent et teammate.
 // Lancé par tests/modules.test.mjs ou seul : node profile-guard.test.mjs
 import { spawnSync } from "node:child_process";
-import { cpSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -102,6 +102,57 @@ check("liste agents ou skills absente : tout refusé (arc42-keeper, spec-reviewe
 check("arc42-keeper n'écrit que dans docs/architecture/arc42/", write("arc42-keeper", "docs/architecture/arc42/05.md").code === 0 && write("arc42-keeper", "docs/architecture/adrs/x.md").code === 2 && write("arc42-keeper", "src/x.js").code === 2);
 check("spec-reviewer et architecture-explorer n'écrivent nulle part", write("spec-reviewer", "docs/x.md").code === 2 && write("architecture-explorer", "docs/architecture/x.md").code === 2);
 check("spec-reviewer : shell en lecture seule", shell("spec-reviewer", "openspec validate x --strict").code === 0 && shell("spec-reviewer", "git status").code === 0 && shell("spec-reviewer", "rm -rf x").code === 2 && shell("spec-reviewer", "cat x").code === 2);
+
+// profils optionnels : product-owner, developer, business-analyst
+check("product-owner : n'écrit nulle part, shell en lecture seule", write("product-owner", "docs/x.md").code === 2 && write("product-owner", "src/x.js").code === 2 && shell("product-owner", "git log --oneline").code === 0 && shell("product-owner", "gh issue view 3").code === 0 && shell("product-owner", "rm x").code === 2 && shell("product-owner", "cat x").code === 2);
+check("developer : écrit dans le code et les tests", write("developer", "src/a.js").code === 0 && write("developer", "tests/a.test.js").code === 0 && write("developer", "README.md").code === 0 && write("developer", "openspec/changes/12-x/tasks.md").code === 0);
+const govern = ["docs/architecture/arc42/05.md", "docs/architecture/adrs/x.md", ".claude/settings.json", ".claude/hooks/profile-guard.mjs", ".archgate/config.json", ".github/workflows/ci.yml", ".bootstrap/manifest.json", "openspec/specs/x/spec.md", "openspec/config.yaml", "openspec/schemas/s/schema.yaml"];
+check("developer : dossiers de gouvernance refusés", govern.every((f) => write("developer", f).code === 2), govern.filter((f) => write("developer", f).code !== 2).join(", "));
+const dg = write("developer", ".claude/settings.json");
+check("developer : le refus nomme le dossier de gouvernance", dg.code === 2 && /\.claude\//.test(dg.err), dg.err);
+check("developer : contournements de casse et de points finals refusés", [".CLAUDE/settings.json", ".Claude/settings.json", "DOCS/Architecture/x.md", ".claude./settings.json", ".claude /settings.json", "docs/architecture./x.md", "OpenSpec/Specs/x.md"].every((f) => write("developer", f).code === 2));
+check("developer : dossier voisin de gouvernance permis (docs/architecture-old/, openspec/changes/)", write("developer", "docs/architecture-old/x.md").code === 0 && write("developer", ".github-notes/x.md").code === 0);
+check("developer : chemin hors du projet refusé", write("developer", path.resolve(project, "..", "ailleurs.txt")).code === 2 && write("developer", "../x.js").code === 2);
+check("developer : shell non borné, mais ni agent ni skill", shell("developer", "npm test").code === 0 && shell("developer", "rm -rf build").code === 0 && launch("developer", { subagent_type: "general-purpose" }).code === 2 && skill("developer", "archgate:adr-author").code === 2);
+const governance2 = ["CLAUDE.md", "claude.md", "AGENTS.md", ".git/hooks/pre-commit", ".git/config", ".githooks/pre-push", "docs/workflow.md", "openspec/config.yml", "openspec/changes/archive/2026-01-01-x/tasks.md", "release-please-config.json", ".release-please-manifest.json"];
+check("developer : fichiers de gouvernance et de livraison refusés (CLAUDE.md, .git, .githooks, workflow, archive, release)", governance2.every((f) => write("developer", f).code === 2), governance2.filter((f) => write("developer", f).code !== 2).join(", "));
+check("developer : un fichier exact n'en bloque pas un voisin (CLAUDE.md.bak, claude.mdx, docs/workflow.md.old)", ["CLAUDE.md.bak", "claude.mdx", "docs/workflow.md.old", "openspec/config.yaml.bak"].every((f) => write("developer", f).code === 0));
+check("developer : MultiEdit et NotebookEdit bornés comme Write", write("developer", ".claude/x", "MultiEdit").code === 2 && run({ agent_type: "developer", tool_name: "NotebookEdit", tool_input: { notebook_path: "docs/architecture/n.ipynb" } }).code === 2 && write("developer", "src/x.js", "MultiEdit").code === 0);
+check("developer : remontée de dossier vers les specs refusée", write("developer", "openspec/changes/../specs/x/spec.md").code === 2);
+check("chemin avec deux-points refusé (flux NTFS)", write("developer", ".claude::$INDEX_ALLOCATION/settings.json").code === 2 && write("developer", "src/a.txt:flux").code === 2 && write("qa-engineer", "tests/a.txt:flux").code === 2);
+// chemins réels : jonction vers un dossier interdit, et noms courts 8.3 (Windows)
+{
+  mkdirSync(path.join(project, ".claude"), { recursive: true });
+  mkdirSync(path.join(project, "src"), { recursive: true });
+  let linked = false;
+  try {
+    symlinkSync(path.join(project, ".claude"), path.join(project, "src", "lien"), "junction");
+    linked = true;
+  } catch {
+    console.log("skip jonction : création refusée par le système");
+  }
+  if (linked) check("developer : un lien ou une jonction vers un dossier de gouvernance est résolu et refusé", write("developer", "src/lien/settings.json").code === 2 && write("developer", "src/lien/nouveau/x.json").code === 2);
+  if (linked) {
+    mkdirSync(path.join(project, "tests"), { recursive: true });
+    const outsideDir = path.join(path.dirname(project), "hors-projet");
+    mkdirSync(outsideDir, { recursive: true });
+    symlinkSync(outsideDir, path.join(project, "tests", "evasion"), "junction");
+    check("qa-engineer : une jonction de tests/ vers l'extérieur du projet est refusée", write("qa-engineer", "tests/evasion/x.js").code === 2);
+  }
+  if (process.platform === "win32") {
+    const listing = spawnSync("cmd", ["/c", "dir", "/x", "/a:d", project], { encoding: "utf8" }).stdout;
+    const alias = /\s(\S+~\d)\s+\.claude\s*$/m.exec(listing)?.[1];
+    if (alias) check("developer : le nom court 8.3 d'un dossier de gouvernance est refusé (" + alias + ")", write("developer", alias + "/settings.json").code === 2 && write("developer", alias + "/hooks/profile-guard.mjs").code === 2);
+    else console.log("skip noms courts 8.3 : désactivés sur ce volume");
+  }
+}
+check("business-analyst : formes réelles des skills OpenSpec (guillemets) et openspec context permis", shell("business-analyst", 'openspec new change "12-ma-feature"').code === 0 && shell("business-analyst", 'openspec instructions "proposal" --change "12-x" --json').code === 0 && shell("business-analyst", "openspec instructions proposal --change 12-x --json").code === 0 && shell("business-analyst", "openspec context --json").code === 0 && shell("business-analyst", "openspec context").code === 0);
+check("business-analyst : variantes dangereuses refusées (substitution, chaînage, option inconnue)", ['openspec new change "$(rm x)"', "openspec new change x; rm y", 'openspec new change "a b"', "openspec instructions proposal --change x --output y", "openspec context --json && rm x", "openspec context --root /"].every((c) => shell("business-analyst", c).code === 2));
+check("business-analyst : skills openspec-propose et openspec-update-change permis", skill("business-analyst", "openspec-propose").code === 0 && skill("business-analyst", "openspec-update-change").code === 0 && skill("business-analyst", "openspec-archive-change").code === 2);
+check("business-analyst : écrit dans openspec/changes/ seulement", write("business-analyst", "openspec/changes/12-x/proposal.md").code === 0 && write("business-analyst", "openspec/specs/x/spec.md").code === 2 && write("business-analyst", "src/x.js").code === 2);
+check("business-analyst : openspec new change et instructions permis, le reste refusé", shell("business-analyst", "openspec new change 12-ma-feature").code === 0 && shell("business-analyst", "openspec instructions proposal --change 12-x --json").code === 0 && shell("business-analyst", "openspec validate 12-x --strict --no-interactive").code === 0 && shell("business-analyst", "openspec archive 12-x").code === 2 && shell("business-analyst", "openspec new change x && rm y").code === 2);
+check("business-analyst : skills opsx:propose et opsx:update permis, les autres refusés, aucun agent", skill("business-analyst", "opsx:propose").code === 0 && skill("business-analyst", "opsx:update").code === 0 && skill("business-analyst", "opsx:archive").code === 2 && skill("business-analyst", "archgate:adr-author").code === 2 && launch("business-analyst", { subagent_type: "spec-reviewer" }).code === 2);
+check("profils optionnels : teammate nommé comme son profil, mêmes bornes", write("developer", ".claude/x").code === 2 && write("product-owner", "x").code === 2 && write("business-analyst", "src/x").code === 2);
 
 // agents non bornés et entrées inattendues
 check("agent principal (sans agent_type) non borné", run({ tool_name: "Write", tool_input: { file_path: "src/x.js" } }).code === 0 && run({ tool_name: "Bash", tool_input: { command: "rm -rf x" } }).code === 0);
