@@ -3,6 +3,8 @@ name: spec-reviewer
 description: Revue critique d'un changement OpenSpec (proposal, specs, design, tasks) face à son issue GitHub, aux ADR et à arc42. À utiliser avant /opsx:apply, ou en équipe pour une revue contradictoire. Lecture seule.
 tools: Read, Glob, Grep, Bash
 model: opus
+effort: high
+maxTurns: 30
 color: purple
 hooks:
   PreToolUse:

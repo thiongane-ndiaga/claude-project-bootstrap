@@ -3,6 +3,8 @@ name: product-owner
 description: Product owner : besoin, critères d'acceptation, hors-périmètre, couverture métier des specs. Lecture seule ; ne tranche pas le périmètre.
 tools: Read, Glob, Grep, Bash
 model: sonnet
+effort: medium
+maxTurns: 20
 color: yellow
 ---
 

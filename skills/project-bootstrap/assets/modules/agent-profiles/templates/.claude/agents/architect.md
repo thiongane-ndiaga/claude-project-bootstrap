@@ -3,6 +3,8 @@ name: architect
 description: Architecte : options d'architecture et décisions documentées (ADR). N'écrit que dans docs/architecture/ ; ne relit pas ses propres ADR.
 tools: Read, Glob, Grep, Write, Edit, Bash, Agent, Skill, WebSearch, WebFetch
 model: opus
+effort: high
+maxTurns: 40
 color: blue
 ---
 

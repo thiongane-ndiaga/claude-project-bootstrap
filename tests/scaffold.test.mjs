@@ -1925,5 +1925,56 @@ const d = mkdtempSync(path.join(tmpdir(), "pb-sonde-")); writeFileSync(path.join
   check("advisor : listé par défaut non, avec la question de phase 0 (clé advisor, défaut non) et une description expérimentale, payante, réglage utilisateur", adv && adv.default === false && adv.requires.join() === "agent-profiles" && adv.questions.length === 1 && /clé advisor/.test(adv.questions[0]) && /Défaut : non/.test(adv.questions[0]) && /expérimentale et payante/.test(adv.description) && /réglage utilisateur/.test(adv.description), JSON.stringify(adv));
 }
 
+// frontmatter des agents générés (#37) : champs documentés, effort, maxTurns, nommage
+{
+  const KNOWN = ["name", "description", "tools", "disallowedTools", "model", "permissionMode", "maxTurns", "autoCompactWindow", "skills", "mcpServers", "hooks", "memory", "background", "omitClaudeMd", "effort", "isolation", "color", "initialPrompt", "experimental"];
+  const EFFORTS = ["low", "medium", "high", "xhigh", "max"];
+  // Retourne la liste des défauts d'un fichier d'agent (nom de fichier et texte fournis).
+  const validateAgent = (file, text) => {
+    const problems = [];
+    if (!/^[a-z0-9]+(-[a-z0-9]+)*\.md$/.test(file)) problems.push(`${file} : nom de fichier non conforme (minuscules, chiffres, tirets)`);
+    const m = /^---\r?\n([\s\S]*?)\r?\n---/.exec(text);
+    if (!m) return [...problems, `${file} : frontmatter absent`];
+    const top = new Map();
+    for (const line of m[1].split(/\r?\n/)) {
+      const k = /^([A-Za-z][A-Za-z0-9]*):\s*(.*)$/.exec(line);
+      if (k) top.set(k[1], k[2].trim());
+    }
+    for (const k of top.keys()) if (!KNOWN.includes(k)) problems.push(`${file} : champ inconnu ${k}`);
+    if (top.has("effort") && !EFFORTS.includes(top.get("effort"))) problems.push(`${file} : effort invalide ${top.get("effort")}`);
+    if (top.has("maxTurns") && !/^[1-9][0-9]*$/.test(top.get("maxTurns"))) problems.push(`${file} : maxTurns invalide ${top.get("maxTurns")}`);
+    if (top.get("name") !== file.replace(/\.md$/, "")) problems.push(`${file} : name (${top.get("name")}) différent du nom de fichier`);
+    return problems;
+  };
+  const ok = "---\nname: developer\ndescription: x\nhooks:\n  PreToolUse:\n    - matcher: \"Bash\"\n      hooks:\n        - type: command\n          command: node x\n---\ncorps\n";
+  check("frontmatter agents : champ inconnu (effrot) refusé en nommant le champ", validateAgent("developer.md", "---\nname: developer\ndescription: x\neffrot: high\n---\n").some((p) => /champ inconnu effrot/.test(p)));
+  check("frontmatter agents : clés imbriquées de hooks acceptées", validateAgent("developer.md", ok).length === 0, validateAgent("developer.md", ok).join(";"));
+  check("frontmatter agents : nom de fichier Developer.md et qa_engineer.md refusés", validateAgent("Developer.md", ok.replace("developer", "Developer")).some((p) => /nom de fichier non conforme/.test(p)) && validateAgent("qa_engineer.md", ok).some((p) => /nom de fichier non conforme/.test(p)));
+  check("frontmatter agents : name différent du fichier refusé", validateAgent("developer.md", ok.replace("name: developer", "name: dev")).some((p) => /différent du nom de fichier/.test(p)));
+  check("frontmatter agents : effort inconnu et maxTurns non entier ou nul refusés", validateAgent("developer.md", ok.replace("description: x", "description: x\neffort: huge")).some((p) => /effort invalide/.test(p)) && ["0", "-3", "4.5", "abc"].every((v) => validateAgent("developer.md", ok.replace("description: x", `description: x\nmaxTurns: ${v}`)).some((p) => /maxTurns invalide/.test(p))));
+
+  const PROFILES = ["business-analyst", "developer", "product-owner"];
+  const TABLE = {
+    architect: ["opus", "high", "40"], "qa-engineer": ["opus", "high", "40"], "spec-reviewer": ["opus", "high", "30"], "architecture-explorer": ["opus", "high", "40"],
+    developer: ["sonnet", "high", "60"], "business-analyst": ["sonnet", "high", "40"], "product-owner": ["sonnet", "medium", "20"], "arc42-keeper": ["sonnet", "medium", "30"], "traceability-checker": ["sonnet", "medium", "25"],
+  };
+  const field = (text, k) => new RegExp(`^${k}: (\\S+)\\r?$`, "m").exec(text)?.[1];
+  const withKeys = { effort: "max", model: "haiku", maxTurns: 1 };
+  for (const lang of [{}, { docLanguage: "en" }]) {
+    const tag = lang.docLanguage ?? "fr";
+    const g = run({ ...base, visibility: "private", modules: allModules, profiles: PROFILES, ...lang });
+    const agentsDir = path.join(g.out, ".claude", "agents");
+    const files = g.res.status === 0 ? readdirSync(agentsDir).filter((f) => f.endsWith(".md")) : [];
+    const problems = files.flatMap((f) => validateAgent(f, readFileSync(path.join(agentsDir, f), "utf8")));
+    check(`frontmatter agents (${tag}) : tous les agents générés sont conformes (${files.length} fichiers)`, g.res.status === 0 && files.length >= 10 && problems.length === 0, g.res.stderr + problems.join("; "));
+    const wrong = Object.entries(TABLE).filter(([n, v]) => { const t = readFileSync(path.join(agentsDir, `${n}.md`), "utf8"); return [field(t, "model"), field(t, "effort"), field(t, "maxTurns")].join() !== v.join(); }).map(([n]) => n);
+    check(`frontmatter agents (${tag}) : valeurs de départ de la table pour les neuf agents`, g.res.status === 0 && wrong.length === 0, wrong.join(", "));
+    const lead = readFileSync(path.join(agentsDir, "project-lead.md"), "utf8");
+    check(`frontmatter agents (${tag}) : project-lead sans model, effort ni maxTurns`, !/^(model|effort|maxTurns):/m.test(lead));
+    const ignored = run({ ...base, visibility: "private", modules: allModules, profiles: PROFILES, ...lang, ...withKeys });
+    check(`frontmatter agents (${tag}) : les clés effort, model et maxTurns de la configuration n'ont aucun effet`, ignored.res.status === 0 && files.every((f) => readFileSync(path.join(ignored.out, ".claude", "agents", f), "utf8") === readFileSync(path.join(agentsDir, f), "utf8")), ignored.res.stderr);
+  }
+}
+
 console.log(failed ? `\n${failed} échec(s)` : "\nTous les tests passent");
 process.exit(failed ? 1 : 0);
