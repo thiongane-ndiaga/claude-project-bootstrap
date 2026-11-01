@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.7](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.6...v0.1.7) (2026-11-01)
+
+
+### Features
+
+* **scaffold:** session hook for the local CLI install mode ([#105](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/105)) ([f9c85c2](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/f9c85c2ce4c7540330b3888898b854b9bfa0fdae))
+
 ## [0.1.6](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.5...v0.1.6) (2026-11-01)
 
 
