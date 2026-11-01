@@ -1,0 +1,26 @@
+name: Architecture decision
+description: An architecture question to settle with an ADR
+title: "[adr] "
+labels: ["adr"]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Question to settle
+    validations:
+      required: true
+  - type: textarea
+    id: contraintes
+    attributes:
+      label: Constraints and quality goals involved
+      description: Refer to the arc42 sections (1, 2, 10) when possible.
+    validations:
+      required: true
+  - type: textarea
+    id: options
+    attributes:
+      label: Options considered
+  - type: textarea
+    id: echeance
+    attributes:
+      label: What the decision unblocks

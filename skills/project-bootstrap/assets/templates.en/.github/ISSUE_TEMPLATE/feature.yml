@@ -1,0 +1,30 @@
+name: Feature
+description: A new need or a change of behavior
+title: "[feat] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: besoin
+    attributes:
+      label: Need
+      description: Who needs what, and why? No technical solution here.
+    validations:
+      required: true
+  - type: textarea
+    id: criteres
+    attributes:
+      label: Acceptance criteria
+      description: Observable behaviors that will tell us it is done.
+      placeholder: "- Given … when … then …"
+    validations:
+      required: true
+  - type: textarea
+    id: hors-perimetre
+    attributes:
+      label: Out of scope
+  - type: checkboxes
+    id: adr
+    attributes:
+      label: Architecture decision
+      options:
+        - label: This need probably involves a technical choice or a cross-cutting constraint (ADR required, see docs/workflow.md)

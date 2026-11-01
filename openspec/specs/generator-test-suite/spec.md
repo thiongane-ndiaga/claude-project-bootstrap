@@ -6,7 +6,7 @@ Garantir par des tests automatiques que la sortie du générateur reste correcte
 ## Requirements
 
 ### Requirement: Matrice des modules
-La suite de tests SHALL générer et contrôler les combinaisons suivantes, déduites du catalogue : le module `core` seul, chaque autre module avec sa chaîne de dépendances, la sélection par défaut, la sélection par défaut avec une stack choisie, la sélection par défaut avec le mode d'installation `user`, la sélection par défaut avec le mode d'installation `local`, la sélection complète, modules facultatifs compris, et la sélection complète en dépôt public.
+La suite de tests SHALL générer et contrôler, à partir du catalogue : `core` seul, chaque autre module avec ses dépendances, la sélection par défaut (seule, avec une stack, en mode `user`, en mode `local`, en anglais), la sélection complète (modules facultatifs compris), et la sélection complète en dépôt public ou en anglais.
 
 #### Scenario: Module seul avec ses dépendances
 - **WHEN** la matrice génère le module `release`
@@ -23,6 +23,14 @@ La suite de tests SHALL générer et contrôler les combinaisons suivantes, déd
 #### Scenario: Modes d'installation des CLI
 - **WHEN** la matrice génère `default-cli-user` et `default-cli-local`
 - **THEN** chacune est contrôlée par les invariants communs et figée dans son instantané, et `default-cli-local` contient `package.json`
+
+#### Scenario: Configuration des variantes anglaises
+- **WHEN** la matrice prépare `default-en` et `full-en`
+- **THEN** elle retire de la configuration de base les valeurs françaises explicites (`docLanguageName`, `actionsCreditNote`)
+
+#### Scenario: Variantes anglaises
+- **WHEN** la matrice génère `default-en` et `full-en`
+- **THEN** chacune est contrôlée par les invariants communs, figée dans son instantané, et a les mêmes chemins que sa variante française
 
 ### Requirement: Invariants de génération
 Pour chaque combinaison, la suite SHALL vérifier : génération terminée avec le code 0; aucun paramètre de la forme `{{NOM_MAJUSCULE}}` ni marqueur `@@module:` ou `@@end` dans les fichiers générés (les expressions `${{ … }}` de GitHub Actions sont légitimes); fichiers JSON valides; fichiers du manifeste présents; clés sans antislash; aucun fin de ligne CRLF; chaque base égale à son fichier, et présente pour tout fichier qui n'est ni fusionné ni propre au projet.
@@ -81,11 +89,23 @@ Avec `UPDATE_SNAPSHOTS=1`, la suite SHALL réécrire les instantanés, supprimer
 - **THEN** la suite échoue sans rien écrire
 
 ### Requirement: Validation par les CLI réelles
-Pour les sélections par défaut et complète, générées avec les versions de CLI installées, la suite SHALL exécuter `openspec init` puis vérifier qu'il ne modifie aucun fichier suivi, `openspec validate --all --strict --no-interactive`, `openspec doctor --json` (aucune erreur, racine égale au projet), `archgate check`, et l'audit du plugin sur un dépôt git temporaire indépendant du poste (identité fixée, sans signature ni hooks globaux, `pre-push` exécutable, `core.hooksPath` réglé), sans écart.
+Pour les sélections par défaut, complète et complète en anglais, générées avec les versions de CLI installées, la suite SHALL exécuter `openspec init` puis vérifier qu'il ne modifie aucun fichier suivi, `openspec validate`, `openspec doctor --json` (racine égale au projet), `archgate check`, et l'audit du plugin sur un dépôt git temporaire indépendant du poste, sans écart.
 
 #### Scenario: Projet généré accepté
 - **WHEN** la sélection complète est générée et validée avec les CLI réelles
 - **THEN** les commandes réussissent, `openspec init` ne modifie aucun fichier suivi et l'audit ne rapporte aucun écart
+
+#### Scenario: Projet généré en anglais accepté
+- **WHEN** la sélection complète en anglais est générée et validée avec les CLI réelles
+- **THEN** `openspec init --language en`, `openspec validate`, `openspec doctor`, `archgate check` et l'audit réussissent sans écart
+
+#### Scenario: Dépôt git temporaire
+- **WHEN** la suite prépare le dépôt de validation
+- **THEN** l'identité est fixée, sans signature ni hooks globaux, `pre-push` est exécutable et `core.hooksPath` est réglé
+
+#### Scenario: Langue d'`openspec init`
+- **WHEN** la combinaison est générée en anglais
+- **THEN** `openspec init` reçoit `--language en`
 
 #### Scenario: Audit sans contrôle non vérifiable
 - **WHEN** `openspec` et `archgate` sont tous deux installés

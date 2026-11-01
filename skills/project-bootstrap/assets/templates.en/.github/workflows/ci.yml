@@ -1,0 +1,106 @@
+name: ci
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# @@module:openspec|archgate
+# @@module:openspec|cli-npm-global
+env:
+  # @@module:openspec
+  # @@module:cli-npm-global
+  OPENSPEC_VERSION: {{OPENSPEC_VERSION}}
+  # @@end
+  OPENSPEC_TELEMETRY: "0"
+  # @@end
+  # @@module:archgate
+  # @@module:cli-npm-global
+  ARCHGATE_VERSION: {{ARCHGATE_VERSION}}
+  # @@end
+  # @@end
+# @@end
+# @@end
+
+jobs:
+  # CI systems: "ciOs" of .bootstrap/checks.json
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      os: ${{ steps.os.outputs.os }}
+    steps:
+      - uses: actions/checkout@{{CHECKOUT_REF}}
+      - uses: actions/setup-node@{{SETUP_NODE_REF}}
+        with:
+          node-version: {{NODE_VERSION}}
+      - id: os
+        run: echo "os=$(node .bootstrap/run-checks.mjs --print-os)" >> "$GITHUB_OUTPUT"
+
+  checks:
+    needs: plan
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJSON(needs.plan.outputs.os) }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@{{CHECKOUT_REF}}
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@{{SETUP_NODE_REF}}
+        with:
+          node-version: {{NODE_VERSION}}
+          # @@module:cli-local
+          cache: npm
+          # @@end
+      # @@module:cli-local
+      - name: Tooling CLIs (package.json, package-lock.json)
+        run: npm ci
+      - name: node_modules/.bin on the PATH
+        shell: bash
+        run: echo "$GITHUB_WORKSPACE/node_modules/.bin" >> "$GITHUB_PATH"
+      # @@end
+      # @@module:openspec
+      - name: OpenSpec validate
+        shell: bash
+        run: |
+          # @@module:cli-npm-global
+          npm install -g "@fission-ai/openspec@${OPENSPEC_VERSION}"
+          # @@end
+          openspec validate --all --strict --no-interactive
+      # @@end
+      # @@module:archgate
+      - name: Archgate check
+        shell: bash
+        run: |
+          # @@module:cli-npm-global
+          npm install -g "archgate@${ARCHGATE_VERSION}"
+          # @@end
+          archgate check --output github
+      # @@end
+      # Stack toolchain (language, dependencies): to install in .github/actions/project-setup/action.yml, not here
+      - name: Project toolchain (.github/actions/project-setup)
+        uses: ./.github/actions/project-setup
+      - name: Project commands (.bootstrap/checks.json)
+        run: node .bootstrap/run-checks.mjs
+
+  pr-title:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@{{CHECKOUT_REF}}
+      - name: Conventional Commit title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: node scripts/check-pr-title.mjs
