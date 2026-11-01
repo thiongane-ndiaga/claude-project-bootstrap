@@ -3,6 +3,7 @@
   "default": true,
   "files": [
     {"path": ".claude/hooks/quality-gate.mjs"},
-    {"path": ".claude/hooks/read-only-bash.mjs"}
+    {"path": ".claude/hooks/read-only-bash.mjs"},
+    {"path": ".claude/hooks/session-path.mjs", "when": ["cli-local"]}
   ]
 }

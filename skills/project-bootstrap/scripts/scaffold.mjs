@@ -242,6 +242,7 @@ function buildSettings() {
   settings.hooks = {
     TaskCompleted: [{ hooks: [{ type: "command", command: "node", args: ["${CLAUDE_PROJECT_DIR}/.claude/hooks/quality-gate.mjs"] }] }],
   };
+  if (active.has("cli-local")) settings.hooks.SessionStart = [{ hooks: [{ type: "command", command: "node", args: ["${CLAUDE_PROJECT_DIR}/.claude/hooks/session-path.mjs"] }] }];
   return JSON.stringify(settings, null, 2) + "\n";
 }
 

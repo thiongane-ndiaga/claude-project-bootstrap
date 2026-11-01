@@ -21,7 +21,7 @@ Alternatives pour le mode local : remplacer chaque appel par `npx --no-install <
 ## Decision
 
 1. Trois modes, choisis à la phase 0 et consignés au manifeste (`config.cliInstall`, absent = `global`) : `global` (défaut), `user` (préfixe `~/.local` ; sous Windows, équivalent à `global`), `local` (opt-in explicite, jamais le défaut).
-2. Les CLI sont appelées par leur nom dans tous les modes. En `local`, `node_modules/.bin` est ajouté au `PATH` par `quality-gate.mjs`, par la CI et par l'audit ; les sessions Claude Code démarrent avec `npm run claude`.
+2. Les CLI sont appelées par leur nom dans tous les modes. En `local`, `node_modules/.bin` est ajouté au `PATH` par `quality-gate.mjs`, par la CI et par l'audit ; le hook `SessionStart` `session-path.mjs` l'ajoute au `PATH` de l'outil Bash des sessions Claude Code, et `npm run claude` couvre l'outil PowerShell et le terminal personnel.
 3. Seul le mode `local` crée un fichier de plus : `package.json` (propre au projet, `owned`), sans `name`, avec des versions exactes ; le lockfile est créé par le skill avec l'accord de l'utilisateur. Le mode `local` exige au moins un module `openspec` ou `archgate`.
 4. En `local`, la source de vérité des versions est `package.json` (plus de `OPENSPEC_VERSION` ni `ARCHGATE_VERSION` dans `ci.yml`).
 5. npm est le seul gestionnaire géré ; le changement de mode après coup n'est pas automatisé.
@@ -31,7 +31,7 @@ Alternatives pour le mode local : remplacer chaque appel par `npx --no-install <
 ### Do
 
 - Garder les appels `openspec` et `archgate` identiques dans tous les modes.
-- Construire le `PATH` avec `path.delimiter` et retrouver la clé `PATH` sans tenir compte de la casse (`Path` sous Windows).
+- Construire le `PATH` avec `path.delimiter` et retrouver la clé `PATH` sans tenir compte de la casse (`Path` sous Windows). Le fichier `CLAUDE_ENV_FILE` est lu par Bash : la ligne qu'y écrit `session-path.mjs` utilise `:` et la forme `/c/...` sous Windows.
 - Refuser tout `sudo` dans les commandes proposées.
 
 ### Don't
@@ -49,7 +49,7 @@ Alternatives pour le mode local : remplacer chaque appel par `npx --no-install <
 
 ### Negative
 
-- Une session Claude Code qui ne démarre pas par `npm run claude` ne trouve pas `openspec` en mode `local`.
+- En mode `local`, l'outil PowerShell de Claude Code et un terminal personnel ne trouvent pas `openspec` sans `npm run claude` ou `npx` ; la documentation générée, qui peut citer `npx`, ne contrevient pas au Don't ci-dessus, lequel vise les appels des fichiers générés.
 - Un `package.json` existant est conservé tel quel : les `devDependencies` s'ajoutent à la main.
 
 ### Risks
@@ -64,3 +64,4 @@ Tests du générateur et de l'audit par mode, combinaisons `default-cli-user` et
 
 - Issue #28 ; changement OpenSpec `28-cli-install-modes`
 - ARCH-006 (mise à jour des fichiers générés)
+- Issue #104 ; changement OpenSpec `104-local-path-session-hook` (hook de session du mode local)
