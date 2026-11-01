@@ -37,6 +37,9 @@ const baseConfig = {
   actionsCreditNote: "crédit de test",
 };
 
+// variantes anglaises : les valeurs françaises de la configuration de base sont retirées (une valeur explicite l'emporte sur le défaut de la langue)
+const ENGLISH = { docLanguage: "en", docLanguageName: undefined, actionsCreditNote: undefined };
+
 // --- combinaisons déduites du catalogue --------------------------------------------------------------------------------------
 export function combinations(modulesCatalog) {
   const names = Object.keys(modulesCatalog).filter((m) => m !== "core");
@@ -54,7 +57,9 @@ export function combinations(modulesCatalog) {
     { name: "default-stack", modules: defaults, extra: { stack: "Node.js, modules ES" }, single: null },
     { name: "default-cli-user", modules: defaults, config: { cliInstall: "user" }, single: null },
     { name: "default-cli-local", modules: defaults, config: { cliInstall: "local" }, single: null },
+    { name: "default-en", modules: defaults, config: ENGLISH, single: null },
     { name: "full", modules: names, single: null },
+    { name: "full-en", modules: names, config: ENGLISH, single: null },
     { name: "full-public", modules: names, config: { visibility: "public" }, single: null },
   ];
 }
@@ -155,7 +160,7 @@ const combos = combinations(catalog.modules);
 const covered = new Set(combos.filter((c) => c.single).map((c) => c.single));
 const uncovered = Object.keys(catalog.modules).filter((m) => m !== "core" && !covered.has(m));
 check("matrice : chaque module du catalogue a sa combinaison", uncovered.length === 0, `modules sans combinaison : ${uncovered.join(", ")}`);
-check("matrice : core seul, un module par combinaison, défaut, défaut avec stack, modes user et local, complet, complet en public", combos.length === Object.keys(catalog.modules).length - 1 + 7 && combos.some((c) => c.name === "core" && c.modules.length === 0) && ["default", "default-stack", "default-cli-user", "default-cli-local", "full", "full-public"].every((n) => combos.some((c) => c.name === n)));
+check("matrice : core seul, un module par combinaison, défaut, défaut avec stack, modes user et local, anglais, complet, complet en public", combos.length === Object.keys(catalog.modules).length - 1 + 9 && combos.some((c) => c.name === "core" && c.modules.length === 0) && ["default", "default-stack", "default-cli-user", "default-cli-local", "default-en", "full", "full-public", "full-en"].every((n) => combos.some((c) => c.name === n)));
 {
   // instantané orphelin : module retiré ou renommé ; la mise à jour supprime les orphelins
   const orphans = existsSync(SNAPSHOTS) ? readdirSync(SNAPSHOTS).filter((f) => f.endsWith(".json") && !combos.some((c) => `${c.name}.json` === f)) : [];
@@ -249,7 +254,7 @@ check("CLI absentes : ignorées hors CI, échec en CI", missingPolicy(["openspec
     return process.platform === "win32" ? r.toLowerCase() : r;
   };
   if (installed.openspec || installed.archgate) {
-    for (const name of ["default", "full"]) {
+    for (const name of ["default", "full", "full-en"]) {
       const combo = combos.find((c) => c.name === name);
       // versions épinglées = celles installées, pour que l'audit n'y voie pas d'écart (les instantanés, eux, gardent des constantes)
       const versions = { ...baseConfig.versions, ...(installed.openspec && { openspec: installed.openspec }), ...(installed.archgate && { archgate: installed.archgate }) };
@@ -269,7 +274,7 @@ check("CLI absentes : ignorées hors CI, échec en CI", missingPolicy(["openspec
       git("commit", "-q", "--no-verify", "-m", "init");
       git("config", "core.hooksPath", ".githooks");
       if (installed.openspec) {
-        const init = realExec("openspec", ["init", "--tools", "claude", "--language", "fr", "--no-animation"], { cwd: g.out });
+        const init = realExec("openspec", ["init", "--tools", "claude", "--language", combo.config?.docLanguage ?? "fr", "--no-animation"], { cwd: g.out });
         check(`${name} : openspec init réussit`, init.status === 0, (init.stderr || init.stdout).slice(0, 300));
         const touched = spawnSync("git", ["-C", g.out, "diff", "--name-only"], { encoding: "utf8" }).stdout.trim();
         check(`${name} : openspec init ne modifie aucun fichier suivi du projet généré`, touched === "", touched);

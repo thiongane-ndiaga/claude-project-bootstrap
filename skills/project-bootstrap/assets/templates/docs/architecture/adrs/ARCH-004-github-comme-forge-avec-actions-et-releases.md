@@ -13,7 +13,7 @@ Proposé.
 
 ## Context
 
-Le projet a besoin de tout le cycle — ticket, suivi, revue, CI, livraison — sur le plan GitHub Free d'un compte personnel. Le dépôt est {{VISIBILITY_FR}}. Conditions vérifiées le {{DATE}} sur docs.github.com :
+Le projet a besoin de tout le cycle — ticket, suivi, revue, CI, livraison — sur le plan GitHub Free d'un compte personnel. Le dépôt est {{VISIBILITY_LABEL}}. Conditions vérifiées le {{DATE}} sur docs.github.com :
 @@module:visibility-private
 - en privé, le plan Free n'offre ni branches protégées ni rulesets ;
 - Actions dispose d'un crédit de calcul mensuel limité ({{ACTIONS_CREDIT_NOTE}}), l'usage étant bloqué au-delà sans moyen de paiement.
@@ -29,7 +29,7 @@ Le projet a besoin de tout le cycle — ticket, suivi, revue, CI, livraison — 
 @@module:projects
 - **Projects** : colonnes Todo, In Progress, In Review, Done ; automatisations natives (auto-add, item closed et PR merged → Done).
 @@end
-- **CI** (`.github/workflows/ci.yml`) : {{CI_OS_FR}}.
+- **CI** (`.github/workflows/ci.yml`) : {{CI_OS_TEXT}}.
 @@module:release
 - **Release** (`.github/workflows/release.yml`) par `googleapis/release-please-action` (Apache-2.0).
 @@end

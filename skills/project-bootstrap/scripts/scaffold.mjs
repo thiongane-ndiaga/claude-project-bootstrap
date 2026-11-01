@@ -31,6 +31,8 @@ if (!args.target || (!args.config && args.detect !== true && args.update !== tru
 }
 const manifest = JSON.parse(readFileSync(typeof args.catalog === "string" ? args.catalog : path.join(assets, "modules.json"), "utf8"));
 const target = path.resolve(args.target);
+// langues disponibles : « fr » (assets/templates) et chaque dossier assets/templates.<code> (« templates.fr » est ignoré)
+const languageDirs = () => readdirSync(assets).flatMap((n) => (/^templates\.[a-z][\w-]*$/.test(n) && n !== "templates.fr" ? [n.slice("templates.".length)] : []));
 
 // --- manifeste du projet (.bootstrap/manifest.json) et version du plugin en cours d'exécution ---
 const MANIFEST = ".bootstrap/manifest.json";
@@ -61,7 +63,7 @@ if (args.detect === true) {
   let recorded = null;
   if (has(".bootstrap/manifest.json")) {
     recorded = previous
-      ? { plugin: previous.plugin, modules: previous.modules, files: Object.keys(previous.files ?? {}).length, migrations: previous.migrations ?? [] }
+      ? { plugin: previous.plugin, modules: previous.modules, docLanguage: previous.config?.docLanguage ?? "fr", cliInstall: previous.config?.cliInstall ?? "global", files: Object.keys(previous.files ?? {}).length, migrations: previous.migrations ?? [] }
       : { error: "manifeste illisible" };
   }
   console.log(
@@ -73,6 +75,7 @@ if (args.detect === true) {
         bootstrapped: recorded !== null,
         manifest: recorded,
         pluginVersion,
+        languages: ["fr", ...languageDirs()].sort(),
         updateAvailable: previous?.plugin?.version !== undefined && previous.plugin.version !== pluginVersion,
         claude: has(".claude"),
         packageJson: has("package.json"),
@@ -95,6 +98,9 @@ if (args.update === true && !previous && !args.config) {
 const config = typeof args.config === "string" ? JSON.parse(readFileSync(args.config, "utf8")) : previous?.config;
 // date de génération figée au manifeste : sans elle, {{DATE}} change chaque jour et le modèle paraît modifié
 config.date = config.date ?? previous?.config?.date ?? new Date().toISOString().slice(0, 10);
+// langue de la documentation et mode d'installation des CLI : hérités du manifeste quand --config ne les redéfinit pas
+// (une configuration sans la clé ne fait changer ni la langue ni le mode)
+for (const key of ["docLanguage", "cliInstall"]) if (config[key] === undefined && previous?.config?.[key] !== undefined) config[key] = previous.config[key];
 const dryRun = args["dry-run"] === true;
 
 // --- modules sélectionnés et dépendances ---
@@ -118,6 +124,9 @@ for (const m of selected) {
   else for (const r of def.requires) if (!selected.has(r)) errors.push(`Le module ${m} requiert ${r}`);
 }
 if (!["private", "public"].includes(config.visibility)) errors.push("visibility doit valoir private ou public");
+const availableLanguages = ["fr", ...languageDirs()].sort();
+const docLanguage = config.docLanguage ?? "fr";
+if (!availableLanguages.includes(docLanguage)) errors.push(`docLanguage ${JSON.stringify(docLanguage)} indisponible : langues disponibles ${availableLanguages.join(", ")}`);
 const CLI_MODES = ["global", "user", "local"];
 if (config.cliInstall !== undefined && !CLI_MODES.includes(config.cliInstall)) errors.push(`cliInstall doit valoir ${CLI_MODES.join(", ")} (reçu : ${JSON.stringify(config.cliInstall)})`);
 if (config.cliInstall === "local" && !selected.has("openspec") && !selected.has("archgate")) errors.push("cliInstall local exige le module openspec ou archgate (rien à installer en local sinon)");
@@ -141,13 +150,31 @@ const active = new Set([...selected, `visibility-${config.visibility}`, config.s
 // --- paramètres ---
 const ref = (a) => (a ? `${a.sha} # ${a.tag}` : undefined);
 const isPublic = config.visibility === "public";
+// valeurs de paramètres qui portent du texte, par langue de documentation
+const LANG_PARAMS = {
+  fr: {
+    DOC_LANGUAGE_NAME: "Français",
+    VISIBILITY_LABEL: isPublic ? "public" : "privé",
+    CI_OS_TEXT: isPublic ? "`ubuntu-latest` et `windows-latest` (gratuits en public)" : "`ubuntu-latest` uniquement (crédit Actions limité en privé)",
+    CI_BLOCKING_NOTE: isPublic ? "oui si la protection de `main` exige le check" : "non : un dépôt privé sur GitHub Free n'a pas de protection de branche ; ne pas merger une PR rouge",
+    ACTIONS_CREDIT_NOTE: "voir la page de facturation Actions",
+  },
+  en: {
+    DOC_LANGUAGE_NAME: "English",
+    VISIBILITY_LABEL: isPublic ? "public" : "private",
+    CI_OS_TEXT: isPublic ? "`ubuntu-latest` and `windows-latest` (free for public repositories)" : "`ubuntu-latest` only (limited Actions credit for private repositories)",
+    CI_BLOCKING_NOTE: isPublic ? "yes if the `main` protection requires the check" : "no: a private repository on GitHub Free has no branch protection; do not merge a red PR",
+    ACTIONS_CREDIT_NOTE: "see the Actions billing page",
+  },
+};
+const langParams = LANG_PARAMS[docLanguage] ?? LANG_PARAMS.fr;
 const params = {
   PROJECT_NAME: config.projectName,
   PROJECT_DESCRIPTION: config.description,
   STACK: config.stack,
-  DOC_LANGUAGE_NAME: config.docLanguageName ?? "Français",
+  DOC_LANGUAGE_NAME: config.docLanguageName ?? langParams.DOC_LANGUAGE_NAME,
   DATE: config.date ?? new Date().toISOString().slice(0, 10),
-  VISIBILITY_FR: isPublic ? "public" : "privé",
+  VISIBILITY_LABEL: langParams.VISIBILITY_LABEL,
   OPENSPEC_VERSION: config.versions?.openspec,
   ARCHGATE_VERSION: config.versions?.archgate,
   NODE_VERSION: config.versions?.node ?? "24",
@@ -155,11 +182,9 @@ const params = {
   SETUP_NODE_REF: ref(config.actions?.setupNode),
   RELEASE_PLEASE_REF: ref(config.actions?.releasePlease),
   CI_OS_JSON: isPublic ? '["ubuntu-latest", "windows-latest"]' : '["ubuntu-latest"]',
-  CI_OS_FR: isPublic ? "`ubuntu-latest` et `windows-latest` (gratuits en public)" : "`ubuntu-latest` uniquement (crédit Actions limité en privé)",
-  CI_BLOCKING_NOTE: isPublic
-    ? "oui si la protection de `main` exige le check"
-    : "non : un dépôt privé sur GitHub Free n'a pas de protection de branche ; ne pas merger une PR rouge",
-  ACTIONS_CREDIT_NOTE: config.actionsCreditNote ?? "voir la page de facturation Actions",
+  CI_OS_TEXT: langParams.CI_OS_TEXT,
+  CI_BLOCKING_NOTE: langParams.CI_BLOCKING_NOTE,
+  ACTIONS_CREDIT_NOTE: config.actionsCreditNote ?? langParams.ACTIONS_CREDIT_NOTE,
 };
 
 // --- blocs conditionnels : lignes contenant @@module:a|b ... @@end (imbriquables) ---
@@ -233,7 +258,9 @@ const outputs = [];
 try {
   for (const { path: rel, when, merge, owned } of manifest.files) {
     if (!when.every((m) => active.has(m))) continue;
-    const raw = readFileSync(path.join(assets, "templates", rel), "utf8").replace(/\r\n/g, "\n");
+    // langue autre que « fr » : version de templates.<code> si elle existe, sinon le modèle de référence
+    const localized = docLanguage === "fr" ? null : path.join(assets, `templates.${docLanguage}`, rel);
+    const raw = readFileSync(localized && existsSync(localized) ? localized : path.join(assets, "templates", rel), "utf8").replace(/\r\n/g, "\n");
     outputs.push({ rel, merge, owned, content: applyParams(applyBlocks(raw, rel), rel) });
   }
 } catch (err) {

@@ -197,6 +197,170 @@ for (const c of cases) {
   check("catalogue : `when` avec un module inconnu refusé (code 1)", badCat.res.status === 1 && /module inconnu inconnu/.test(badCat.res.stderr), badCat.res.stderr);
 }
 
+// langue de la documentation (docLanguage) : génération, héritage à la mise à jour
+{
+  const mods = ["claude", "github", "openspec", "archgate", "arc42", "release", "githooks"];
+  const noFr = { docLanguageName: undefined, actionsCreditNote: undefined };
+  const gen = (extra, vis = "private", modules = mods) => run({ ...base, ...noFr, visibility: vis, modules, ...extra });
+  const txt = (r, rel) => readFileSync(path.join(r.out, ...rel.split("/")), "utf8");
+  const tree = (r) => Object.fromEntries(walk(r.out).filter((f) => !f.includes(`${path.sep}.bootstrap${path.sep}base`)).map((f) => [path.relative(r.out, f).split(path.sep).join("/"), readFileSync(f, "utf8")]));
+  const man = (r) => JSON.parse(txt(r, ".bootstrap/manifest.json"));
+
+  const fr = gen({});
+  const frExplicit = gen({ docLanguage: "fr" });
+  check("docLanguage absent : français, clé non écrite au manifeste, sortie identique à fr explicite", man(fr).config.docLanguage === undefined && man(frExplicit).config.docLanguage === "fr" && Object.entries(tree(fr)).every(([f, c]) => f === ".bootstrap/manifest.json" || tree(frExplicit)[f] === c));
+  const bad = gen({ docLanguage: "de" });
+  check("docLanguage indisponible refusé (code 1, langues disponibles nommées)", bad.res.status === 1 && /de.*indisponible/.test(bad.res.stderr) && /en, fr/.test(bad.res.stderr), bad.res.stderr);
+
+  const en = gen({ docLanguage: "en" });
+  check("docLanguage en : génération réussie, consigné au manifeste", en.res.status === 0 && man(en).config.docLanguage === "en", en.res.stderr);
+  check("anglais : CLAUDE.md, workflow, ADR et arc42 en anglais, libellé de langue English", /English: identifiers/.test(txt(en, "CLAUDE.md")) && /^- English: documentation/m.test(txt(en, "CLAUDE.md")) && /Repository workflow/.test(txt(en, "docs/workflow.md")) && /^## Status$/m.test(txt(en, "docs/architecture/adrs/ARCH-003-emplacement-et-format-des-adr.md")) && /^# 1\. Introduction and goals/.test(txt(en, "docs/architecture/arc42/01-introduction-et-objectifs.md")));
+  const adr4 = txt(en, "docs/architecture/adrs/ARCH-004-github-comme-forge-avec-actions-et-releases.md");
+  check("anglais : paramètres localisés (libellé private, systèmes de la CI, crédit Actions)", /The repository is private\./.test(adr4) && /`ubuntu-latest` only/.test(adr4) && /see the Actions billing page/.test(adr4), adr4.slice(0, 600));
+  check("anglais : aucun résidu de français dans la sortie générée (lettres accentuées)", !Object.entries(tree(en)).some(([f, c]) => f !== ".bootstrap/manifest.json" && /[àâäéèêëîïôöùûüç]/i.test(c) && !/^docs\/architecture\/adrs\/.*\.md$/.test(f + "x")), Object.entries(tree(en)).filter(([f, c]) => f !== ".bootstrap/manifest.json" && /[àâäéèêëîïôöùûüç]/i.test(c)).map(([f]) => f).join(", "));
+  const enFiles = Object.keys(tree(en)).sort().join();
+  check("même arborescence en français et en anglais", enFiles === Object.keys(tree(fr)).sort().join());
+  const again = gen({ docLanguage: "en" });
+  check("anglais : deux générations identiques", Object.entries(tree(en)).every(([f, c]) => tree(again)[f] === c));
+  const full = gen({ docLanguage: "en" }, "public", allModules);
+  const fullFr = gen({}, "public", allModules);
+  check("anglais, tous les modules, public : mêmes chemins que le français, génération réussie", full.res.status === 0 && Object.keys(tree(full)).sort().join() === Object.keys(tree(fullFr)).sort().join());
+  const named = gen({ docLanguage: "en", docLanguageName: "English (US)", actionsCreditNote: "12 USD" });
+  check("docLanguageName et actionsCreditNote explicites l'emportent sur les défauts de la langue", /^- English \(US\): documentation/m.test(txt(named, "CLAUDE.md")) && /12 USD/.test(txt(named, "docs/architecture/adrs/ARCH-004-github-comme-forge-avec-actions-et-releases.md")));
+
+  // mise à jour : la langue (et le mode) du manifeste sont rejoués ; une configuration sans la clé ne les change pas
+  const upd = spawnSync(process.execPath, [scaffold, "--update", "--target", en.out], { encoding: "utf8" });
+  check("--update rejoue la langue du manifeste (aucun fichier créé, mis à jour ni en conflit)", upd.status === 0 && JSON.parse(upd.stdout).created.length === 0 && JSON.parse(upd.stdout).updated.length === 0 && JSON.parse(upd.stdout).conflicts.length === 0, upd.stdout + upd.stderr);
+  const cfgNoLang = path.join(mkdtempSync(path.join(tmpdir(), "pb-cfg-")), "bootstrap.json");
+  writeFileSync(cfgNoLang, JSON.stringify({ ...base, ...noFr, visibility: "private", modules: mods }));
+  const upd2 = spawnSync(process.execPath, [scaffold, "--update", "--config", cfgNoLang, "--target", en.out], { encoding: "utf8" });
+  check("--update --config sans docLanguage : la langue du manifeste est conservée (aucun fichier remplacé)", upd2.status === 0 && JSON.parse(upd2.stdout).updated.length === 0 && man(en).config.docLanguage === "en" && /^## Status$/m.test(txt(en, "docs/architecture/adrs/ARCH-003-emplacement-et-format-des-adr.md")), upd2.stdout + upd2.stderr);
+  const loc = gen({ cliInstall: "local" });
+  const cfgNoMode = path.join(mkdtempSync(path.join(tmpdir(), "pb-cfg-")), "bootstrap.json");
+  writeFileSync(cfgNoMode, JSON.stringify({ ...base, ...noFr, visibility: "private", modules: mods }));
+  const upd3 = spawnSync(process.execPath, [scaffold, "--update", "--config", cfgNoMode, "--target", loc.out], { encoding: "utf8" });
+  check("--update --config sans cliInstall : le mode du manifeste est conservé", upd3.status === 0 && man(loc).config.cliInstall === "local" && JSON.parse(upd3.stdout).updated.length === 0, upd3.stdout + upd3.stderr);
+  const det = JSON.parse(spawnSync(process.execPath, [scaffold, "--detect", "--target", en.out], { encoding: "utf8" }).stdout);
+  check("--detect expose les langues disponibles et celles du manifeste", det.languages.join() === "en,fr" && det.manifest.docLanguage === "en" && det.manifest.cliInstall === "global", JSON.stringify(det));
+}
+
+// parité entre les modèles français et anglais (ARCH-008)
+{
+  const assetsDir = path.join(root, "skills", "project-bootstrap", "assets");
+  const frRoot = path.join(assetsDir, "templates");
+  const enRoot = path.join(assetsDir, "templates.en");
+  const rel = (dir) => walk(dir).map((f) => path.relative(dir, f).split(path.sep).join("/")).sort();
+  const readLf = (f) => readFileSync(f, "utf8").replace(/\r\n/g, "\n");
+  const ACCENT = /[àâäéèêëîïôöùûüç]/i;
+  const markers = (t) => t.split("\n").map((l) => /@@(module:[\w|-]+|end)/.exec(l)?.[1]).filter(Boolean);
+  const params = (t) => [...new Set(t.match(/\{\{[A-Z0-9_]+\}\}/g) ?? [])].sort();
+  // retire chaînes et commentaires d'un script, garde le reste (littéraux de regex compris) et le contenu des ${…} d'un gabarit
+  function codeSkeleton(src, { regex = true } = {}) {
+    let out = "";
+    let i = 0;
+    const n = src.length;
+    const template = () => {
+      i++;
+      out += "`";
+      while (i < n && src[i] !== "`") {
+        if (src[i] === "\\") i += 2;
+        else if (src[i] === "$" && src[i + 1] === "{") {
+          i += 2;
+          let depth = 1;
+          let inner = "";
+          while (i < n && depth > 0) {
+            if (src[i] === "{") depth++;
+            if (src[i] === "}") depth--;
+            if (depth > 0) inner += src[i];
+            i++;
+          }
+          out += "${" + codeSkeleton(inner, { regex }) + "}";
+        } else i++;
+      }
+      i++;
+      out += "`";
+    };
+    while (i < n) {
+      const c = src[i];
+      if (c === "/" && src[i + 1] === "/") while (i < n && src[i] !== "\n") i++;
+      else if (c === "/" && src[i + 1] === "*") {
+        i += 2;
+        while (i < n && !(src[i] === "*" && src[i + 1] === "/")) i++;
+        i += 2;
+      } else if (c === '"' || c === "'") {
+        const q = c;
+        i++;
+        while (i < n && src[i] !== q) i += src[i] === "\\" ? 2 : 1;
+        i++;
+        out += q + q;
+      } else if (c === "`") template();
+      else if (c === "/" && /[(,=:!&|?{};\n]\s*$/.test(out) && src[i + 1] !== " ") {
+        // littéraux de regex : conservés (ou retirés pour les fichiers dont le vocabulaire suit la langue)
+        let j = i + 1;
+        let inClass = false;
+        while (j < n && (src[j] !== "/" || inClass)) {
+          if (src[j] === "\\") j++;
+          else if (src[j] === "[") inClass = true;
+          else if (src[j] === "]") inClass = false;
+          j++;
+        }
+        j++;
+        while (/[a-z]/.test(src[j] ?? "")) j++;
+        out += regex ? src.slice(i, j) : "/R/";
+        i = j;
+      } else {
+        out += c;
+        i++;
+      }
+    }
+    return out.replace(/[ \t]+/g, " ").replace(/\n\s*\n+/g, "\n").split("\n").map((l) => l.trim()).filter(Boolean).join("\n");
+  }
+  const yamlSkeleton = (t) =>
+    t.split("\n").filter((l) => !/^\s*#/.test(l)).map((l) => l.replace(/^(\s*(?:- )?(?:name|description|label|placeholder): ).*$/, "$1").replace(/"[^"]*"/g, '""').replace(/\s+#.*$/, "").trimEnd()).join("\n");
+  const jsonSkeleton = (t) => JSON.stringify(JSON.parse(t), (k, v) => (k === "description" ? "" : v));
+  const headings = (t) => {
+    let fence = false;
+    return t.split("\n").filter((l) => (/^```/.test(l) ? ((fence = !fence), false) : !fence && /^#{1,6} /.test(l))).length;
+  };
+  // renvoie la liste des écarts de parité entre un modèle français et sa version anglaise (null = pas de version anglaise)
+  function parity(file, fr, en) {
+    const issues = [];
+    if (en === null) return ACCENT.test(fr) ? [`${file} : modèle sans version anglaise mais avec des lettres accentuées`] : issues;
+    if (markers(fr).join() !== markers(en).join()) issues.push(`${file} : marqueurs @@module/@@end différents`);
+    if (params(fr).join() !== params(en).join()) issues.push(`${file} : paramètres {{…}} différents`);
+    if (/\.(mjs|ts)$/.test(file) || file === ".githooks/pre-push") {
+      const opts = { regex: !/\.rules\.ts$/.test(file) };
+      if (codeSkeleton(fr, opts) !== codeSkeleton(en, opts)) issues.push(`${file} : squelette de code différent`);
+    } else if (/\.ya?ml$/.test(file)) {
+      if (yamlSkeleton(fr) !== yamlSkeleton(en)) issues.push(`${file} : structure YAML différente`);
+    } else if (/\.json$/.test(file)) {
+      if (jsonSkeleton(fr) !== jsonSkeleton(en)) issues.push(`${file} : structure JSON différente`);
+    } else if (/\.md$/.test(file) && headings(fr) !== headings(en)) issues.push(`${file} : nombre de titres différent`);
+    return issues;
+  }
+
+  const frFiles = rel(frRoot);
+  const enFiles = rel(enRoot);
+  const orphans = enFiles.filter((f) => !frFiles.includes(f));
+  check("aucun modèle anglais sans équivalent français", orphans.length === 0, orphans.join(", "));
+  const issues = frFiles.flatMap((f) => parity(f, readLf(path.join(frRoot, f)), enFiles.includes(f) ? readLf(path.join(enRoot, f)) : null));
+  check("parité des modèles : marqueurs, paramètres, squelette de code, structure, titres, accents", issues.length === 0, issues.join(" | "));
+  check("des modèles anglais existent (le test de parité n'est pas vide)", enFiles.length >= 30, String(enFiles.length));
+
+  // le test de parité détecte bien chaque sorte d'écart
+  const frWf = readLf(path.join(frRoot, "docs", "workflow.md"));
+  const enWf = readLf(path.join(enRoot, "docs", "workflow.md"));
+  check("parité : marqueur perdu -> écart", parity("docs/workflow.md", frWf, enWf.replace("@@module:projects\n", "")).some((i) => /marqueurs/.test(i)));
+  check("parité : paramètre perdu -> écart", parity("docs/workflow.md", frWf, enWf.replace("{{CI_BLOCKING_NOTE}}", "x")).some((i) => /paramètres/.test(i)));
+  const frHook = readLf(path.join(frRoot, ".claude", "hooks", "read-only-bash.mjs"));
+  const enHook = readLf(path.join(enRoot, ".claude", "hooks", "read-only-bash.mjs"));
+  check("parité : code modifié dans un hook -> écart", parity(".claude/hooks/read-only-bash.mjs", frHook, enHook.replace("process.exit(2)", "process.exit(0)")).some((i) => /squelette/.test(i)));
+  check("parité : regex de la liste blanche modifiée dans un hook -> écart", parity(".claude/hooks/read-only-bash.mjs", frHook, enHook.replace("(validate|show|list|status)", "(validate|show|list|status|archive)")).some((i) => /squelette/.test(i)));
+  check("parité : chaîne ou commentaire traduit -> pas d'écart", parity(".claude/hooks/read-only-bash.mjs", frHook, enHook.replace("// closed character set", "// jeu fermé")).length === 0);
+  check("parité : modèle sans version anglaise avec une lettre accentuée -> écart", parity("x.md", "voilà", null).length === 1 && parity("x.md", "plain", null).length === 0);
+  check("parité : YAML dont la structure change -> écart", parity("a.yml", "name: A\nbody:\n  - x: 1\n", "name: B\nbody:\n  - x: 1\n  - y: 2\n").length === 1 && parity("a.yml", "name: A\nbody:\n  - x: 1\n", "name: B\nbody:\n  - x: 1\n").length === 0);
+}
+
 // erreurs de configuration
 check("dépendance manquante refusée", run({ ...base, visibility: "private", modules: ["release"] }).res.status === 1);
 check("module inconnu refusé", run({ ...base, visibility: "private", modules: ["nope"] }).res.status === 1);
@@ -1224,28 +1388,44 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
   const osOut = spawnSync(process.execPath, [runner, "--print-os"], { cwd: out, encoding: "utf8" });
   check("--print-os : matrice de la CI", osOut.stdout.trim() === JSON.stringify(["ubuntu-latest", "macos-latest"]), osOut.stdout);
 }
-// agents en lecture seule : chaque commande citée dans leur modèle doit passer le hook read-only-bash.mjs
-{
-  const tpl = path.join(root, "skills", "project-bootstrap", "assets", "templates", ".claude");
+// agents en lecture seule : chaque commande citée dans leur modèle doit passer le hook read-only-bash.mjs (modèles français et anglais)
+for (const dirName of ["templates", "templates.en"]) {
+  const tpl = path.join(root, "skills", "project-bootstrap", "assets", dirName, ".claude");
   const hook = path.join(tpl, "hooks", "read-only-bash.mjs");
   const agentsDir = path.join(tpl, "agents");
   const verdict = (command) =>
     spawnSync(process.execPath, [hook], { input: JSON.stringify({ tool_input: { command } }), encoding: "utf8" }).status;
-  check("hook lecture seule : commande autorisée acceptée", verdict("git log main..HEAD --oneline") === 0);
-  check("hook lecture seule : caractère % refusé", verdict("git log main..HEAD --format=%s") === 2);
+  check(`hook lecture seule (${dirName}) : commande autorisée acceptée`, verdict("git log main..HEAD --oneline") === 0);
+  check(`hook lecture seule (${dirName}) : caractère % refusé`, verdict("git log main..HEAD --format=%s") === 2);
+  check(`hook lecture seule (${dirName}) : commande hors liste et option git d'écriture refusées`, verdict("rm -rf x") === 2 && verdict("git diff --output=x") === 2);
   for (const file of readdirSync(agentsDir)) {
     const text = readFileSync(path.join(agentsDir, file), "utf8");
     if (!text.includes("read-only-bash.mjs")) continue;
     const refused = [];
     for (const line of text.split("\n")) {
-      if (/pas d[eu' ]|n'exécute aucune/i.test(line)) continue; // consigne d'interdiction, pas une commande à lancer
+      if (/pas d[eu' ]|n'exécute aucune|\bRun no\b/i.test(line)) continue; // consigne d'interdiction, pas une commande à lancer
       for (const [, cmd] of line.matchAll(/`((?:git|gh|openspec|archgate) [^`]+)`/g)) {
         const command = cmd.replace(/<([^>]+)>/g, "$1").replace(/ N\b/g, " 1");
         if (verdict(command) !== 0) refused.push(command);
       }
     }
-    check(`${file} : commandes citées acceptées par le hook`, refused.length === 0, refused.join(" | "));
+    check(`${dirName}/${file} : commandes citées acceptées par le hook`, refused.length === 0, refused.join(" | "));
   }
+  // restrict-path et check-pr-title : mêmes codes de sortie dans toutes les langues
+  const restrict = path.join(tpl, "hooks", "restrict-path.mjs");
+  const rp = (file) => spawnSync(process.execPath, [restrict, "docs/architecture/arc42/"], { input: JSON.stringify({ tool_input: { file_path: file }, cwd: root }), encoding: "utf8", env: { ...process.env, CLAUDE_PROJECT_DIR: root } }).status;
+  check(`restrict-path (${dirName}) : écriture dans le préfixe autorisée, hors préfixe refusée`, rp(path.join(root, "docs", "architecture", "arc42", "01.md")) === 0 && rp(path.join(root, "README.md")) === 2);
+  const titleScript = path.join(root, "skills", "project-bootstrap", "assets", dirName, "scripts", "check-pr-title.mjs");
+  const title = (v) => spawnSync(process.execPath, [titleScript], { env: { ...process.env, PR_TITLE: v }, encoding: "utf8" }).status;
+  check(`check-pr-title (${dirName}) : titre valide accepté, titre invalide refusé`, title("feat(x): add y") === 0 && title("add y") === 1);
+}
+// sync-labels anglais : mêmes appels gh que le français
+{
+  const enSync = await import("../skills/project-bootstrap/assets/templates.en/scripts/sync-labels.mjs");
+  const calls = [];
+  const gh = (args) => (calls.push(args.join(" ")), args[0] === "label" && args[1] === "list" ? JSON.stringify([{ name: "Bug" }]) : "");
+  const r = enSync.syncLabels({ labels: [{ name: "bug", color: "d73a4a", description: "d", native: true }, { name: "chore", color: "c5def5", description: "d" }], gh });
+  check("sync-labels (templates.en) : label natif existant ignoré, label du plugin créé", r.skipped.join() === "bug" && r.created.join() === "chore" && calls.some((c) => c.startsWith("label create chore")), JSON.stringify(r));
 }
 
 console.log(failed ? `\n${failed} échec(s)` : "\nTous les tests passent");

@@ -1,0 +1,8 @@
+# Normalizes line endings: LF in the repository and in the working copy, on Windows as on Linux.
+* text=auto eol=lf
+
+# Binaries
+*.xlsx binary
+*.png  binary
+*.jpg  binary
+*.pdf  binary

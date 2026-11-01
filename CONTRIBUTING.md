@@ -27,6 +27,13 @@ Node.js ≥ 20.19. Les tests doivent passer sous Linux, Windows et macOS (sépar
 - **Un module est ajouté ou retiré du catalogue** : sa combinaison apparaît (instantané manquant) ou son instantané devient orphelin; la même commande règle les deux.
 - **Les CLI réelles** : sur les sélections par défaut et complète, la matrice lance `openspec init`, `openspec validate`, `openspec doctor`, `archgate check` et l'audit sur le projet généré. En CI (`CI` défini) `openspec` et `archgate` doivent être installés ; en local, une CLI absente est ignorée avec un message.
 
+### Langues de la documentation générée
+Les modèles de référence (`assets/templates/`) sont en français ; `assets/templates.en/` contient la version anglaise des seuls modèles qui ont du texte (ARCH-008). Les modèles sans texte (JSON, YAML d'outillage) sont partagés. **Un changement de modèle s'applique aux deux versions dans la même PR.** Les noms de fichiers sont identiques dans toutes les langues.
+
+- **Parité** (`tests/scaffold.test.mjs`) : mêmes lignes `@@module`/`@@end` et mêmes paramètres `{{…}}` que le modèle français ; pour les scripts, même code une fois retirés les chaînes et les commentaires (les littéraux de regex des hooks sont conservés) ; pour les YAML, même structure sans les commentaires ni les libellés ; un modèle sans version anglaise ne contient aucune lettre accentuée ; un fichier de `templates.en/` sans équivalent français est refusé. Le test ne voit pas un écart de sens : la relecture de PR reste nécessaire.
+- **Ajouter une langue `<code>`** : copier `assets/templates.en/` vers `assets/templates.<code>/`, traduire (texte, commentaires, messages des scripts), ajouter la table de paramètres de la langue dans `scripts/scaffold.mjs` (`LANG_PARAMS`), adapter les statuts d'ADR de `ARCH-003-….rules.ts` et le vocabulaire des sections de statut, puis lancer `node .bootstrap/run-checks.mjs` (une combinaison `default-<code>` se déduit en ajoutant la langue à la matrice).
+- **Ce qui n'est pas traduit** : `SKILL.md`, les messages du plugin, les fichiers de `openspec init` (langue donnée par `--language`).
+
 ### Évaluation du skill (`claude plugin eval`) : écartée en CI, essai local possible
 **Décision** : l'évaluation du comportement de `SKILL.md` n'est pas lancée en CI. Elle exécute de vrais agents Claude sur le compte de la personne qui la lance, avec des juges LLM et une limite de débit partagée : elle n'est ni déterministe, ni gratuite, et exigerait des identifiants dans la CI.
 

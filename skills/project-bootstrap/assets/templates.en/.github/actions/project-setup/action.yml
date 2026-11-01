@@ -1,0 +1,10 @@
+name: project-setup
+description: Project toolchain (language, dependencies), installed before the commands of .bootstrap/checks.json. File owned by the project.
+# This file belongs to the project: the plugin creates it once, then no longer modifies it.
+# Add the stack installation steps here, under "steps" (uses: ... or run: ...).
+runs:
+  using: composite
+  steps:
+    - name: No toolchain to install
+      shell: bash
+      run: echo "project-setup - no toolchain configured."
