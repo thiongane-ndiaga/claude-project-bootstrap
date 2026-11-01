@@ -107,12 +107,20 @@ for (const [m, def] of Object.entries(manifest.modules)) {
     else if (c === m || def.requires.includes(c)) errors.push(`Catalogue invalide : ${m} ne peut pas être incompatible avec ${c}`);
   }
 }
+// `when` ne cite que des modules du catalogue ou des pseudo-modules connus
+const PSEUDO_MODULES = ["visibility-private", "visibility-public", "stack-chosen", "stack-open", "cli-npm-global", "cli-default", "cli-user", "cli-local"];
+for (const { path: rel, when } of manifest.files) {
+  for (const m of when) if (!manifest.modules[m] && !PSEUDO_MODULES.includes(m)) errors.push(`Catalogue invalide : ${rel} cite le module inconnu ${m}`);
+}
 for (const m of selected) {
   const def = manifest.modules[m];
   if (!def) errors.push(`Module inconnu : ${m}`);
   else for (const r of def.requires) if (!selected.has(r)) errors.push(`Le module ${m} requiert ${r}`);
 }
 if (!["private", "public"].includes(config.visibility)) errors.push("visibility doit valoir private ou public");
+const CLI_MODES = ["global", "user", "local"];
+if (config.cliInstall !== undefined && !CLI_MODES.includes(config.cliInstall)) errors.push(`cliInstall doit valoir ${CLI_MODES.join(", ")} (reçu : ${JSON.stringify(config.cliInstall)})`);
+if (config.cliInstall === "local" && !selected.has("openspec") && !selected.has("archgate")) errors.push("cliInstall local exige le module openspec ou archgate (rien à installer en local sinon)");
 if (errors.length) {
   console.error(errors.join("\n"));
   process.exit(1);
@@ -127,7 +135,8 @@ if (incompatible.size) {
   process.exit(2);
 }
 // pseudo-modules utilisés par les blocs conditionnels
-const active = new Set([...selected, `visibility-${config.visibility}`, config.stack ? "stack-chosen" : "stack-open"]);
+const cliMode = config.cliInstall ?? "global";
+const active = new Set([...selected, `visibility-${config.visibility}`, config.stack ? "stack-chosen" : "stack-open", ...(cliMode === "local" ? ["cli-local"] : ["cli-npm-global"]), ...(cliMode === "user" ? ["cli-user"] : []), ...(cliMode === "global" ? ["cli-default"] : [])]);
 
 // --- paramètres ---
 const ref = (a) => (a ? `${a.sha} # ${a.tag}` : undefined);
@@ -207,6 +216,18 @@ function buildSettings() {
   return JSON.stringify(settings, null, 2) + "\n";
 }
 
+// --- package.json du mode local : construit en code (le JSON n'admet pas de blocs), propre au projet ---
+function buildPackageJson() {
+  const devDependencies = {};
+  for (const [mod, pkg] of [["openspec", "@fission-ai/openspec"], ["archgate", "archgate"]]) {
+    if (!active.has(mod)) continue;
+    const version = config.versions?.[mod];
+    if (!version) throw new Error(`package.json : version de ${mod} non renseignée (versions.${mod})`);
+    devDependencies[pkg] = version;
+  }
+  return JSON.stringify({ private: true, scripts: { claude: "claude" }, devDependencies }, null, 2) + "\n";
+}
+
 // --- génération ---
 const outputs = [];
 try {
@@ -221,6 +242,14 @@ try {
   process.exit(1);
 }
 if (active.has("claude")) outputs.push({ rel: ".claude/settings.json", merge: "json", content: buildSettings() });
+if (active.has("cli-local")) {
+  try {
+    outputs.push({ rel: "package.json", owned: true, content: buildPackageJson() });
+  } catch (err) {
+    console.error(err.message);
+    process.exit(1);
+  }
+}
 
 function diffText(currentPath, proposed) {
   const tmp = path.join(mkdtempSync(path.join(tmpdir(), "pb-diff-")), "propose");

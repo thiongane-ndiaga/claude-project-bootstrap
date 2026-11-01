@@ -14,14 +14,20 @@ concurrency:
   cancel-in-progress: true
 
 # @@module:openspec|archgate
+# @@module:openspec|cli-npm-global
 env:
   # @@module:openspec
+  # @@module:cli-npm-global
   OPENSPEC_VERSION: {{OPENSPEC_VERSION}}
+  # @@end
   OPENSPEC_TELEMETRY: "0"
   # @@end
   # @@module:archgate
+  # @@module:cli-npm-global
   ARCHGATE_VERSION: {{ARCHGATE_VERSION}}
   # @@end
+  # @@end
+# @@end
 # @@end
 
 jobs:
@@ -54,18 +60,32 @@ jobs:
       - uses: actions/setup-node@{{SETUP_NODE_REF}}
         with:
           node-version: {{NODE_VERSION}}
+          # @@module:cli-local
+          cache: npm
+          # @@end
+      # @@module:cli-local
+      - name: CLI d'outillage (package.json, package-lock.json)
+        run: npm ci
+      - name: node_modules/.bin dans le PATH
+        shell: bash
+        run: echo "$GITHUB_WORKSPACE/node_modules/.bin" >> "$GITHUB_PATH"
+      # @@end
       # @@module:openspec
       - name: OpenSpec validate
         shell: bash
         run: |
+          # @@module:cli-npm-global
           npm install -g "@fission-ai/openspec@${OPENSPEC_VERSION}"
+          # @@end
           openspec validate --all --strict --no-interactive
       # @@end
       # @@module:archgate
       - name: Archgate check
         shell: bash
         run: |
+          # @@module:cli-npm-global
           npm install -g "archgate@${ARCHGATE_VERSION}"
+          # @@end
           archgate check --output github
       # @@end
       # Chaîne d'outils de la stack (langage, dépendances) : à installer dans .github/actions/project-setup/action.yml, pas ici

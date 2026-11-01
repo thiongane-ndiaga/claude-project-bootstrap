@@ -28,6 +28,7 @@ Entrée de `scripts/scaffold.mjs`. Fusionne la sortie de `scripts/resolve-versio
 | `modules` | toujours | `core` est ajouté d'office ; dépendances vérifiées |
 | `docLanguageName` | — | nom affiché de la langue (défaut « Français ») |
 | `stack` | — | stack déjà connue, en une ligne ; absente, `CLAUDE.md` dit que la stack n'est pas choisie |
+| `cliInstall` | — | installation des CLI : `global` (défaut, clé à omettre), `user` ou `local`. `local` exige `openspec` ou `archgate` et crée `package.json` (voir ARCH-007) ; la clé est consignée au manifeste seulement si elle est présente |
 | `keep` | — | fichiers du modèle que le projet gère lui-même : jamais créés, modifiés ni signalés en conflit, consignés dans le manifeste |
 | `date` | — | date de vérification des conditions GitHub (défaut : aujourd'hui) |
 | `actionsCreditNote` | archgate + github + privé | chiffres **relevés dans la doc du jour**, jamais de mémoire |

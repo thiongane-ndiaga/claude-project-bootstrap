@@ -3,6 +3,11 @@
 .claude/agent-memory-local/
 CLAUDE.local.md
 
+@@module:cli-local
+# Dépendances npm des CLI d'outillage
+node_modules/
+
+@@end
 # OS / éditeurs
 .DS_Store
 Thumbs.db

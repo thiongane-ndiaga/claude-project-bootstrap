@@ -37,6 +37,14 @@ Constatés lors de la mise en place de référence (Claude Code 2.1.31x, OpenSpe
 - `npm install -g` échoue (`The operation was rejected by your operating system`) quand le préfixe npm est `/usr`, qui appartient à root. → Détecter avec `npm config get prefix` et un test d'écriture, puis `npm install -g --prefix ~/.local …` avec `~/.local/bin` dans le `PATH`. Pas de `sudo` sans demande de l'utilisateur.
 - Le `--prefix` n'est pas mémorisé : les mises à jour ultérieures de ces CLI doivent le répéter.
 
+## Mode d'installation des CLI (`cliInstall`)
+- `user` : `~/.local` n'a pas de sens sous Windows (le préfixe npm y est déjà propre à l'utilisateur) ; le mode y équivaut à `global`.
+- `local` : les skills `/opsx:*` appellent `openspec` par son nom. Une session Claude Code démarrée sans `npm run claude` (qui place `node_modules/.bin` dans le `PATH`) ne le trouve pas. Options de Claude Code : `npm run claude -- <options>`. Sous Windows, si `claude` est un shim `.cmd`, `npm run` peut afficher « Terminer le programme de commandes (O/N) ? » au Ctrl+C.
+- `local` : `npm ci` et `cache: npm` échouent sans `package-lock.json` commité. Créer le lockfile (`npm install --package-lock-only`) avant le premier push.
+- `local` : un `package.json` existant est conservé (`kept`), jamais modifié : ajouter les `devDependencies` à la main. Pour monter une version : `npm install --save-dev --save-exact <paquet>@<version>` (Dependabot ne couvre que `github-actions`).
+- `local` avec une action `project-setup` qui lance elle aussi `npm ci` : le second `npm ci` est inutile, le retirer de l'action.
+- Changer de mode après coup n'est pas géré : ajouter ou changer `cliInstall`, relancer `scaffold.mjs --update --config`, créer le lockfile, puis retirer à la main les anciennes installations globales.
+
 ## GitHub
 - En **privé sur Free** : ni branches protégées ni rulesets → le blocage se fait en local (`pre-push`).
 - `gh` ne remplit pas les formulaires d'issue YAML en mode non interactif : reproduire leurs sections dans `--body-file`.

@@ -9,7 +9,7 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSyn
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { realExec, runAudit } from "../skills/project-bootstrap/scripts/audit.mjs";
+import { localBinExec, realExec, runAudit } from "../skills/project-bootstrap/scripts/audit.mjs";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const scaffold = path.join(root, "skills", "project-bootstrap", "scripts", "scaffold.mjs");
@@ -52,6 +52,8 @@ export function combinations(modulesCatalog) {
     ...names.map((m) => ({ name: m, modules: [...closure(m)].filter((x) => x !== "core"), single: m })),
     { name: "default", modules: defaults, single: null },
     { name: "default-stack", modules: defaults, extra: { stack: "Node.js, modules ES" }, single: null },
+    { name: "default-cli-user", modules: defaults, config: { cliInstall: "user" }, single: null },
+    { name: "default-cli-local", modules: defaults, config: { cliInstall: "local" }, single: null },
     { name: "full", modules: names, single: null },
     { name: "full-public", modules: names, config: { visibility: "public" }, single: null },
   ];
@@ -153,7 +155,7 @@ const combos = combinations(catalog.modules);
 const covered = new Set(combos.filter((c) => c.single).map((c) => c.single));
 const uncovered = Object.keys(catalog.modules).filter((m) => m !== "core" && !covered.has(m));
 check("matrice : chaque module du catalogue a sa combinaison", uncovered.length === 0, `modules sans combinaison : ${uncovered.join(", ")}`);
-check("matrice : core seul, un module par combinaison, défaut, défaut avec stack, complet, complet en public", combos.length === Object.keys(catalog.modules).length - 1 + 5 && combos.some((c) => c.name === "core" && c.modules.length === 0) && ["default", "default-stack", "full", "full-public"].every((n) => combos.some((c) => c.name === n)));
+check("matrice : core seul, un module par combinaison, défaut, défaut avec stack, modes user et local, complet, complet en public", combos.length === Object.keys(catalog.modules).length - 1 + 7 && combos.some((c) => c.name === "core" && c.modules.length === 0) && ["default", "default-stack", "default-cli-user", "default-cli-local", "full", "full-public"].every((n) => combos.some((c) => c.name === n)));
 {
   // instantané orphelin : module retiré ou renommé ; la mise à jour supprime les orphelins
   const orphans = existsSync(SNAPSHOTS) ? readdirSync(SNAPSHOTS).filter((f) => f.endsWith(".json") && !combos.some((c) => `${c.name}.json` === f)) : [];
@@ -299,6 +301,49 @@ check("CLI absentes : ignorées hors CI, échec en CI", missingPolicy(["openspec
       if (bothPresent) check(`${name} : audit sans contrôle non vérifiable`, unverified.length === 0, unverified.map((e) => `${e.id}: ${e.message}`).join(" | ").slice(0, 500));
       rmSync(g.dir, { recursive: true, force: true });
     }
+  }
+}
+
+// mode local avec le registre npm : lockfile, npm ci, CLI du projet, hook et audit (réseau : exigé en CI, sinon PB_NETWORK_TESTS=1)
+{
+  const installed = { openspec: cliVersion("openspec"), archgate: cliVersion("archgate") };
+  const network = IN_CI || process.env.PB_NETWORK_TESTS === "1";
+  if (!network) console.log("skip mode local avec le registre npm : définir PB_NETWORK_TESTS=1 (exigé quand CI est défini)");
+  else if (!installed.openspec || !installed.archgate) {
+    if (IN_CI) check("mode local : openspec et archgate installés (exigés en CI)", false, "CLI introuvable");
+    else console.log("skip mode local avec le registre npm : openspec et archgate introuvables");
+  } else {
+    const combo = combos.find((c) => c.name === "default-cli-local");
+    const g = generate(combo, { ...baseConfig, versions: { ...baseConfig.versions, openspec: installed.openspec, archgate: installed.archgate } });
+    check("mode local : génération avec les versions installées", g.res.status === 0, g.res.stderr);
+    if (g.res.status === 0) {
+      const git = (...a) => spawnSync("git", ["-C", g.out, "-c", "commit.gpgsign=false", "-c", "core.hooksPath=", ...a], { encoding: "utf8" });
+      git("init", "-q");
+      git("config", "user.name", "matrice");
+      git("config", "user.email", "matrice@example.invalid");
+      if (process.platform !== "win32") chmodSync(path.join(g.out, ".githooks", "pre-push"), 0o755);
+      git("add", "-A");
+      git("update-index", "--chmod=+x", ".githooks/pre-push");
+      git("commit", "-q", "--no-verify", "-m", "init");
+      git("config", "core.hooksPath", ".githooks");
+      const lock = realExec("npm", ["install", "--package-lock-only"], { cwd: g.out, timeout: 240000 });
+      check("mode local : npm install --package-lock-only crée le lockfile", lock.status === 0 && existsSync(path.join(g.out, "package-lock.json")), (lock.stderr || lock.stdout).slice(0, 300));
+      const ci = realExec("npm", ["ci"], { cwd: g.out, timeout: 240000 });
+      check("mode local : npm ci installe les CLI du projet", ci.status === 0, (ci.stderr || ci.stdout).slice(0, 300));
+      const bin = path.join(g.out, "node_modules", ".bin");
+      check("mode local : node_modules/.bin contient openspec et archgate", ["openspec", "archgate"].every((c) => existsSync(path.join(bin, c)) || existsSync(path.join(bin, `${c}.cmd`))));
+      const local = localBinExec(realExec, g.out);
+      const v = local("openspec", ["--version"], { cwd: g.out });
+      check("mode local : openspec du projet à la version épinglée", v.status === 0 && v.stdout.includes(installed.openspec), v.stdout + v.stderr);
+      const init = local("openspec", ["init", "--tools", "claude", "--language", "fr", "--no-animation"], { cwd: g.out });
+      check("mode local : openspec init réussit", init.status === 0, (init.stderr || init.stdout).slice(0, 300));
+      const gate = spawnSync(process.execPath, [path.join(g.out, ".claude", "hooks", "quality-gate.mjs")], { cwd: g.out, encoding: "utf8" });
+      check("mode local : quality-gate.mjs passe", gate.status === 0, (gate.stdout + gate.stderr).slice(0, 400));
+      const audit = await runAudit({ target: g.out });
+      const ecarts = audit.results.filter((r) => r.statut === "ecart");
+      check("mode local : audit sans écart", ecarts.length === 0, ecarts.map((e) => `${e.id}: ${e.message}`).join(" | ").slice(0, 500));
+    }
+    rmSync(g.dir, { recursive: true, force: true });
   }
 }
 

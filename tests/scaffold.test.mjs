@@ -2,7 +2,7 @@
 // Tests de scaffold.mjs sur plusieurs combinaisons de modules. Usage : node tests/scaffold.test.mjs
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { chmodSync, cpSync, mkdirSync, mkdtempSync, writeFileSync, readFileSync, readdirSync, statSync, rmSync } from "node:fs";
+import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, writeFileSync, readFileSync, readdirSync, statSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -125,6 +125,76 @@ for (const c of cases) {
   // ajout du module à un projet existant : seul dependabot.yml est créé
   const added = run({ ...base, visibility: "private", modules: ["github", "dependabot"] }, [], without.out);
   check("ajout de dependabot à un projet existant : seul .github/dependabot.yml créé", added.res.status === 0 && added.report.created.length === 1 && added.report.created[0] === ".github/dependabot.yml" && added.report.conflicts.length === 0, JSON.stringify(added.report));
+}
+
+// modes d'installation des CLI (cliInstall)
+{
+  const mods = ["claude", "github", "openspec", "archgate", "githooks"];
+  const gen = (extra, modules = mods, vis = "private") => run({ ...base, visibility: vis, modules, ...extra });
+  const txt = (r, rel) => readFileSync(path.join(r.out, ...rel.split("/")), "utf8");
+  const tree = (r) => Object.fromEntries(walk(r.out).filter((f) => !f.includes(`${path.sep}.bootstrap${path.sep}base`)).map((f) => [path.relative(r.out, f).split(path.sep).join("/"), readFileSync(f, "utf8")]));
+
+  const bad = gen({ cliInstall: "docker" });
+  check("cliInstall invalide refusé (code 1, valeurs permises nommées)", bad.res.status === 1 && /global, user, local/.test(bad.res.stderr), bad.res.stderr);
+  const noCli = gen({ cliInstall: "local" }, ["claude", "github"]);
+  check("cliInstall local sans openspec ni archgate refusé (code 1)", noCli.res.status === 1 && /openspec ou archgate/.test(noCli.res.stderr));
+
+  const glob = gen({});
+  const globExplicit = gen({ cliInstall: "global" });
+  const tg = tree(glob);
+  const te = tree(globExplicit);
+  const man = (r) => JSON.parse(txt(r, ".bootstrap/manifest.json"));
+  check("cliInstall absent : clé non écrite au manifeste, sortie identique au mode global explicite", man(glob).config.cliInstall === undefined && man(globExplicit).config.cliInstall === "global" && Object.keys(tg).every((f) => f === ".bootstrap/manifest.json" || tg[f] === te[f]));
+
+  const user = gen({ cliInstall: "user" });
+  const tu = tree(user);
+  const differ = Object.keys({ ...tg, ...tu }).filter((f) => tg[f] !== tu[f]).sort();
+  check("mode user : seuls docs/workflow.md et le manifeste diffèrent du mode global", differ.join(",") === ".bootstrap/manifest.json,docs/workflow.md", differ.join(","));
+  check("mode user : workflow.md avec --prefix ~/.local, note Windows, sans sudo", /npm install -g --prefix ~\/\.local @fission-ai\/openspec@1\.0\.0/.test(txt(user, "docs/workflow.md")) && /équivaut au mode global/.test(txt(user, "docs/workflow.md")) && !/sudo`?\s*[a-z]/i.test(txt(user, "docs/workflow.md").replace(/Pas de `sudo`/g, "")));
+  check("mode user : ci.yml garde npm install -g, aucun package.json", /npm install -g/.test(txt(user, ".github/workflows/ci.yml")) && !existsSync(path.join(user.out, "package.json")));
+
+  for (const [label, vis] of [["privé", "private"], ["public", "public"]]) {
+    const loc = gen({ cliInstall: "local" }, mods, vis);
+    check(`mode local (${label}) : génération réussie`, loc.res.status === 0, loc.res.stderr);
+    const pkg = JSON.parse(txt(loc, "package.json"));
+    check(`mode local (${label}) : package.json privé, sans name, versions exactes, script claude`, pkg.private === true && pkg.name === undefined && pkg.scripts.claude === "claude" && pkg.devDependencies["@fission-ai/openspec"] === "1.0.0" && pkg.devDependencies.archgate === "0.1.0");
+    const ciText = txt(loc, ".github/workflows/ci.yml");
+    check(`mode local (${label}) : ci.yml avec npm ci, cache npm, GITHUB_PATH (bash), sans npm install -g ni version en env`, /npm ci/.test(ciText) && /cache: npm/.test(ciText) && /GITHUB_PATH/.test(ciText) && /shell: bash\n\s+run: echo "\$GITHUB_WORKSPACE\/node_modules\/\.bin"/.test(ciText) && !/npm install -g/.test(ciText) && !/OPENSPEC_VERSION|ARCHGATE_VERSION/.test(ciText) && /OPENSPEC_TELEMETRY: "0"/.test(ciText), ciText);
+    check(`mode local (${label}) : .gitignore avec node_modules/`, /^node_modules\/$/m.test(txt(loc, ".gitignore")));
+    const hook = txt(loc, ".claude/hooks/quality-gate.mjs");
+    check(`mode local (${label}) : quality-gate avec node_modules/.bin, path.delimiter, clé PATH insensible à la casse, chemin depuis import.meta.url`, /node_modules/.test(hook) && /path\.delimiter/.test(hook) && /toUpperCase\(\) === "PATH"/.test(hook) && /import\.meta\.url/.test(hook));
+    const wf = txt(loc, "docs/workflow.md");
+    check(`mode local (${label}) : workflow.md avec npm ci et npm run claude, sans npm install -g`, /npm ci/.test(wf) && /npm run claude/.test(wf) && !/npm install -g/.test(wf));
+    check(`mode local (${label}) : package.json consigné au manifeste, relance idempotente`, Boolean(man(loc).files["package.json"]) && run({ ...base, visibility: vis, modules: mods, cliInstall: "local" }, [], loc.out).report.created.length === 0);
+  }
+  check("mode global : hook sans node_modules, workflow.md et ci.yml avec npm install -g", !/node_modules/.test(txt(glob, ".claude/hooks/quality-gate.mjs")) && /npm install -g/.test(txt(glob, ".github/workflows/ci.yml")) && !existsSync(path.join(glob.out, "package.json")));
+
+  const only = gen({ cliInstall: "local" }, ["claude", "github", "archgate"]);
+  const pkgOnly = JSON.parse(txt(only, "package.json"));
+  const ciOnly = txt(only, ".github/workflows/ci.yml");
+  check("mode local avec archgate seul : devDependencies d'archgate seulement, ci.yml sans bloc env", Object.keys(pkgOnly.devDependencies).join() === "archgate" && !/^env:/m.test(ciOnly) && !/OPENSPEC/.test(ciOnly), ciOnly.slice(0, 300));
+  const openOnly = gen({ cliInstall: "local" }, ["claude", "github", "openspec"]);
+  check("mode local avec openspec seul : env avec OPENSPEC_TELEMETRY seulement", /^env:\n\s+OPENSPEC_TELEMETRY: "0"\n/m.test(txt(openOnly, ".github/workflows/ci.yml")) && Object.keys(JSON.parse(txt(openOnly, "package.json")).devDependencies).join() === "@fission-ai/openspec");
+
+  // package.json existant : conservé, signalé
+  const pre = mkdtempSync(path.join(tmpdir(), "pb-pkg-"));
+  writeFileSync(path.join(pre, "package.json"), '{"name":"app","version":"1.0.0"}\n');
+  const kept = run({ ...base, visibility: "private", modules: mods, cliInstall: "local" }, [], pre);
+  check("mode local : package.json existant conservé et signalé (kept)", kept.res.status === 0 && kept.report.kept.includes("package.json") && readFileSync(path.join(pre, "package.json"), "utf8") === '{"name":"app","version":"1.0.0"}\n');
+  const detect = spawnSync(process.execPath, [scaffold, "--detect", "--target", pre], { encoding: "utf8" });
+  check("--detect expose packageJson", JSON.parse(detect.stdout).packageJson === true);
+
+  // mise à jour : le mode est rejoué depuis le manifeste
+  const upd = spawnSync(process.execPath, [scaffold, "--update", "--target", pre], { encoding: "utf8" });
+  check("--update rejoue le mode local du manifeste (aucun fichier créé, aucun conflit)", upd.status === 0 && JSON.parse(upd.stdout).created.length === 0 && JSON.parse(upd.stdout).conflicts.length === 0, upd.stdout + upd.stderr);
+
+  // validation du catalogue : `when` ne cite que des modules ou pseudo-modules connus
+  const catDir = mkdtempSync(path.join(tmpdir(), "pb-cat-"));
+  const cat = JSON.parse(JSON.stringify(manifest));
+  cat.files.push({ path: "CLAUDE.md", when: ["inconnu"] });
+  writeFileSync(path.join(catDir, "modules.json"), JSON.stringify(cat));
+  const badCat = run({ ...base, visibility: "private", modules: [] }, ["--catalog", path.join(catDir, "modules.json")]);
+  check("catalogue : `when` avec un module inconnu refusé (code 1)", badCat.res.status === 1 && /module inconnu inconnu/.test(badCat.res.stderr), badCat.res.stderr);
 }
 
 // erreurs de configuration
@@ -840,6 +910,34 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
     writeFileSync(rel3, readFileSync(rel3, "utf8") + "\n      - uses: actions/checkout@" + "0".repeat(40) + "\n");
     check("audit avec dependabot : SHA différent entre ci.yml et release.yml -> écart", by(await audit(a3), "actions-epinglees")?.statut === "ecart");
 
+    // --- mode d'installation local : versions dans package.json, CLI dans node_modules/.bin
+    const mkLocal = () => {
+      const dir = path.join(mkdir("pb-audit-local-"), "projet");
+      run(cfg(MODS, { cliInstall: "local" }), [], dir);
+      return dir;
+    };
+    const vers = { openspecVersion: "1.0.0", archgateVersion: "0.1.0" };
+    const aL = mkLocal();
+    check("audit local : versions lues dans package.json -> aucun écart de version", by(await audit(aL, vers), "version-openspec")?.statut === "ok" && by(await audit(aL, vers), "version-archgate")?.statut === "ok");
+    const seenEnv = [];
+    const fl = fake(aL, vers);
+    await runAudit({ target: aL, exec: (cmd, args, opts) => (["openspec", "archgate"].includes(cmd) && seenEnv.push(opts?.env), fl.exec(cmd, args, opts)) });
+    const binDir = path.join(aL, "node_modules", ".bin");
+    check("audit local : PATH des CLI préfixé par node_modules/.bin du projet", seenEnv.length > 0 && seenEnv.every((e) => Object.values(e ?? {}).some((v) => String(v).startsWith(binDir + path.delimiter))));
+    const pkgL = JSON.parse(read(aL, "package.json"));
+    pkgL.devDependencies["@fission-ai/openspec"] = "2.0.0";
+    writeFileSync(path.join(aL, "package.json"), JSON.stringify(pkgL));
+    const rVer = await audit(aL, vers);
+    check("audit local : version de package.json différente -> écart avec --save-exact", by(rVer, "version-openspec")?.statut === "ecart" && /package\.json/.test(by(rVer, "version-openspec").message) && /--save-dev --save-exact @fission-ai\/openspec@/.test(by(rVer, "version-openspec").correction));
+    delete pkgL.devDependencies.archgate;
+    writeFileSync(path.join(aL, "package.json"), JSON.stringify(pkgL));
+    const rMiss = await audit(aL, vers);
+    check("audit local : devDependency absente -> écart", by(rMiss, "version-archgate")?.statut === "ecart" && /devDependencies/.test(by(rMiss, "version-archgate").message));
+    const aU = path.join(mkdir("pb-audit-user-"), "projet");
+    run(cfg(MODS, { cliInstall: "user" }), [], aU);
+    const rUser = await audit(aU, { openspecVersion: "9.9.9" });
+    check("audit user : version différente -> correction avec --prefix ~/.local", by(rUser, "version-openspec")?.statut === "ecart" && /npm install -g --prefix ~\/\.local /.test(by(rUser, "version-openspec").correction));
+
     // --- outils du projet, réglages
     const t1 = await audit(healthy, { check: res(1, "violation ARCH-004") });
     check("piège : archgate check échoue (dont rules: incohérent) -> écart qui reprend la sortie", by(t1, "archgate-check")?.statut === "ecart" && /violation ARCH-004/.test(by(t1, "archgate-check").message));
@@ -932,6 +1030,11 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
     writeFileSync(path.join(plug, "settings.json"), '{ "agent": "archgate:developer" }');
     const ghAuth = (scopes) => (args) => (args[0] === "--version" ? res(0, "gh version 2.103.3\n") : args[0] === "auth" ? res(0, scopes === null ? "Logged in" : `Logged in\n  - Token scopes: ${scopes}`) : res(0, ""));
     const ws = (o = {}, extra = {}) => audit(pp, { gh: ghAuth("'gist', 'project', 'repo'"), npmPrefix: o.npmPrefix, ...o }, { workstation: true, home, ...extra });
+    const wL = await audit(aL, { ...vers, gh: ghAuth("'gist', 'project', 'repo'") }, { workstation: true, home });
+    check("audit local --workstation : node_modules/.bin absent -> écart npm ci", by(wL, "poste-npm")?.statut === "ecart" && by(wL, "poste-npm").correction === "npm ci");
+    mkdirSync(binDir, { recursive: true });
+    for (const c of ["openspec", "archgate"]) writeFileSync(path.join(binDir, c), "");
+    check("audit local --workstation : CLI présentes -> ok", by(await audit(aL, { ...vers, gh: ghAuth("'gist', 'project', 'repo'") }, { workstation: true, home }), "poste-npm")?.statut === "ok");
     const w0 = await ws();
     check("audit : poste sain (plugin imposant un agent seulement en portée locale) -> aucun écart", w0.results.filter((r) => r.id.startsWith("poste")).every((r) => r.statut !== "ecart"), JSON.stringify(w0.results.filter((r) => r.id.startsWith("poste") && r.statut !== "ok")));
     const w1 = await ws({}, { nodeVersion: "18.20.0" });
