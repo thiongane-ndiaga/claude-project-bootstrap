@@ -78,3 +78,12 @@ Constatés lors de la mise en place de référence (Claude Code 2.1.31x, OpenSpe
 - `/agents` n'existe plus (2.1.316) : vérifier un profil en l'invoquant.
 - Un hook `SessionStart` sans `matcher` est rejoué après `/compact` (`source=compact`).
 - L'advisor (`/advisor`) est appelé par le lead ; sur un teammate, l'appel n'a pu être établi que par son propre rapport. Trois niveaux de subagents imbriqués écrivent, le quatrième n'a rien écrit sans message d'erreur.
+
+## Module agent-profiles (profils `architect` et `qa-engineer`, ARCH-011)
+- Le bornage est un garde-fou contre l'erreur d'un agent, pas un bac à sable : `qa-engineer` peut écrire `tests/x.test.mjs` puis lancer `node .bootstrap/run-checks.mjs` (qui l'exécute), et `architect` peut écrire une règle `*.rules.ts` puis lancer `archgate check` (qui l'exécute). Relire les changements reste la garantie.
+- Un teammate doit porter le nom de son profil (`qa-engineer`) : `agent_type` vaut le nom du teammate, et un autre nom n'est pas borné. Le profil intégré `Explore` reçoit tout l'outillage en équipe et n'est pas borné non plus.
+- En équipe, `Bash` n'est pas limité par le frontmatter : seule la table `PROFILES` de `.claude/hooks/profile-guard.mjs` borne le shell d'un profil. Sans ce hook, un profil « lecture seule » qui garde `Bash` peut écrire.
+- Un profil n'a ni `Agent` ni `Skill` : il demande à l'agent principal de lancer `architecture-explorer`, `arc42-keeper`, `spec-reviewer` ou les skills `archgate:adr-author` et `archgate:reviewer` (ce dernier lance des agents `general-purpose`).
+- Un teammate isolé dans un worktree écrit sous `.claude/worktrees/<nom>/` : le chemin est calculé depuis `CLAUDE_PROJECT_DIR`, donc ses écritures légitimes sont refusées. `Tests/` est aussi refusé (la casse compte, y compris sous Windows) et les liens ou jonctions ne sont pas résolus.
+- Le titre d'`archgate adr create` d'`architect` se limite aux lettres, chiffres et `,.:'’_-` : PowerShell évalue les parenthèses et traite les guillemets typographiques comme des guillemets doubles.
+- Le hook s'exécute à chaque écriture et commande de shell de la session (un `node`, plus un second pour une commande hors table). Retirer le module ne retire ni le hook déjà déclaré dans `settings.json` ni les fichiers générés.

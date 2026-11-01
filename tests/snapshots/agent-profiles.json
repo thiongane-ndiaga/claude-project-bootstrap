@@ -1,0 +1,15 @@
+{
+  ".bootstrap/checks.json": "0653e67071e2464f552db4a37de960b06e64332c27ec4bb891b7357df508f0d7",
+  ".bootstrap/manifest.json": null,
+  ".bootstrap/run-checks.mjs": "469af1333ac019b6d573fe015119069be733baf2814f3cd34814f55bbad13456",
+  ".claude/agents/architect.md": "af70bfb204c998f41261b70fafc1e5400cd19f74728c94a8c44a795228bad6fe",
+  ".claude/agents/qa-engineer.md": "8cdfa4b94ec0ae09cd373aa979ee144654ef4e04b69a87c9abb4255aea05bb46",
+  ".claude/hooks/profile-guard.mjs": "c9e8e59d4ac97c1d670a4fee30fda69a6d1f28c1e1354c129a2aa5af252e2c08",
+  ".claude/hooks/quality-gate.mjs": "961058e2b9d4c75192991ec9d900efa9ace35fc7700409d605abb100d975b1ab",
+  ".claude/hooks/read-only-bash.mjs": "f2a9fbc62196edab6ad2e76adca2fcd1258876a3fe701d52a1295f96e6108c5f",
+  ".claude/settings.json": "e875a90cc59f375c276c1784a56e0de881a9fa065b9295ce8a1aff411d76537d",
+  ".gitattributes": "380e0cc171b6bedcfaa42aec15cff80245e3adbbeb10bba6becdbef9143b7f37",
+  ".gitignore": "bbb7a6669f4e6557474827de0d4e0bb38586aea32f0a639aeb9f82a7cec7e717",
+  "CLAUDE.md": "40f0fd325b3b5a9e16b229b204240524ca6bc9ac2770334d3486fba6322f5d0a",
+  "docs/workflow.md": "32d8ab5504dbad7417ab6e35bc019f0a27df340696be78f4fc34b22a241ca22e"
+}

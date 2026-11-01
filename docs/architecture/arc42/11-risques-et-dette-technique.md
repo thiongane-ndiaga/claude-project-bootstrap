@@ -16,6 +16,14 @@
 | Fichier mal rangé dans un module : non détecté par la génération (le chemin reste le même) | Moyenne | Faible | `scaffold.mjs --list-modules` et relecture en PR ([ARCH-010](../adrs/ARCH-010-modules-auto-decrits.md)) |
 | Modèle localisé oublié : retombe sur le français sans erreur | Moyenne | Moyen | Combinaisons `full` et `full-en` de la matrice et test de parité ([ARCH-010](../adrs/ARCH-010-modules-auto-decrits.md)) |
 | Dette : permissions de `settings.json`, étapes de `state.mjs`, contrôles de `audit.mjs`, migrations et blocs `@@module` transverses restent codés hors du dossier d'un module ; réponses aux `questions` non consommées par un schéma de configuration | Haute | Moyen | Acceptée ; un module ne peut pas encore tout porter seul ([ARCH-010](../adrs/ARCH-010-modules-auto-decrits.md)) |
+| Teammate nommé autrement que son profil : non borné | Moyenne | Moyen | Convention de nommage ; consigné dans `pitfalls.md` ([ARCH-011](../adrs/ARCH-011-profils-d-agents-bornes-par-un-hook-unique.md)) |
+| Profil intégré `Explore` : reçoit tout l'outillage en équipe, non borné | Moyenne | Moyen | Hors périmètre du hook ; consigné dans `pitfalls.md` ([ARCH-011](../adrs/ARCH-011-profils-d-agents-bornes-par-un-hook-unique.md)) |
+| Écrire puis exécuter : un profil écrit un fichier exécutable dans son périmètre (`tests/x.test.mjs`, règle `*.rules.ts`) puis le fait lancer par `run-checks.mjs` ou `archgate check` | Moyenne | Moyen | Le bornage est un garde-fou, pas un bac à sable ; relecture humaine des changements ([ARCH-011](../adrs/ARCH-011-profils-d-agents-bornes-par-un-hook-unique.md)) |
+| Teammate isolé dans un worktree : écritures légitimes refusées (chemin calculé depuis `CLAUDE_PROJECT_DIR`) | Moyenne | Faible | Refus à tort, sans risque ; consigné dans `pitfalls.md` ([ARCH-011](../adrs/ARCH-011-profils-d-agents-bornes-par-un-hook-unique.md)) |
+| Casse (`Tests/` refusé), liens et jonctions non résolus | Faible | Faible | Refus à tort sans risque, ou hors modèle de menace ([ARCH-011](../adrs/ARCH-011-profils-d-agents-bornes-par-un-hook-unique.md)) |
+| Coût du hook : un `node` par écriture ou commande shell de la session, un second pour une commande de profil hors motifs | Haute | Faible | Accepté, quelques dizaines de millisecondes ([ARCH-011](../adrs/ARCH-011-profils-d-agents-bornes-par-un-hook-unique.md)) |
+| Retrait du module `agent-profiles` : le hook déclaré dans `settings.json` et les fichiers générés restent ; sans la table, le hook ne borne plus rien | Faible | Faible | Supprimer à la main ([ARCH-011](../adrs/ARCH-011-profils-d-agents-bornes-par-un-hook-unique.md)) |
+| Changement futur du contenu de `agent_type` : la correspondance profil-table casse | Faible | Haut | Tests de contrat du module ([ARCH-011](../adrs/ARCH-011-profils-d-agents-bornes-par-un-hook-unique.md)) |
 
 - Quels risques pèsent sur les objectifs de qualité ?
 - Quelle dette est acceptée consciemment, et jusqu'à quand ?

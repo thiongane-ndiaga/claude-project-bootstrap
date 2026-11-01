@@ -38,4 +38,15 @@ Voir [ARCH-010](../adrs/ARCH-010-modules-auto-decrits.md).
 
 Voir [ARCH-009](../adrs/ARCH-009-etat-de-reprise-et-journal-des-effets.md).
 
+## Bornage des agents par profil
+
+- Les droits d'outils d'un profil viennent de la liste `tools` de son frontmatter. Aucun profil n'a l'outil `Agent` ni `Skill` : un agent lancé par un profil porterait un autre `agent_type` et échapperait au bornage, et un skill peut lancer des agents. Le profil demande à l'agent principal.
+- Les écritures et les commandes de shell sont bornées par un seul hook `PreToolUse` de `.claude/settings.json`, car il voit l'agent principal, les sous-agents et les teammates, ce que ne font ni le hook de frontmatter ni les règles `permissions`. Il lit `agent_type` et applique la table `PROFILES`. Pas de hook de frontmatter dans les profils générés.
+- Refus par défaut : pour un profil de la table, une entrée incomplète, un chemin absent, une racine inconnue ou une erreur interne donnent le code 2. Un `agent_type` absent de la table (agent principal, autre agent) n'est pas borné.
+- Convention de nommage : un teammate porte le nom de son profil (`qa-engineer`), car `agent_type` vaut le nom du teammate ; un teammate nommé autrement n'est pas borné.
+- Commandes supplémentaires d'un profil : motifs ancrés sur la commande entière, sans séparateur ni redirection ; la lecture seule est déléguée à `read-only-bash.mjs`.
+- Portée : garde-fou contre l'erreur d'un agent, pas un bac à sable. La relecture humaine des changements reste la garantie.
+
+Voir [ARCH-011](../adrs/ARCH-011-profils-d-agents-bornes-par-un-hook-unique.md).
+
 _Le reste de la section reste à rédiger._
