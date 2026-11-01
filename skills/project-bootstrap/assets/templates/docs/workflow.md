@@ -41,6 +41,9 @@ Chaque couche a un rôle :
 @@module:github
 - **PR** : titre Conventional Commit, corps avec `Closes #N`. Agent `traceability-checker` avant de demander le merge.
 - **Squash merge** : le titre de PR devient le commit sur `main` ; l'issue se ferme.
+@@module:dependabot
+- **PR de Dependabot** (`ci(deps): …`, branche `dependabot/…`) : seule exception à la branche `<type>/<issue>-<slug>` et à `Closes #N`. Relire le diff (SHA et commentaire de version), vérifier la CI, puis squash merge.
+@@end
 @@end
 @@module:arc42
 - **arc42** : la PR met à jour les sections impactées (agent `arc42-keeper`) ; la section 9 ne fait que pointer vers les ADR.

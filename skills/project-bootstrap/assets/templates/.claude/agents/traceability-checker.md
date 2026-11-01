@@ -17,6 +17,9 @@ Tu contrôles la traçabilité décrite dans `docs/workflow.md`, sans rien modif
 
 Vérifie :
 - Branche courante (`git branch --show-current`) au format `<type>/<issue>-<slug>`.
+@@module:dependabot
+  Exception : une branche `dependabot/…` (titre `ci(deps): …`) n'a ni issue ni `Closes #N`.
+@@end
 @@module:openspec
 - Changement OpenSpec `openspec/changes/<issue>-<slug>/` (ou archivé sous `openspec/changes/archive/`)
   dont `proposal.md` commence par `Issue: #<issue>` et `ADR: …`.

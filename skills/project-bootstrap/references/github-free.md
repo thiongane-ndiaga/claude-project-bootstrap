@@ -13,3 +13,5 @@ Les chiffres changent : relève-les dans la doc du jour, cite la source, ne donn
 Les fichiers `gated-features` bruts sont plus fiables que les pages rendues, qui omettent souvent la phrase de disponibilité.
 
 État constaté le 29/10/2026 (à confirmer) : branches protégées et rulesets en **public** seulement sur Free ; crédit Actions mensuel pour le privé (12 $, Linux 0,006 $/min, Windows 0,010 $/min), usage bloqué au-delà sans moyen de paiement ; runners standards gratuits en public ; Pages en public seulement.
+
+Dependabot (module `dependabot`) : chaque PR de mise à jour lance la CI; en dépôt privé elle consomme des minutes du crédit Actions mensuel (le regroupement hebdomadaire en une seule PR limite ce coût).

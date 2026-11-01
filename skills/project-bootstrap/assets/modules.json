@@ -8,6 +8,7 @@
     "arc42": { "requires": [], "default": true, "description": "Squelette arc42 (12 sections, questions-guides) dans docs/architecture/arc42/" },
     "github": { "requires": [], "default": true, "description": "Formulaires d'issues, template de PR, labels, CI (ci.yml), dépôt GitHub" },
     "release": { "requires": ["github"], "default": true, "description": "release-please : changelog, version SemVer, tags et GitHub Releases" },
+    "dependabot": { "requires": ["github"], "default": false, "description": "Dependabot : mise à jour groupée des actions GitHub épinglées (délai de 14 jours, titres ci(deps))" },
     "projects": { "requires": ["github"], "default": true, "description": "Tableau GitHub Projects (Todo, In Progress, In Review, Done) lié au dépôt" },
     "githooks": { "requires": ["claude"], "default": true, "description": "Hook pre-push Node qui rejoue le contrôle qualité (indispensable en dépôt privé)" },
     "agent-teams": { "requires": ["claude"], "default": false, "description": "Active les agent teams (expérimental) dans .claude/settings.local.json" }
@@ -62,6 +63,8 @@
     { "path": ".github/actions/project-setup/action.yml", "when": ["github"], "owned": true },
     { "path": "scripts/sync-labels.mjs", "when": ["github"] },
     { "path": "scripts/check-pr-title.mjs", "when": ["github"] },
+
+    { "path": ".github/dependabot.yml", "when": ["dependabot"] },
 
     { "path": ".github/workflows/release.yml", "when": ["release"] },
     { "path": "release-please-config.json", "when": ["release"] },

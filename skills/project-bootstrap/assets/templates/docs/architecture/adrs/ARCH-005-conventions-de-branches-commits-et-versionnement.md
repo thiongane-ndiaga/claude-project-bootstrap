@@ -24,6 +24,9 @@ La langue des identifiants est l'anglais, celle de la documentation est la langu
 - **Branche** : `<type>/<issue>-<slug>`, en anglais, à partir de `main`.
 - **Commits** : [Conventional Commits](https://www.conventionalcommits.org) en anglais ; types `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `ci`, `build`, `perf`, `style`, `revert`.
 - **PR** : titre au même format, car il devient le commit de squash sur `main` ; corps avec `Closes #N`.
+@@module:dependabot
+- **Exception** : les PR de Dependabot (branche `dependabot/…`, titre `ci(deps): …`) n'ont ni issue ni `Closes #N`.
+@@end
 @@module:release
 - **Versionnement** : [SemVer](https://semver.org), calculé par release-please à partir des commits. Avant 1.0.0, `feat` incrémente le patch et un changement cassant (`!`) le mineur ; première version `0.0.1`.
 - **Tags** : `vX.Y.Z`, créés par release-please au merge de sa PR de release ; changelog dans `CHANGELOG.md`.
