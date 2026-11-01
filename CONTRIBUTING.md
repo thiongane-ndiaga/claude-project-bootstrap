@@ -2,6 +2,7 @@
 
 ## Avant de commencer
 - Ouvre une issue (formulaire « Bug » ou « Fonctionnalité ») avant toute modification importante.
+- Choisis une issue dans la feuille de route ([#52](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/52)) : elle donne l'ordre et les dépendances, et les priorités sont dans le [Project](https://github.com/users/thiongane-ndiaga/projects/4).
 - Une PR par issue, depuis une branche `<type>/<issue>-<slug>` (ex. `fix/16-npm-prefix`).
 
 ## Conventions
