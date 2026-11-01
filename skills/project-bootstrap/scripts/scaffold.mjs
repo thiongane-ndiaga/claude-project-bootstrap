@@ -116,9 +116,11 @@ const config = typeof args.config === "string" ? JSON.parse(readFileSync(args.co
 config.date = config.date ?? previous?.config?.date ?? new Date().toISOString().slice(0, 10);
 // langue de la documentation et mode d'installation des CLI : hérités du manifeste quand --config ne les redéfinit pas
 // (une configuration sans la clé ne fait changer ni la langue ni le mode)
-for (const key of ["docLanguage", "cliInstall", "mainAgent", "profiles"]) if (config[key] === undefined && previous?.config?.[key] !== undefined) config[key] = previous.config[key];
+for (const key of ["docLanguage", "cliInstall", "mainAgent", "profiles", "advisor"]) if (config[key] === undefined && previous?.config?.[key] !== undefined) config[key] = previous.config[key];
 // mainAgent: null désactive l'agent principal : la valeur n'est ni héritée du manifeste ni consignée
 if (config.mainAgent === null) delete config.mainAgent;
+// advisor: null ou false désactive la clé : ni héritée du manifeste ni consignée
+if (config.advisor === null || config.advisor === false) delete config.advisor;
 // profiles: [] (ou null) ne choisit aucun profil optionnel : ni héritée ni consignée ; sinon ensemble trié sans doublon
 if (config.profiles === null || (Array.isArray(config.profiles) && config.profiles.length === 0)) delete config.profiles;
 else if (Array.isArray(config.profiles) && config.profiles.every((p) => typeof p === "string")) config.profiles = [...new Set(config.profiles)].sort();
@@ -142,6 +144,8 @@ if (config.cliInstall === "local" && !selected.has("openspec") && !selected.has(
 const MAIN_AGENTS = ["project-lead"];
 if (config.mainAgent !== undefined && !MAIN_AGENTS.includes(config.mainAgent)) errors.push(`mainAgent doit valoir ${MAIN_AGENTS.join(", ")} (reçu : ${JSON.stringify(config.mainAgent)})`);
 if (config.mainAgent !== undefined && !selected.has("agent-profiles")) errors.push("mainAgent exige le module agent-profiles");
+if (config.advisor !== undefined && config.advisor !== true) errors.push(`advisor doit valoir true, ou null pour le désactiver (reçu : ${JSON.stringify(config.advisor)})`);
+if (config.advisor !== undefined && !selected.has("advisor")) errors.push("advisor exige le module advisor");
 if (config.profiles !== undefined && (!Array.isArray(config.profiles) || config.profiles.some((p) => !OPTIONAL_PROFILES.includes(p)))) errors.push(`profiles doit être une liste de noms parmi ${OPTIONAL_PROFILES.join(", ")} (reçu : ${JSON.stringify(config.profiles)})`);
 if (config.profiles !== undefined && !selected.has("agent-profiles")) errors.push("profiles exige le module agent-profiles");
 if (Array.isArray(config.profiles) && config.profiles.includes("business-analyst") && !selected.has("openspec")) errors.push("le profil business-analyst exige le module openspec");
@@ -160,7 +164,7 @@ if (incompatible.size) {
 }
 // pseudo-modules utilisés par les blocs conditionnels
 const cliMode = config.cliInstall ?? "global";
-const active = new Set([...selected, ...(Array.isArray(config.profiles) ? config.profiles.map((p) => `profile-${p}`) : []), `visibility-${config.visibility}`, config.stack ? "stack-chosen" : "stack-open", ...(cliMode === "local" ? ["cli-local"] : ["cli-npm-global"]), ...(cliMode === "user" ? ["cli-user"] : []), ...(cliMode === "global" ? ["cli-default"] : [])]);
+const active = new Set([...selected, ...(config.advisor === true ? ["advisor-on"] : []), ...(Array.isArray(config.profiles) ? config.profiles.map((p) => `profile-${p}`) : []), `visibility-${config.visibility}`, config.stack ? "stack-chosen" : "stack-open", ...(cliMode === "local" ? ["cli-local"] : ["cli-npm-global"]), ...(cliMode === "user" ? ["cli-user"] : []), ...(cliMode === "global" ? ["cli-default"] : [])]);
 
 // --- paramètres ---
 const ref = (a) => (a ? `${a.sha} # ${a.tag}` : undefined);
@@ -348,6 +352,7 @@ if (config.mainAgent === "project-lead") {
     }
   }
 }
+if (config.advisor === true && !(Array.isArray(config.profiles) && config.profiles.length)) warnings.push("advisor: true sans profil optionnel (profiles) : aucun profil sonnet ou haiku ne reçoit la consigne, seule l'étape du « Nouveau poste » de docs/workflow.md est générée");
 if (selected.has("agent-profiles") && (config.keep ?? []).includes(".claude/hooks/profile-guard.mjs")) warnings.push("profile-guard.mjs est dans keep : les profils ne sont bornés que par votre version du hook (vérifie qu'elle contient les entrées de leurs profils)");
 const diffs = {};
 const put = (dest, text) => {

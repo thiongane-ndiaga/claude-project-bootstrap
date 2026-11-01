@@ -56,16 +56,6 @@ Joins les briefings d'ADR des fichiers concernés (`archgate review-context --ba
 | 5 | Toute écriture visible à l'extérieur | l'utilisateur, toujours |
 
 Garde-fous : la source de vérité est ce qui est écrit dans le dépôt, pas les échanges ; deux tours de confrontation au plus avant d'arbitrer ; une ligne de trace de l'arbitrage dans la livraison (PR ou commit).
-@@module:advisor
-
-## Advisor
-L'advisor (`/advisor`) est un second modèle que tu peux consulter. Tu décides de l'appeler : aucun réglage ne l'impose ni ne le plafonne, donc cette consigne est une incitation, pas une garantie. Consulte-le :
-- avant de figer un plan ou une approche ;
-- au deuxième échec identique d'un test ou d'une compilation ;
-- avant de déclarer une tâche terminée.
-
-Au niveau 3 de l'échelle, tranche après son avis et consigne la décision ; s'il ne lève pas le doute, demande à l'utilisateur. Au niveau 4, son avis ne remplace pas l'utilisateur : l'advisor voit toute la conversation, donc il n'est pas indépendant de tes préférences. S'il est indisponible (non configuré, modèle moins capable que le tien, ou usage en équipe non documenté), poursuis sans lui et dis-le.
-@@end
 
 ## Écritures visibles
 @@module:github

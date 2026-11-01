@@ -56,16 +56,6 @@ Attach the ADR briefings for the files involved (`archgate review-context --base
 | 5 | Any externally visible write | the user, always |
 
 Safeguards: the source of truth is what is written in the repository, not the exchanges; at most two rounds of confrontation before arbitrating; one line of arbitration trace in the delivery (PR or commit).
-@@module:advisor
-
-## Advisor
-The advisor (`/advisor`) is a second model you can consult. You decide whether to call it: no setting forces or caps it, so this instruction is an incentive, not a guarantee. Consult it:
-- before settling a plan or an approach;
-- at the second identical failure of a test or a build;
-- before declaring a task done.
-
-At level 3 of the ladder, decide after its advice and log the decision; if it does not settle the doubt, ask the user. At level 4, its advice does not replace the user: the advisor sees the whole conversation, so it is not independent of your preferences. If it is unavailable (not configured, a model less capable than yours, or team use, which is not documented), carry on without it and say so.
-@@end
 
 ## Visible writes
 @@module:github

@@ -111,7 +111,7 @@ Claude Code utilise `gh` en lecture sans demander ; `gh issue create`, `gh pr cr
 
 ## Nouveau poste (Windows natif ou Linux)
 
-@@module:openspec|archgate|archgate-plugin|agent-teams|advisor
+@@module:openspec|archgate|archgate-plugin|agent-teams|advisor-on
 Les étapes marquées « optionnel » ne sont pas nécessaires au fonctionnement du dépôt.
 @@end
 
@@ -172,7 +172,7 @@ Les étapes marquées « optionnel » ne sont pas nécessaires au fonctionnement
 @@module:agent-teams
 1. **Agent teams** (optionnel) : `"env": { "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1" }` dans `.claude/settings.local.json`. Affichage in-process par défaut ; split panes seulement sous tmux (`"teammateMode": "auto"` dans `~/.claude/settings.json`).
 @@end
-@@module:advisor
+@@module:advisor-on
 1. **Advisor** (optionnel, expérimental, payant) : réglage utilisateur, jamais écrit par le plugin. Dans Claude Code : `/advisor <modèle>` (par exemple `/advisor opus`), ou `"advisorModel"` dans les réglages. Le modèle doit être au moins aussi capable que le modèle principal, sinon il n'est pas attaché. Non disponible sur Bedrock, Google Cloud ni Foundry. `/advisor` sans argument ouvre le sélecteur et indique ce qui est disponible. C'est Claude qui décide de l'appeler : aucun réglage ne l'impose ni ne le plafonne. Coût : ses tokens s'ajoutent à ceux du modèle principal et chaque sous-agent en hérite. **Ne pas définir `DISABLE_TELEMETRY`** pour Claude Code : avec lui, comme avec `DO_NOT_TRACK`, `DISABLE_GROWTHBOOK` ou `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`, l'advisor reste désactivé (la télémétrie d'OpenSpec et d'Archgate est un autre réglage).
 @@end
 @@module:claude

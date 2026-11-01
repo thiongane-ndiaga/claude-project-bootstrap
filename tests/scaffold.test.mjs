@@ -1855,38 +1855,74 @@ const d = mkdtempSync(path.join(tmpdir(), "pb-sonde-")); writeFileSync(path.join
   check("retrait du module agent-profiles avec profiles [] : accepté", removed.res.status === 0, removed.res.stderr);
 }
 
-// module advisor (#36)
+// module advisor (#36, #126) : activation par la clé advisor, consigne portée par les profils sonnet et haiku
 {
   const gen = (modules, extra = {}) => run({ ...base, visibility: "private", modules, ...extra });
   const txt = (r, rel) => readFileSync(path.join(r.out, ...rel.split("/")), "utf8");
-  const mods = ["claude", "github", "openspec", "archgate", "agent-profiles"];
-  const withAdv = gen([...mods, "advisor"]);
-  const without = gen(mods);
-  const lead = txt(withAdv, ".claude/agents/project-lead.md");
-  const wf = txt(withAdv, "docs/workflow.md");
+  const mods = ["claude", "github", "openspec", "archgate", "agent-profiles", "advisor"];
+  const all = ["business-analyst", "developer", "product-owner"];
+  const profileText = (r, n) => txt(r, `.claude/agents/${n}.md`);
+  const on = gen(mods, { advisor: true, profiles: all });
+  const noKey = gen(mods, { profiles: all });
+  const wf = txt(on, "docs/workflow.md");
 
-  check("advisor : project-lead porte la consigne d'appel (trois moments) et rappelle qu'elle n'est pas une garantie", withAdv.res.status === 0 && /## Advisor/.test(lead) && /avant de figer un plan/.test(lead) && /deuxième échec identique/.test(lead) && /avant de déclarer une tâche terminée/.test(lead) && /pas une garantie/.test(lead), withAdv.res.stderr);
-  check("advisor : niveau 3 tranché après avis (l'utilisateur si le doute reste), niveau 4 non remplacé, pas indépendant, repli sans advisor", /tranche après son avis/.test(lead) && /s'il ne lève pas le doute, demande à l'utilisateur/.test(lead) && /Au niveau 4, son avis ne remplace pas l'utilisateur/.test(lead) && /n'est pas indépendant/.test(lead) && /poursuis sans lui/.test(lead) && !/désaccord entre relecteurs/.test(lead));
-  check("advisor : docs/workflow.md ajoute l'étape optionnelle avec /advisor, le coût, les plateformes et l'avertissement DISABLE_TELEMETRY", /\*\*Advisor\*\*/.test(wf) && /\/advisor <modèle>/.test(wf) && /au moins aussi capable/.test(wf) && /Ne pas définir `DISABLE_TELEMETRY`/.test(wf) && /DO_NOT_TRACK/.test(wf) && /CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC/.test(wf) && /Bedrock/.test(wf) && /\/advisor` sans argument/.test(wf) && /chaque sous-agent en hérite/.test(wf) && !/sans signal/.test(wf));
-  check("advisor : aucune version minimale inventée dans les fichiers générés", !/2\.1\.260/.test(lead + wf));
-  const leadNo = txt(without, ".claude/agents/project-lead.md");
-  const wfNo = txt(without, "docs/workflow.md");
-  check("sans advisor : ni project-lead ni workflow.md ne mentionnent /advisor, advisorModel ni DISABLE_TELEMETRY", !/advisor/i.test(leadNo + wfNo) && !/DISABLE_TELEMETRY/.test(leadNo + wfNo), "");
-  check("sans advisor : project-lead reste cohérent (échelle à cinq niveaux et garde-fous présents)", (leadNo.match(/^\| [1-5] \|/gm) ?? []).length === 5 && /Garde-fous/.test(leadNo) && !/@@/.test(leadNo));
-  check("advisor : aucun réglage écrit (pas de advisorModel ni de variable d'environnement dans settings.json)", !/advisorModel|DISABLE_TELEMETRY|\"env\"/.test(txt(withAdv, ".claude/settings.json")));
-  const everyModule = gen([...mods, "advisor", "arc42", "agent-teams", "githooks", "release", "projects", "dependabot"], { cliInstall: "local", profiles: ["business-analyst", "developer", "product-owner"] });
-  const forbidden = /["']?(DISABLE_TELEMETRY|DO_NOT_TRACK|DISABLE_GROWTHBOOK|CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC|CLAUDE_CODE_DISABLE_ADVISOR_TOOL|advisorModel)["']?\s*[:=]/;
-  const definesTelemetry = walk(everyModule.out).filter((f) => !f.includes(`${path.sep}.bootstrap${path.sep}base`) && forbidden.test(readFileSync(f, "utf8")));
+  check("advisor: true : les trois profils sonnet portent la consigne (décide d'appeler, rien ne l'impose, repli sans advisor)", on.res.status === 0 && all.every((n) => /consulte l'advisor/.test(profileText(on, n)) && /rien ne l'impose/.test(profileText(on, n)) && /poursuis sans lui/.test(profileText(on, n))), on.res.stderr);
+  check("advisor: true : architect, qa-engineer et project-lead (pas de section) ne mentionnent pas l'advisor", ["architect", "qa-engineer", "project-lead"].every((n) => !/advisor/i.test(profileText(on, n))));
+  check("advisor: true : docs/workflow.md ajoute l'étape avec /advisor, le coût, les plateformes et les variables qui le désactivent", /\*\*Advisor\*\*/.test(wf) && /\/advisor <modèle>/.test(wf) && /au moins aussi capable/.test(wf) && /Ne pas définir `DISABLE_TELEMETRY`/.test(wf) && /DO_NOT_TRACK/.test(wf) && /CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC/.test(wf) && /Bedrock/.test(wf) && /\/advisor` sans argument/.test(wf) && /chaque sous-agent en hérite/.test(wf) && !/sans signal/.test(wf) && !/2\.1\.260/.test(wf));
+  const noKeyText = all.map((n) => profileText(noKey, n)).join("\n") + txt(noKey, "docs/workflow.md") + profileText(noKey, "project-lead");
+  check("module advisor sans la clé : ni consigne, ni étape, ni mention de l'advisor", noKey.res.status === 0 && !/advisor/i.test(noKeyText) && !/DISABLE_TELEMETRY/.test(noKeyText));
+  const noModule = gen(mods.filter((m) => m !== "advisor"), { profiles: all });
+  check("sans le module advisor : aucune mention, project-lead complet", !/advisor/i.test(all.map((n) => profileText(noModule, n)).join("\n") + txt(noModule, "docs/workflow.md")) && (profileText(noModule, "project-lead").match(/^\| [1-5] \|/gm) ?? []).length === 5);
+
+  // règle de cohérence : consigne présente exactement dans les profils dont le modèle est sonnet ou haiku
+  const agentsDir = path.join(root, "skills", "project-bootstrap", "assets", "modules", "agent-profiles");
+  for (const tpl of ["templates", "templates.en"]) {
+    const dir = path.join(agentsDir, tpl, ".claude", "agents");
+    const rows = readdirSync(dir).map((f) => {
+      const text = readFileSync(path.join(dir, f), "utf8");
+      return { f, model: /^model: (\S+)$/m.exec(text)?.[1] ?? "", block: /@@module:advisor-on/.test(text) };
+    });
+    check(`cohérence modèle et consigne (${tpl}) : le bloc advisor-on est dans tout profil sonnet ou haiku, dans aucun autre`, rows.every((r) => r.block === /sonnet|haiku/.test(r.model)), JSON.stringify(rows.filter((r) => r.block !== /sonnet|haiku/.test(r.model))));
+  }
+
+  // clé advisor : valeurs, dépendance, héritage, désactivation
+  const bad = gen(mods, { advisor: "oui" });
+  check("advisor : une valeur autre que true ou null est refusée (code 1)", bad.res.status === 1 && /advisor doit valoir true/.test(bad.res.stderr), bad.res.stderr);
+  const noMod = gen(mods.filter((m) => m !== "advisor"), { advisor: true });
+  check("advisor: true sans le module advisor refusé (code 1, aucun fichier écrit)", noMod.res.status === 1 && /advisor exige le module advisor/.test(noMod.res.stderr) && !existsSync(path.join(noMod.out, ".claude/settings.json")), noMod.res.stderr);
+  check("advisor: true consigné au manifeste ; absent sinon", JSON.parse(txt(on, ".bootstrap/manifest.json")).config.advisor === true && JSON.parse(txt(noKey, ".bootstrap/manifest.json")).config.advisor === undefined);
+  const upd = run({ ...base, visibility: "private", modules: mods, profiles: all }, ["--update"], on.out);
+  check("--update sans advisor dans la configuration : la clé du manifeste est conservée et la consigne reste", upd.res.status === 0 && JSON.parse(txt(on, ".bootstrap/manifest.json")).config.advisor === true && /consulte l'advisor/.test(profileText(on, "developer")), upd.res.stderr);
+  const off = run({ ...base, visibility: "private", modules: mods, profiles: all, advisor: null }, ["--update"], on.out);
+  check("advisor: null : désactive la clé (ni héritée ni consignée), la consigne est retirée des profils", off.res.status === 0 && JSON.parse(txt(on, ".bootstrap/manifest.json")).config.advisor === undefined && !/advisor/i.test(profileText(on, "developer")), off.res.stderr);
+  const noProfile = gen(mods, { advisor: true });
+  check("advisor: true sans profil optionnel : seule l'étape du Nouveau poste est générée, avec un avertissement du rapport", noProfile.res.status === 0 && /\*\*Advisor\*\*/.test(txt(noProfile, "docs/workflow.md")) && (noProfile.report?.warnings ?? []).some((w) => /advisor: true sans profil optionnel/.test(w)), JSON.stringify(noProfile.report?.warnings));
+  check("advisor: true avec des profils : aucun avertissement", !(on.report?.warnings ?? []).some((w) => /advisor: true/.test(w)));
+  const offFalse = gen(mods, { advisor: false });
+  check("advisor: false équivaut à null", offFalse.res.status === 0 && JSON.parse(txt(offFalse, ".bootstrap/manifest.json")).config.advisor === undefined);
+  const dropModule = run({ ...base, visibility: "private", modules: mods.filter((m) => m !== "advisor"), profiles: all }, ["--update"], gen(mods, { advisor: true, profiles: all }).out);
+  check("--update qui retire le module advisor alors que la clé est héritée : échec (code 1)", dropModule.res.status === 1 && /advisor exige le module advisor/.test(dropModule.res.stderr), dropModule.res.stderr);
+
+  // aucun réglage écrit, quels que soient les modules
+  check("advisor : aucun réglage écrit (pas de advisorModel ni de variable d'environnement dans settings.json)", !/advisorModel|DISABLE_TELEMETRY|"env"/.test(txt(on, ".claude/settings.json")));
+  const everyModule = gen([...mods, "arc42", "agent-teams", "githooks", "release", "projects", "dependabot"], { cliInstall: "local", advisor: true, profiles: all });
+  const forbidden = /["']?(DISABLE_TELEMETRY|DO_NOT_TRACK|DISABLE_GROWTHBOOK|CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC|CLAUDE_CODE_DISABLE_ADVISOR_TOOL|ANTHROPIC_BASE_URL|CLAUDE_CODE_SUBAGENT_MODEL|advisorModel)["']?\s*[:=]/;
+  const agentTeamsFlag = /["']?CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS["']?\s*[:=]/;
+  const definesTelemetry = walk(everyModule.out).filter((f) => !f.includes(`${path.sep}.bootstrap${path.sep}base`) && (forbidden.test(readFileSync(f, "utf8")) || (!f.endsWith(`docs${path.sep}workflow.md`) && agentTeamsFlag.test(readFileSync(f, "utf8")))));
   check("advisor : avec tous les modules, aucun fichier généré ne définit DISABLE_TELEMETRY, DO_NOT_TRACK, DISABLE_GROWTHBOOK, CLAUDE_CODE_DISABLE_*, ni advisorModel", everyModule.res.status === 0 && definesTelemetry.length === 0, `${everyModule.res.stderr} ${definesTelemetry.join(", ")}`);
   const noParent = gen(["claude", "advisor"]);
   check("advisor sans agent-profiles refusé (code 1)", noParent.res.status === 1 && /advisor requiert agent-profiles/.test(noParent.res.stderr), noParent.res.stderr);
-  const en = gen([...mods, "advisor"], { docLanguage: "en" });
-  check("advisor : version anglaise (consigne d'appel et étape du Nouveau poste)", /## Advisor/.test(txt(en, ".claude/agents/project-lead.md")) && /second identical failure/.test(txt(en, ".claude/agents/project-lead.md")) && /Do not set `DISABLE_TELEMETRY`/.test(txt(en, "docs/workflow.md")) && /second identical failure/.test(txt(en, ".claude/agents/project-lead.md")) && /ask the user/.test(txt(en, ".claude/agents/project-lead.md")));
-  const enNo = gen(mods, { docLanguage: "en" });
-  check("sans advisor, en anglais : aucune mention de l'advisor ni de DISABLE_TELEMETRY", !/advisor/i.test(txt(enNo, ".claude/agents/project-lead.md") + txt(enNo, "docs/workflow.md")) && !/DISABLE_TELEMETRY/.test(txt(enNo, ".claude/agents/project-lead.md") + txt(enNo, "docs/workflow.md")));
+
+  // anglais
+  const en = gen(mods, { advisor: true, profiles: all, docLanguage: "en" });
+  check("advisor : version anglaise (consigne des profils et étape du Nouveau poste)", all.every((n) => /consult the advisor/.test(profileText(en, n)) && /nothing forces it/.test(profileText(en, n))) && /Do not set `DISABLE_TELEMETRY`/.test(txt(en, "docs/workflow.md")));
+  const enNo = gen(mods, { profiles: all, docLanguage: "en" });
+  check("sans la clé, en anglais : aucune mention de l'advisor ni de DISABLE_TELEMETRY", !/advisor/i.test(all.map((n) => profileText(enNo, n)).join("\n") + txt(enNo, "docs/workflow.md")) && !/DISABLE_TELEMETRY/.test(txt(enNo, "docs/workflow.md")));
+
+  // catalogue
   const listedNow = JSON.parse(spawnSync(process.execPath, [scaffold, "--list-modules"], { encoding: "utf8" }).stdout);
   const adv = listedNow.modules.find((m) => m.name === "advisor");
-  check("advisor : listé par défaut non, sans question de phase 0, description qui parle de fonction expérimentale, payante et de réglage utilisateur", adv && adv.default === false && adv.requires.join() === "agent-profiles" && (adv.questions ?? []).length === 0 && /expérimentale et payante/.test(adv.description) && /réglage utilisateur/.test(adv.description), JSON.stringify(adv));
+  check("advisor : listé par défaut non, avec la question de phase 0 (clé advisor, défaut non) et une description expérimentale, payante, réglage utilisateur", adv && adv.default === false && adv.requires.join() === "agent-profiles" && adv.questions.length === 1 && /clé advisor/.test(adv.questions[0]) && /Défaut : non/.test(adv.questions[0]) && /expérimentale et payante/.test(adv.description) && /réglage utilisateur/.test(adv.description), JSON.stringify(adv));
 }
 
 console.log(failed ? `\n${failed} échec(s)` : "\nTous les tests passent");

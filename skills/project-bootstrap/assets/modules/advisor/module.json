@@ -1,7 +1,10 @@
 {
-  "description": "Advisor de Claude Code : consigne d'appel dans project-lead et étape /advisor du « Nouveau poste ». Fonction expérimentale et payante, réglage utilisateur : le plugin n'écrit aucun réglage",
+  "description": "Advisor de Claude Code : consigne de consultation dans les profils sonnet et haiku et étape /advisor du « Nouveau poste », générées seulement si la clé advisor est posée. Fonction expérimentale et payante, réglage utilisateur : le plugin n'écrit aucun réglage",
   "requires": [
     "agent-profiles"
   ],
-  "default": false
+  "default": false,
+  "questions": [
+    "Activer l'advisor dans le workflow du projet (clé advisor) ? Les profils sonnet et haiku reçoivent la consigne de le consulter et docs/workflow.md une étape optionnelle ; le réglage lui-même (/advisor) reste celui de chaque utilisateur, payant et expérimental, et n'est jamais écrit par le plugin. Défaut : non."
+  ]
 }
