@@ -67,3 +67,10 @@ Constatés lors de la mise en place de référence (Claude Code 2.1.31x, OpenSpe
 - Sans état, la déduction se fonde sur le dépôt : un `.git` ou un manifeste antérieurs au bootstrap donnent de fausses preuves.
 - Le journal n'annule rien tout seul. Une annulation de plugin ou de marketplace est omise si l'élément existait avant l'action, car d'autres projets peuvent l'utiliser ; l'installation de `gh` n'est annulable que si l'outil était absent.
 - `--prefix` n'a pas de sens sous Windows : `state.mjs effect --kind npm-global` le refuse (mode `user` = mode `global`).
+
+## Profils d'agents (constats de #32, Claude Code 2.1.316, OpenSpec 1.16.0)
+- `operations.apply.guidance` et `operations.archive.guidance` de `openspec/config.yaml` sont des **listes** de chaînes ; une chaîne seule n'est pas restituée par `openspec instructions apply|archive --json` (`operationGuidance`).
+- Un profil d'agent principal (`"agent"` dans `.claude/settings.json`) qui a les outils d'écriture et aucune consigne de délégation écrit lui-même : la délégation doit être dite dans son corps.
+- Dans un schéma local (`openspec schema fork`), un artefact ajouté se place **avant** le bloc `apply:` du `schema.yaml`, sinon le YAML est invalide.
+- Dans un dépôt dont la boîte de confiance n'a pas été acceptée (`claude -p` dans un dossier neuf), les règles `permissions.allow` du projet sont ignorées et le hook de frontmatter d'un agent de `.claude/agents/` n'a pas été déclenché lors de l'essai : valider les agents « lecture seule » dans un dépôt approuvé.
+- Le hook d'un agent « lecture seule » doit cibler `Bash|PowerShell` : `cat` est un alias de PowerShell sous Windows.
