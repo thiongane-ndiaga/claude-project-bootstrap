@@ -1,6 +1,6 @@
 {
   "name": "project-bootstrap",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Recrée un outillage de développement assisté par IA (Claude Code, OpenSpec, Archgate, arc42, GitHub Free, release-please) et son workflow, module par module, sans choisir de stack.",
   "author": {
     "name": "Ndiaga Thiongane"
