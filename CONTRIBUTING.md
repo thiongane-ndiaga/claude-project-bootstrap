@@ -22,6 +22,8 @@ node .bootstrap/run-checks.mjs   # les trois, comme la CI et le pre-push
 ```
 Node.js ≥ 20.19. Les tests doivent passer sous Linux, Windows et macOS (séparateurs de chemins, fins de ligne, bit exécutable).
 
+Chaque suite crée ses dossiers jetables sous un dossier temporaire propre à l'exécution (`tests/tmp-root.mjs`), supprimé à la sortie, échec compris. `KEEP_TMP=1` le conserve et affiche son chemin, pour examiner un projet généré par un test en échec.
+
 ### La matrice et ses instantanés
 `tests/matrix.test.mjs` génère 17 combinaisons de modules (déduites du catalogue : `core` seul, chaque module avec ses dépendances, sélection par défaut, avec stack, complète, complète en public), vérifie des invariants (aucun paramètre ou marqueur restant, JSON valides, manifeste complet, aucun CRLF), la reproductibilité, et compare la liste des fichiers et leur empreinte SHA-256 à `tests/snapshots/<combinaison>.json`. Elle prend une dizaine de secondes (davantage sous Windows) : le hook `TaskCompleted` et le `pre-push` l'exécutent aussi.
 

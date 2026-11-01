@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Tests de state.mjs : état de reprise, reprise après arrêt à chaque étape, journal des effets globaux.
 // Usage : node tests/state.test.mjs
+import "./tmp-root.mjs"; // dossier temporaire propre à l'exécution, supprimé à la sortie
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";

@@ -3,6 +3,7 @@
 // Usage : node tests/matrix.test.mjs              (compare aux instantanés de tests/snapshots/)
 //         UPDATE_SNAPSHOTS=1 node tests/matrix.test.mjs   (réécrit les instantanés, à relire dans la PR)
 // Les CLI openspec et archgate sont exigées quand la variable CI est définie ; sinon la validation est ignorée avec un message.
+import "./tmp-root.mjs"; // dossier temporaire propre à l'exécution, supprimé à la sortie
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
