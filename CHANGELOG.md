@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.6](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.5...v0.1.6) (2026-11-01)
+
+
+### Features
+
+* **audit:** read-only audit of a generated project (local, forge, workstation) ([#95](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/95)) ([d9a5f43](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/d9a5f43352373529ce6b3835ed5c5cc26b41818c))
+* **scaffold:** cli install modes (global, user prefix, local) ([#99](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/99)) ([ff1e709](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/ff1e709e80e7bef860e15848780c87513b8d2108)), closes [#28](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/28)
+* **scaffold:** self-describing module folders ([#102](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/102)) ([d5df2fa](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/d5df2fa85a184ebabe1a277549a49884ef05d833)), closes [#49](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/49)
+* **skill:** resume state and global effects journal ([#101](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/101)) ([29d4133](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/29d41339174b96431ec09acf04853ac0dc5c35af)), closes [#47](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/47)
+* **templates:** english templates and doc language setting ([#100](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/100)) ([574226d](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/574226d13fe222fa44304b4edd456b3bde995bd7)), closes [#48](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/48)
+* **templates:** optional dependabot module for pinned actions ([#98](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/98)) ([4229c9d](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/4229c9df1afaa7e4deb6615f14c7800a32b9ef9d)), closes [#51](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/51)
+
 ## [0.1.5](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.4...v0.1.5) (2026-10-31)
 
 
