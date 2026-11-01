@@ -111,7 +111,7 @@ Claude Code uses `gh` for reading without asking; `gh issue create`, `gh pr crea
 
 ## New workstation (native Windows or Linux)
 
-@@module:openspec|archgate|archgate-plugin|agent-teams
+@@module:openspec|archgate|archgate-plugin|agent-teams|advisor
 Steps marked "optional" are not needed for the repository to work.
 @@end
 
@@ -171,6 +171,9 @@ Steps marked "optional" are not needed for the repository to work.
 @@end
 @@module:agent-teams
 1. **Agent teams** (optional): `"env": { "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1" }` in `.claude/settings.local.json`. In-process display by default; split panes only under tmux (`"teammateMode": "auto"` in `~/.claude/settings.json`).
+@@end
+@@module:advisor
+1. **Advisor** (optional, experimental, paid): a user setting, never written by the plugin. In Claude Code: `/advisor <model>` (for example `/advisor opus`), or `"advisorModel"` in the settings. The model must be at least as capable as the main model, otherwise it is not attached. Not available on Bedrock, Google Cloud or Foundry. `/advisor` without an argument opens the picker and shows what is available. Claude decides when to call it: no setting forces or caps it. Cost: its tokens add to the main model's and every subagent inherits it. **Do not set `DISABLE_TELEMETRY`** for Claude Code: with it, as with `DO_NOT_TRACK`, `DISABLE_GROWTHBOOK` or `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`, the advisor stays off (OpenSpec and Archgate telemetry is a different setting).
 @@end
 @@module:claude
 1. **Check**: `node .claude/hooks/quality-gate.mjs` returns 0.
