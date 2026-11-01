@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.8](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.7...v0.1.8) (2026-11-01)
+
+
+### Features
+
+* **scaffold:** agent-profiles module with architect and qa-engineer ([#111](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/111)) ([5e524b6](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/5e524b68c8c4630dbdcd3f2b1d9f686828de06f8)), closes [#33](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/33)
+
 ## [0.1.7](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.6...v0.1.7) (2026-11-01)
 
 
