@@ -1,0 +1,7 @@
+{
+  "description": "Advisor de Claude Code : consigne d'appel dans project-lead et étape /advisor du « Nouveau poste ». Fonction expérimentale et payante, réglage utilisateur : le plugin n'écrit aucun réglage",
+  "requires": [
+    "agent-profiles"
+  ],
+  "default": false
+}

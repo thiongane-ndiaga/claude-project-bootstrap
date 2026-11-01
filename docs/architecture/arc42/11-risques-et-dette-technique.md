@@ -32,6 +32,7 @@
 | Retrait du module `agent-profiles` : le hook déclaré dans `settings.json` et les fichiers générés restent ; sans la table, le hook ne borne plus rien | Faible | Faible | Supprimer à la main ([ARCH-011](../adrs/ARCH-011-profils-d-agents-bornes-par-un-hook-unique.md)) |
 | Changement futur du contenu de `agent_type` : la correspondance profil-table casse | Faible | Haut | Tests de contrat du module ([ARCH-011](../adrs/ARCH-011-profils-d-agents-bornes-par-un-hook-unique.md)) |
 | Réglage `agent` (`mainAgent`) appliqué à toutes les sessions du clone ; `project-lead` écrit lui-même le code sans profil `developer`, sans garde mécanique contre l'auto-relecture | Moyenne | Moyen | Réglage facultatif et réversible (le retirer redonne l'agent par défaut) ; relecture confiée à `qa-engineer` par consigne ([ARCH-013](../adrs/ARCH-013-chef-de-projet-comme-agent-principal-active-par-mainagent.md)) |
+| Module `advisor` : fonction expérimentale, consigne d'appel qui n'est qu'une incitation (aucun mécanisme ne garantit ni ne plafonne l'appel), documentation susceptible de changer, usage par un teammate non établi | Moyenne | Faible | Aucun réglage écrit par le plugin ; constats datés dans `pitfalls.md` ; à vérifier en session d'équipe |
 
 - Quels risques pèsent sur les objectifs de qualité ?
 - Quelle dette est acceptée consciemment, et jusqu'à quand ?
