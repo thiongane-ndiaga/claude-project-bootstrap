@@ -2,7 +2,7 @@
   "schema": 1,
   "plugin": {
     "name": "project-bootstrap",
-    "version": "0.1.5"
+    "version": "0.1.6"
   },
   "modules": [
     "core",
@@ -76,7 +76,7 @@
       "status": "created"
     },
     ".bootstrap/checks.json": {
-      "sha256": "cfa6ff30f4928b914974c726f48a9e6fd2835b9e219f95a656a01eb6cfced131",
+      "sha256": "a577467e9b3c551b20d8be803aae7f911d742f3c6257f853953bf327f36233a8",
       "generated": "379996a079f9bddcf9e896e274378a397716cbc53713b33be12893442af2bfa6",
       "status": "kept"
     },
