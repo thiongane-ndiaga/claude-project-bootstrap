@@ -467,7 +467,7 @@ for (const c of cases) {
 
   // catalogue réel
   const names = Object.keys(manifest.modules);
-  check("catalogue réel : 12 modules dont core, chacun avec une description", names.length === 12 && names[0] === "core" && names.every((n) => manifest.modules[n].description.length > 10));
+  check("catalogue réel : 13 modules dont core, chacun avec une description", names.length === 13 && names[0] === "core" && names.every((n) => manifest.modules[n].description.length > 10));
   check("catalogue réel : fichiers triés par chemin, propriétaire en tête de la condition de génération", manifest.files.every((f, i, a) => i === 0 || a[i - 1].path < f.path) && manifest.files.every((f) => f.when[0] === f.module));
   check("catalogue réel : langues disponibles fournies par core (en)", manifest.languages.join() === "en");
   const adrOwner = (rel) => manifest.files.find((f) => f.path === rel);
@@ -537,9 +537,9 @@ for (const c of cases) {
   // --list-modules et --catalog
   const list = spawnSync(process.execPath, [scaffold, "--list-modules"], { encoding: "utf8" });
   const listed = JSON.parse(list.stdout);
-  check("--list-modules : sans --target, JSON des 12 modules avec leurs champs et les langues", list.status === 0 && listed.modules.length === 12 && listed.modules.find((m) => m.name === "release").requires.join() === "github" && listed.modules.find((m) => m.name === "dependabot").default === false && listed.languages.join() === "fr,en", list.stderr);
+  check("--list-modules : sans --target, JSON des 13 modules avec leurs champs et les langues", list.status === 0 && listed.modules.length === 13 && listed.modules.find((m) => m.name === "release").requires.join() === "github" && listed.modules.find((m) => m.name === "dependabot").default === false && listed.languages.join() === "fr,en", list.stderr);
   const table = spawnSync(process.execPath, [scaffold, "--list-modules", "--format", "table"], { encoding: "utf8" });
-  check("--list-modules --format table : tableau markdown avec les questions de phase 0", table.status === 0 && /^\| Module \| Apporte \| Requiert \| Incompatible avec \| Par défaut \| Questions de phase 0 \|/.test(table.stdout) && table.stdout.split("\n").filter((l) => l.startsWith("| `")).length === 12);
+  check("--list-modules --format table : tableau markdown avec les questions de phase 0", table.status === 0 && /^\| Module \| Apporte \| Requiert \| Incompatible avec \| Par défaut \| Questions de phase 0 \|/.test(table.stdout) && table.stdout.split("\n").filter((l) => l.startsWith("| `")).length === 13);
   const badCatalog = spawnSync(process.execPath, [scaffold, "--list-modules", "--catalog", path.join(mkdtempSync(path.join(tmpdir(), "pb-vide-")), "rien")], { encoding: "utf8" });
   check("--catalog invalide : code 1 et message", badCatalog.status === 1 && /Catalogue introuvable/.test(badCatalog.stderr));
   const brokenDir = copy();
@@ -1653,6 +1653,52 @@ for (const dirName of ["templates", "templates.en"]) {
   const gh = (args) => (calls.push(args.join(" ")), args[0] === "label" && args[1] === "list" ? JSON.stringify([{ name: "Bug" }]) : "");
   const r = enSync.syncLabels({ labels: [{ name: "bug", color: "d73a4a", description: "d", native: true }, { name: "chore", color: "c5def5", description: "d" }], gh });
   check("sync-labels (templates.en) : label natif existant ignoré, label du plugin créé", r.skipped.join() === "bug" && r.created.join() === "chore" && calls.some((c) => c.startsWith("label create chore")), JSON.stringify(r));
+}
+
+// module agent-profiles (#33) : profils, déclaration du hook, références conditionnelles
+{
+  const gen = (modules, extra = {}) => run({ ...base, visibility: "private", modules, ...extra });
+  const txt = (r, rel) => readFileSync(path.join(r.out, ...rel.split("/")), "utf8");
+  const front = (text) => text.match(/^---\n([\s\S]*?)\n---/)[1];
+  const tools = (text) => /^tools: (.*)$/m.exec(front(text))[1].split(",").map((t) => t.trim());
+  const full = ["claude", "github", "openspec", "archgate", "arc42", "agent-profiles"];
+
+  const r = gen(full);
+  check("agent-profiles : génération réussie", r.res.status === 0, r.res.stderr);
+  for (const name of ["architect", "qa-engineer"]) {
+    const text = txt(r, `.claude/agents/${name}.md`);
+    check(`agent-profiles : ${name} sans Agent ni Skill ni hooks de frontmatter, nom du fichier = name`, !tools(text).includes("Agent") && !tools(text).includes("Skill") && !/^hooks:/m.test(front(text)) && new RegExp(`^name: ${name}$`, "m").test(front(text)));
+  }
+  check("agent-profiles : architect et qa-engineer disposent de Write et Edit (bornés par le hook)", ["architect", "qa-engineer"].every((n) => ["Write", "Edit"].every((t) => tools(txt(r, `.claude/agents/${n}.md`)).includes(t))));
+  const settings = JSON.parse(txt(r, ".claude/settings.json"));
+  const pre = settings.hooks?.PreToolUse ?? [];
+  check("agent-profiles : settings.json déclare le hook PreToolUse de profile-guard.mjs, sans clé agent", pre.length === 1 && pre[0].matcher === "Write|Edit|MultiEdit|NotebookEdit|Bash|PowerShell" && pre[0].hooks[0].command === "node" && /profile-guard\.mjs$/.test(pre[0].hooks[0].args[0]) && settings.agent === undefined, JSON.stringify(pre));
+  check("agent-profiles : read-only-bash.mjs présent (le hook y délègue)", existsSync(path.join(r.out, ".claude/hooks/read-only-bash.mjs")));
+  const q = txt(r, ".claude/agents/qa-engineer.md");
+  const a = txt(r, ".claude/agents/architect.md");
+  check("agent-profiles : références Archgate, OpenSpec, GitHub et arc42 présentes avec leurs modules", /archgate review-context --base --run-checks/.test(q) && /spec-reviewer/.test(q) && /gh pr diff/.test(q) && /architecture-explorer/.test(a) && /arc42-keeper/.test(a));
+  check("agent-profiles : le skill onboard n'est cité nulle part", !/onboard/.test(q + a));
+  check("agent-profiles : la règle « qui écrit ne relit pas » figure dans les deux profils, en français et en anglais", /Qui écrit ne relit pas/.test(q) && /Qui écrit ne relit pas/.test(a) && /Whoever writes does not review/.test(txt(gen(full, { docLanguage: "en" }), ".claude/agents/qa-engineer.md")) && /Whoever writes does not review/.test(txt(gen(full, { docLanguage: "en" }), ".claude/agents/architect.md")));
+
+  const bare = gen(["claude", "agent-profiles"]);
+  const bq = txt(bare, ".claude/agents/qa-engineer.md");
+  const ba = txt(bare, ".claude/agents/architect.md");
+  check("agent-profiles : sans archgate, openspec, github ni arc42, aucune référence à ces modules", !/archgate|openspec|spec-reviewer|gh pr|arc42|architecture-explorer/i.test(bq + ba), bq + ba);
+
+  const without = gen(["claude", "github"]);
+  check("agent-profiles : absent, ni profils, ni hook, ni déclaration", !existsSync(path.join(without.out, ".claude/agents/architect.md")) && !existsSync(path.join(without.out, ".claude/hooks/profile-guard.mjs")) && !JSON.parse(txt(without, ".claude/settings.json")).hooks.PreToolUse);
+
+  const en = gen(full, { docLanguage: "en" });
+  check("agent-profiles : profils anglais avec les mêmes outils que les profils français", ["architect", "qa-engineer"].every((n) => tools(txt(en, `.claude/agents/${n}.md`)).join() === tools(txt(r, `.claude/agents/${n}.md`)).join()) && /Whoever writes does not review/.test(txt(en, ".claude/agents/architect.md")));
+
+  const existing = gen(["claude", "github"]);
+  const settingsPath = path.join(existing.out, ".claude/settings.json");
+  const own = JSON.parse(readFileSync(settingsPath, "utf8"));
+  own.hooks.PreToolUse = [{ matcher: "Bash", hooks: [{ type: "command", command: "node", args: ["mon-hook.mjs"] }] }];
+  writeFileSync(settingsPath, JSON.stringify(own, null, 2));
+  const added = run({ ...base, visibility: "private", modules: ["claude", "github", "agent-profiles"] }, ["--update"], existing.out);
+  const merged = JSON.parse(readFileSync(settingsPath, "utf8")).hooks.PreToolUse;
+  check("agent-profiles : un hook PreToolUse du projet subsiste à côté de celui de profile-guard.mjs", merged.some((h) => h.hooks[0].args[0] === "mon-hook.mjs") && merged.some((h) => /profile-guard\.mjs$/.test(h.hooks[0].args[0])), `${JSON.stringify(merged)} ${JSON.stringify(added.report ?? added)}`);
 }
 
 console.log(failed ? `\n${failed} échec(s)` : "\nTous les tests passent");
