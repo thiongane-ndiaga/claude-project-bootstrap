@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.12](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.11...v0.1.12) (2026-11-01)
+
+
+### Features
+
+* **scaffold:** optional profiles product-owner, developer and business-analyst ([#123](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/123)) ([5e11e3a](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/5e11e3a282f7b79debaf9ae95aa4473b5a6bfac1)), closes [#34](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/34)
+* **skill:** optional advisor activation on sonnet and haiku profiles ([#127](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/127)) ([3196f8f](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/3196f8f768616c5887d44ca1010dc6a74b615295)), closes [#126](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/126)
+* **skill:** optional advisor module ([#125](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/125)) ([c64c2c6](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/c64c2c6be429f5f98bde2be5d633870d5bd3f0bf)), closes [#36](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/36)
+
 ## [0.1.11](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.10...v0.1.11) (2026-11-01)
 
 
