@@ -1,3 +1,6 @@
+Issue: #104
+ADR: ARCH-007
+
 ## Why
 
 En mode `cliInstall: local`, `openspec` et `archgate` ne sont que dans `node_modules/.bin`. Une session lancée par `claude` ne les trouve pas : seul `npm run claude` pose le PATH. Le plugin doit fonctionner avec la commande habituelle (issue #104, suite de #28).

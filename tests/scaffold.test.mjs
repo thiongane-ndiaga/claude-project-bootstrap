@@ -2,7 +2,7 @@
 // Tests de scaffold.mjs sur plusieurs combinaisons de modules. Usage : node tests/scaffold.test.mjs
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, writeFileSync, readFileSync, readdirSync, statSync, rmSync, symlinkSync } from "node:fs";
+import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, writeFileSync, readFileSync, readdirSync, realpathSync, statSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -231,7 +231,7 @@ for (const c of cases) {
     check("--update d'un projet local sans le hook : session-path.mjs recréé, un seul SessionStart", existsSync(path.join(loc.out, ".claude/hooks/session-path.mjs")) && JSON.parse(txt(loc, ".claude/settings.json")).hooks.SessionStart.length === 1, JSON.stringify(again.report ?? again));
     const sh = spawnSync("bash", ["-c", '. "$F"; printf %s "$PATH"'], { encoding: "utf8", env: { ...process.env, F: posix(envFile) } });
     if (sh.error) console.log("skip session-path.mjs : bash indisponible pour relire la ligne");
-    else check("session-path.mjs : la ligne écrite est du Bash valide qui met le dossier en tête du PATH", sh.status === 0 && sh.stdout.startsWith(posix(path.join(proj, "node_modules", ".bin")) + ":"), sh.stdout.slice(0, 200) + sh.stderr);
+    else check("session-path.mjs : la ligne écrite est du Bash valide qui met le dossier en tête du PATH", sh.status === 0 && sh.stdout.startsWith(posix(path.join(realpathSync(proj), "node_modules", ".bin")) + ":"), sh.stdout.slice(0, 200) + sh.stderr);
   }
   check("mode global : hook sans node_modules, workflow.md et ci.yml avec npm install -g", !/node_modules/.test(txt(glob, ".claude/hooks/quality-gate.mjs")) && /npm install -g/.test(txt(glob, ".github/workflows/ci.yml")) && !existsSync(path.join(glob.out, "package.json")));
 
