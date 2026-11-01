@@ -6,4 +6,8 @@
 - Quelle décomposition de haut niveau ?
 - Comment chaque objectif de qualité de la section 1.2 est-il atteint ?
 
-_À rédiger._
+## Installation des CLI d'outillage
+
+Les projets générés appellent `openspec` et `archgate` par leur nom. Le mode d'installation (`cliInstall` : `global` par défaut, `user`, `local` en opt-in) est choisi à la phase 0 et consigné au manifeste ; seul `local` ajoute un `package.json` (versions exactes). Voir [ARCH-007](../adrs/ARCH-007-installation-des-cli-d-outillage.md).
+
+_Le reste de la section reste à rédiger._

@@ -32,6 +32,16 @@ export function realExec(cmd, args = [], { cwd, env, timeout = 120000 } = {}) {
   return { status: res.status, stdout: res.stdout ?? "", stderr: res.stderr ?? "", error: res.error };
 }
 
+// Mode local : les CLI sont dans node_modules/.bin du projet ; l'exécuteur le place devant le PATH (clé « Path » sous Windows).
+const PROJECT_CLIS = new Set(["openspec", "archgate"]);
+export function localBinExec(exec, target) {
+  const bin = path.join(target, "node_modules", ".bin");
+  const key = Object.keys(process.env).find((k) => k.toUpperCase() === "PATH") ?? "PATH";
+  return (cmd, args, opts = {}) => (PROJECT_CLIS.has(cmd) ? exec(cmd, args, { ...opts, env: { ...opts.env, [key]: [bin, opts.env?.[key] ?? process.env[key]].filter(Boolean).join(path.delimiter) } }) : exec(cmd, args, opts));
+}
+const cliMode = (ctx) => ctx.manifest?.config?.cliInstall ?? "global";
+const CLI_PACKAGE = { openspec: "@fission-ai/openspec", archgate: "archgate" };
+
 const ok = (id, message) => ({ id, statut: "ok", message });
 const ecart = (id, message, correction) => ({ id, statut: "ecart", message, correction });
 const nv = (id, message) => ({ id, statut: "non-verifiable", message });
@@ -260,22 +270,36 @@ function probe(ctx, cli) {
 }
 
 function checkVersions(ctx) {
+  const mode = cliMode(ctx);
   const ci = path.join(ctx.target, ".github", "workflows", "ci.yml");
-  if (!existsSync(ci)) return [];
-  const text = readText(ci);
+  if (mode !== "local" && !existsSync(ci)) return [];
+  const text = existsSync(ci) ? readText(ci) : "";
+  let devDeps = {};
+  if (mode === "local") {
+    try {
+      devDeps = readJson(path.join(ctx.target, "package.json")).devDependencies ?? {};
+    } catch {
+      devDeps = {};
+    }
+  }
   const results = [];
   for (const [tool, mod, envName] of [["openspec", "openspec", "OPENSPEC_VERSION"], ["archgate", "archgate", "ARCHGATE_VERSION"]]) {
     if (!ctx.modules?.has(mod)) continue;
     const sources = {};
-    const inCi = new RegExp(`${envName}:\\s*"?([\\w.-]+)`).exec(text)?.[1];
-    if (inCi) sources["ci.yml"] = inCi;
+    const source = mode === "local" ? "package.json" : "ci.yml";
+    const inCi = mode === "local" ? (devDeps[CLI_PACKAGE[tool]] ?? "").replace(/^[\^~=v]+/, "") || undefined : new RegExp(`${envName}:\\s*"?([\\w.-]+)`).exec(text)?.[1];
+    if (inCi) sources[source] = inCi;
     const inManifest = ctx.manifest?.config?.versions?.[tool];
     if (inManifest) sources.manifeste = inManifest;
     const installed = probe(ctx, tool);
     if (installed) sources["poste"] = installed;
     const values = new Set(Object.values(sources));
-    if (!inCi && !inManifest) results.push(nv(`version-${tool}`, "version épinglée introuvable dans ci.yml et le manifeste"));
-    else if (values.size > 1) results.push(ecart(`version-${tool}`, `${tool} : ${Object.entries(sources).map(([k, v]) => `${k} ${v}`).join(", ")}`, `npm install -g ${tool === "openspec" ? "@fission-ai/openspec" : "archgate"}@${inCi ?? inManifest}`));
+    const pkg = CLI_PACKAGE[tool];
+    const wanted = inCi ?? inManifest;
+    const fix = mode === "local" ? `npm install --save-dev --save-exact ${pkg}@${wanted ?? "<version>"}` : mode === "user" ? `npm install -g --prefix ~/.local ${pkg}@${wanted}` : `npm install -g ${pkg}@${wanted}`;
+    if (mode === "local" && !inCi) results.push(ecart(`version-${tool}`, `${tool} absent des devDependencies de package.json`, fix));
+    else if (!inCi && !inManifest) results.push(nv(`version-${tool}`, "version épinglée introuvable dans ci.yml et le manifeste"));
+    else if (values.size > 1) results.push(ecart(`version-${tool}`, `${tool} : ${Object.entries(sources).map(([k, v]) => `${k} ${v}`).join(", ")}`, fix));
     else results.push(ok(`version-${tool}`, `${tool} ${[...values][0]}${installed ? "" : " (CLI du poste non vérifiée)"}`));
   }
   return results;
@@ -466,7 +490,11 @@ function checkWorkstation(ctx, opts) {
       }
     }
   }
-  if (process.platform !== "win32") {
+  if (cliMode(ctx) === "local") {
+    const bin = path.join(ctx.target, "node_modules", ".bin");
+    const absent = ["openspec", "archgate"].filter((c) => ctx.modules?.has(c) && !existsSync(path.join(bin, c)) && !existsSync(path.join(bin, `${c}.cmd`)));
+    results.push(absent.length ? ecart("poste-npm", `CLI absentes de node_modules/.bin : ${absent.join(", ")}`, "npm ci") : ok("poste-npm", "CLI du projet présentes dans node_modules/.bin"));
+  } else if (process.platform !== "win32") {
     const npm = ctx.exec("npm", ["config", "get", "prefix"], { cwd: tmpdir() });
     if (missing(npm) || npm.status !== 0) results.push(nv("poste-npm", "npm introuvable"));
     else {
@@ -507,6 +535,7 @@ export async function runAudit({ target, forge = false, workstation = false, rep
   } catch (err) {
     results.push(nv("manifeste", err.message));
   }
+  if (cliMode(ctx) === "local") ctx.exec = localBinExec(exec, ctx.target);
   const steps = [["mise-a-jour", checkUpdate], ["hooks-git", checkGithooks], ["formulaires-labels", checkForms], ["versions", checkVersions], ["actions-epinglees", checkActions], ["outils", checkTools], ["reglages", checkSettings]];
   for (const [id, step] of steps) {
     try {

@@ -6,7 +6,7 @@ Garantir par des tests automatiques que la sortie du générateur reste correcte
 ## Requirements
 
 ### Requirement: Matrice des modules
-La suite de tests SHALL générer et contrôler les combinaisons suivantes, déduites du catalogue : le module `core` seul, chaque autre module avec sa chaîne de dépendances, la sélection par défaut, la sélection par défaut avec une stack choisie, la sélection complète, modules facultatifs compris, et la sélection complète en dépôt public.
+La suite de tests SHALL générer et contrôler les combinaisons suivantes, déduites du catalogue : le module `core` seul, chaque autre module avec sa chaîne de dépendances, la sélection par défaut, la sélection par défaut avec une stack choisie, la sélection par défaut avec le mode d'installation `user`, la sélection par défaut avec le mode d'installation `local`, la sélection complète, modules facultatifs compris, et la sélection complète en dépôt public.
 
 #### Scenario: Module seul avec ses dépendances
 - **WHEN** la matrice génère le module `release`
@@ -19,6 +19,10 @@ La suite de tests SHALL générer et contrôler les combinaisons suivantes, déd
 #### Scenario: Variante publique
 - **WHEN** la sélection complète est générée en dépôt public
 - **THEN** ses fichiers dépendant de la visibilité sont contrôlés et figés dans leur propre instantané
+
+#### Scenario: Modes d'installation des CLI
+- **WHEN** la matrice génère `default-cli-user` et `default-cli-local`
+- **THEN** chacune est contrôlée par les invariants communs et figée dans son instantané, et `default-cli-local` contient `package.json`
 
 ### Requirement: Invariants de génération
 Pour chaque combinaison, la suite SHALL vérifier : génération terminée avec le code 0; aucun paramètre de la forme `{{NOM_MAJUSCULE}}` ni marqueur `@@module:` ou `@@end` dans les fichiers générés (les expressions `${{ … }}` de GitHub Actions sont légitimes); fichiers JSON valides; fichiers du manifeste présents; clés sans antislash; aucun fin de ligne CRLF; chaque base égale à son fichier, et présente pour tout fichier qui n'est ni fusionné ni propre au projet.

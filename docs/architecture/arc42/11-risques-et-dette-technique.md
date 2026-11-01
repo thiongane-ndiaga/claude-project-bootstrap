@@ -4,7 +4,9 @@
 
 | Risque / dette | Probabilité | Impact | Mesure envisagée |
 |---|---|---|---|
-| _À rédiger_ | | | |
+| Session Claude Code lancée sans `npm run claude` en mode `local` : `openspec` introuvable | Moyenne | Faible | Démarrer par `npm run claude` ; hook, CI et audit ajoutent déjà `node_modules/.bin` au `PATH` ([ARCH-007](../adrs/ARCH-007-installation-des-cli-d-outillage.md)) |
+| Mise à jour manuelle des `devDependencies` en mode `local` (Dependabot ne couvre que `github-actions`) | Moyenne | Faible | `npm install --save-exact` ([ARCH-007](../adrs/ARCH-007-installation-des-cli-d-outillage.md)) |
+| `package.json` existant conservé tel quel : `devDependencies` à ajouter à la main | Moyenne | Faible | Documenté dans l'ADR |
 
 - Quels risques pèsent sur les objectifs de qualité ?
 - Quelle dette est acceptée consciemment, et jusqu'à quand ?

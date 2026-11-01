@@ -2,7 +2,19 @@
 // Contrôle qualité commun (hook TaskCompleted, pre-push) : outillage de validation du dépôt.
 // Sortie 2 = échec bloquant (stderr renvoyé à Claude) ; sortie 0 = OK.
 import { spawnSync } from "node:child_process";
+// @@module:cli-local
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+// @@end
 import { runChecks } from "../../.bootstrap/run-checks.mjs";
+// @@module:cli-local
+
+// CLI installées dans le projet (package.json) : node_modules/.bin devant le PATH de ce processus, donc de toutes les commandes lancées.
+// Sous Windows la variable s'appelle « Path » : retrouver la clé sans tenir compte de la casse.
+const bin = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "node_modules", ".bin");
+const pathKey = Object.keys(process.env).find((k) => k.toUpperCase() === "PATH") ?? "PATH";
+process.env[pathKey] = [bin, process.env[pathKey]].filter(Boolean).join(path.delimiter);
+// @@end
 
 const checks = [
   // @@module:openspec

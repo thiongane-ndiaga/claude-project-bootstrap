@@ -121,16 +121,40 @@ Les étapes marquées « optionnel » ne sont pas nécessaires au fonctionnement
 @@end
 @@module:openspec|archgate
 1. **CLI aux versions épinglées du projet**
+@@module:cli-npm-global
 @@module:github
    (ce sont celles de `.github/workflows/ci.yml`)
 @@end
+@@end
+@@module:cli-npm-global
 @@module:openspec
+@@module:cli-default
    - OpenSpec : `npm install -g @fission-ai/openspec@{{OPENSPEC_VERSION}}`
 @@end
+@@module:cli-user
+   - OpenSpec : `npm install -g --prefix ~/.local @fission-ai/openspec@{{OPENSPEC_VERSION}}`
+@@end
+@@end
 @@module:archgate
+@@module:cli-default
    - Archgate : `npm install -g archgate@{{ARCHGATE_VERSION}}`
 @@end
+@@module:cli-user
+   - Archgate : `npm install -g --prefix ~/.local archgate@{{ARCHGATE_VERSION}}`
+@@end
+@@end
+@@end
+@@module:cli-default
    - Si le préfixe npm n'est pas inscriptible (`npm config get prefix`, typiquement `/usr` sous Linux), ajouter `--prefix ~/.local` après avoir vérifié que `~/.local/bin` est dans le `PATH`. Pas de `sudo`.
+@@end
+@@module:cli-user
+   - Mode d'installation : préfixe utilisateur (`cliInstall: user`). Vérifier que `~/.local/bin` est dans le `PATH`. Sous Windows ce mode équivaut au mode global : le préfixe npm y est déjà propre à l'utilisateur, retirer `--prefix ~/.local`. Le `--prefix` n'est pas mémorisé : le répéter à chaque mise à jour des CLI. Pas de `sudo`.
+@@end
+@@module:cli-local
+   - Mode d'installation : local au dépôt (`cliInstall: local`). Les CLI sont dans les `devDependencies` de `package.json` (versions de `package-lock.json`) : `npm ci`, sans installation globale.
+   - Démarrer Claude Code avec `npm run claude` (options après `--`) : les skills `/opsx:*` appellent `openspec` par son nom, qu'une session démarrée autrement ne trouve pas. Le hook `quality-gate.mjs` et la CI ajoutent eux-mêmes `node_modules/.bin` au `PATH`.
+   - Mettre à jour une CLI : `npm install --save-dev --save-exact <paquet>@<version>`, puis committer `package.json` et `package-lock.json`.
+@@end
 1. **Télémétrie** (optionnel) :
 @@module:openspec
    - `openspec config set telemetry.enabled false`
