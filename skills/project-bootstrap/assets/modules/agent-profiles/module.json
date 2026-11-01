@@ -1,9 +1,10 @@
 {
-  "description": "Profils d'agents architect et qa-engineer, bornés par un hook unique selon agent_type (sous-agents et teammates)",
+  "description": "Profils d'agents architect et qa-engineer, chef de projet project-lead (agent principal avec mainAgent), bornés par un hook unique selon agent_type",
   "requires": ["claude"],
   "default": false,
   "files": [
     {"path": ".claude/agents/architect.md"},
+    {"path": ".claude/agents/project-lead.md"},
     {"path": ".claude/agents/qa-engineer.md"},
     {"path": ".claude/hooks/profile-guard.mjs"}
   ]

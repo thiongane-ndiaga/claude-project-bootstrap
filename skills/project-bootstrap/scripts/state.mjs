@@ -24,7 +24,7 @@ const FORMAT_VERSION = 1;
 export const STATUSES = ["doing", "done", "failed", "skipped"];
 export const EFFECT_KINDS = ["npm-global", "git-config-global", "plugin", "marketplace", "custom"];
 // clés de bootstrap.json conservées dans les réponses (references/bootstrap-config.md) ; toute autre clé est ignorée
-export const ANSWER_KEYS = ["projectName", "description", "visibility", "docLanguage", "docLanguageName", "stack", "keep", "modules", "cliInstall", "date", "actionsCreditNote", "versions", "actions"];
+export const ANSWER_KEYS = ["projectName", "description", "visibility", "docLanguage", "docLanguageName", "stack", "keep", "modules", "cliInstall", "mainAgent", "date", "actionsCreditNote", "versions", "actions"];
 
 // Étapes dans l'ordre. needs : un module au moins parmi la liste ; all : tous les modules de la liste (absents = toujours applicable).
 // proof : preuve vérifiable de l'étape (absente = non vérifiable). En mode cliInstall « local », phase2-cli suit phase2-generate.

@@ -48,13 +48,15 @@ Voir [ARCH-009](../adrs/ARCH-009-etat-de-reprise-et-journal-des-effets.md).
 
 ## Briques liées aux profils d'agents
 
-- `skills/project-bootstrap/assets/modules/agent-profiles/` : le module ; deux profils, `architect` et `qa-engineer`, générés dans `.claude/agents/`, avec des références conditionnelles aux autres modules (blocs `@@module`).
+- `skills/project-bootstrap/assets/modules/agent-profiles/` : le module ; trois profils, `architect`, `qa-engineer` et `project-lead`, générés dans `.claude/agents/`, avec des références conditionnelles aux autres modules (blocs `@@module`).
+- `.claude/agents/project-lead.md` : chef de projet, toujours généré (français et anglais), hors de la table `PROFILES`. Il délègue à `architect` et `qa-engineer` et porte dans son prompt l'échelle d'arbitrage et les règles de sécurité.
+- Clé de configuration facultative `mainAgent` (seule valeur : `project-lead`) : présente, `buildSettings` écrit `"agent": "project-lead"` dans `.claude/settings.json` ; absente, aucune clé `agent`. Elle est consignée au manifeste seulement si présente, héritée par `--update`, et refusée sans le module `agent-profiles`. Aucun champ `conflicts` avec `archgate-plugin`.
 - `.claude/hooks/profile-guard.mjs` (modèle du module) : hook unique de bornage. Il porte la table `PROFILES` (préfixes d'écriture, commandes de shell, agents et skills lançables permis par profil) que le projet adapte à sa stack.
 - `.claude/settings.json` : `buildSettings` y déclare le hook (événement `PreToolUse`) quand le module est actif ; le fichier reste réservé au générateur.
 - `.claude/hooks/read-only-bash.mjs` (module `claude`) : `profile-guard.mjs` lui délègue la lecture seule du shell. Le module `agent-profiles` dépend donc de `claude` pour ce seul fichier ; il ne dépend pas de `restrict-path.mjs`, qui appartient à `arc42`.
 - Agents existants du module `claude` (`architecture-explorer`, `arc42-keeper`, `spec-reviewer`, `traceability-checker`) : inchangés ; ils coexistent avec les profils, dont `architect` qui écrit aussi dans `docs/architecture/arc42/`.
 - `skills/project-bootstrap/assets/modules/agent-profiles/tests/profile-guard.test.mjs` : teste la table avec un `agent_type` de sous-agent et de teammate ; `tests/matrix.test.mjs` vérifie les profils et la déclaration dans `settings.json`.
 
-Voir [ARCH-011](../adrs/ARCH-011-profils-d-agents-bornes-par-un-hook-unique.md).
+Voir [ARCH-011](../adrs/ARCH-011-profils-d-agents-bornes-par-un-hook-unique.md) et [ARCH-013](../adrs/ARCH-013-chef-de-projet-comme-agent-principal-active-par-mainagent.md).
 
 _Le reste de la section reste à rédiger._

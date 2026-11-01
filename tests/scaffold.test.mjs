@@ -1344,6 +1344,26 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
     writeFileSync(path.join(s1, ".claude", "settings.local.json"), '{ "agent": "archgate:developer" }');
     const rs1 = await audit(s1);
     check("piège : agent archgate:developer imposé par les réglages du projet -> écart avec la correction", by(rs1, "agent-impose")?.statut === "ecart" && /retirer la clé/.test(by(rs1, "agent-impose").correction));
+    // mainAgent consigné au manifeste (#35) : l'agent attendu est project-lead
+    const mainAgentProject = (settings, local) => {
+      const dir = mkProject();
+      const manifestFile = path.join(dir, ".bootstrap", "manifest.json");
+      const manifestJson = JSON.parse(readFileSync(manifestFile, "utf8"));
+      manifestJson.config = { ...(manifestJson.config ?? {}), mainAgent: "project-lead" };
+      writeFileSync(manifestFile, JSON.stringify(manifestJson, null, 2));
+      mkdirSync(path.join(dir, ".claude"), { recursive: true });
+      if (settings !== undefined) writeFileSync(path.join(dir, ".claude", "settings.json"), JSON.stringify(settings));
+      if (local !== undefined) writeFileSync(path.join(dir, ".claude", "settings.local.json"), JSON.stringify(local));
+      return dir;
+    };
+    const am1 = by(await audit(mainAgentProject({ agent: "project-lead" })), "agent-impose");
+    check("audit : mainAgent consigné et settings.json cohérent -> ok qui nomme l'agent principal", am1?.statut === "ok" && /project-lead \(mainAgent\)/.test(am1.message), JSON.stringify(am1));
+    const am2 = by(await audit(mainAgentProject({})), "agent-impose");
+    check("audit : mainAgent consigné mais settings.json sans agent -> écart avec la correction", am2?.statut === "ecart" && /scaffold\.mjs --update/.test(am2.correction), JSON.stringify(am2));
+    const am3 = by(await audit(mainAgentProject({ agent: "mon-agent" })), "agent-impose");
+    check("audit : mainAgent consigné mais un autre agent déclaré par le projet -> écart", am3?.statut === "ecart" && /mon-agent/.test(am3.message) && /mainAgent à null/.test(am3.correction), JSON.stringify(am3));
+    const am4 = by(await audit(mainAgentProject({ agent: "project-lead" }, { agent: "perso" })), "agent-impose");
+    check("audit : un agent personnel dans settings.local.json qui annule mainAgent -> écart", am4?.statut === "ecart" && /settings\.local\.json/.test(am4.message), JSON.stringify(am4));
     const s2 = mkProject();
     mkdirSync(path.join(s2, ".archgate", "adrs"), { recursive: true });
     writeFileSync(path.join(s2, ".archgate", "adrs", "GEN-001-exemple.md"), "# exemple");
@@ -1702,6 +1722,57 @@ for (const dirName of ["templates", "templates.en"]) {
   const added = run({ ...base, visibility: "private", modules: ["claude", "github", "agent-profiles"] }, ["--update"], existing.out);
   const merged = JSON.parse(readFileSync(settingsPath, "utf8")).hooks.PreToolUse;
   check("agent-profiles : un hook PreToolUse du projet subsiste à côté de celui de profile-guard.mjs", merged.some((h) => h.hooks[0].args[0] === "mon-hook.mjs") && merged.some((h) => /profile-guard\.mjs$/.test(h.hooks[0].args[0])), `${JSON.stringify(merged)} ${JSON.stringify(added.report ?? added)}`);
+}
+
+// project-lead et mainAgent (#35)
+{
+  const gen = (modules, extra = {}) => run({ ...base, visibility: "private", modules, ...extra });
+  const txt = (r, rel) => readFileSync(path.join(r.out, ...rel.split("/")), "utf8");
+  const full = ["claude", "github", "openspec", "archgate", "arc42", "agent-profiles"];
+
+  const r = gen(full);
+  const lead = txt(r, ".claude/agents/project-lead.md");
+  const fm = lead.match(/^---\n([\s\S]*?)\n---/)[1];
+  check("project-lead : généré avec agent-profiles, sans tools ni hooks de frontmatter (agent principal), nom du fichier = name", r.res.status === 0 && /^name: project-lead$/m.test(fm) && !/^tools:/m.test(fm) && !/^hooks:/m.test(fm));
+  check("project-lead : consigne de délégation, brief borné, échelle à cinq niveaux, qui écrit ne relit pas", /Déléguer/.test(lead) && /Brief borné/.test(lead) && /objectif, fichiers de référence, critères de fin, contraintes, non-objectifs/.test(lead) && (lead.match(/^\| [1-5] \|/gm) ?? []).length === 5 && /Qui écrit ne relit pas/.test(lead));
+  check("project-lead : explore, update et lecture de l'avancement depuis le disque (openspec)", /\/opsx:explore/.test(lead) && /\/opsx:update/.test(lead) && /openspec status --json/.test(lead));
+  check("project-lead : briefings d'ADR, ADR bloquants (archgate)", /archgate review-context --base/.test(lead) && /bloquants/.test(lead));
+  check("project-lead : écrit lui-même le code et les specs sans developer ni business-analyst, délègue sinon", /developer/.test(lead) && /business-analyst/.test(lead) && /sinon écris-les toi-même/.test(lead));
+  check("project-lead : lessons-learned et reviewer lancés par lui (archgate-plugin), arc42 mis à jour par architect (arc42)", /archgate:lessons-learned/.test(txt(gen([...full, "archgate-plugin"]), ".claude/agents/project-lead.md")) && /archgate:reviewer/.test(txt(gen([...full, "archgate-plugin"]), ".claude/agents/project-lead.md")) && /architect` met arc42 à jour/.test(lead) && !/lessons-learned/.test(lead));
+  check("project-lead : écritures visibles soumises à l'accord de l'utilisateur (github), demandes des profils traitées", /gh issue create/.test(lead) && /gh pr merge/.test(lead) && /accord de l'utilisateur/.test(lead) && /ce que le hook leur refuse/.test(lead));
+  check("project-lead : absent de la table du hook (agent principal non borné)", !/"project-lead"|project-lead:/.test(txt(r, ".claude/hooks/profile-guard.mjs")));
+  const bare = txt(gen(["claude", "agent-profiles"]), ".claude/agents/project-lead.md");
+  check("project-lead : sans archgate, openspec, github ni arc42, aucune référence à ces modules", !/archgate|openspec|opsx|gh |arc42|spec-reviewer|architecture-explorer/i.test(bare), bare);
+  const en = txt(gen(full, { docLanguage: "en" }), ".claude/agents/project-lead.md");
+  check("project-lead : version anglaise sans ligne tools (agent principal)", !/^tools:/m.test(en.match(/^---\n([\s\S]*?)\n---/)[1]) && /gh issue create/.test(en) && /archgate:reviewer/.test(txt(gen([...full, "archgate-plugin"], { docLanguage: "en" }), ".claude/agents/project-lead.md")));
+  check("project-lead : version anglaise (consigne de délégation, échelle, règle de relecture)", /Delegate/.test(en) && /Arbitration ladder/.test(en) && /Whoever writes does not review/.test(en) && (en.match(/^\| [1-5] \|/gm) ?? []).length === 5);
+
+  // mainAgent
+  const settingsOf = (res) => JSON.parse(txt(res, ".claude/settings.json"));
+  check("mainAgent absent : aucune clé agent dans settings.json, aucune clé au manifeste", settingsOf(r).agent === undefined && JSON.parse(txt(r, ".bootstrap/manifest.json")).config.mainAgent === undefined);
+  const on = gen(full, { mainAgent: "project-lead" });
+  check("mainAgent project-lead : agent project-lead dans settings.json, consigné au manifeste", on.res.status === 0 && settingsOf(on).agent === "project-lead" && JSON.parse(txt(on, ".bootstrap/manifest.json")).config.mainAgent === "project-lead", on.res.stderr);
+  const noModule = gen(["claude", "github"], { mainAgent: "project-lead" });
+  check("mainAgent sans agent-profiles refusé (code 1, aucun fichier écrit)", noModule.res.status === 1 && /mainAgent exige le module agent-profiles/.test(noModule.res.stderr) && !existsSync(path.join(noModule.out, ".claude/settings.json")), noModule.res.stderr);
+  const bad = gen(full, { mainAgent: "autre" });
+  check("mainAgent invalide refusé en nommant la valeur permise", bad.res.status === 1 && /mainAgent doit valoir project-lead/.test(bad.res.stderr), bad.res.stderr);
+  const upd = run({ ...base, visibility: "private", modules: full }, ["--update"], on.out);
+  check("--update sans mainAgent dans la configuration : la valeur du manifeste est conservée", upd.res.status === 0 && settingsOf(on).agent === "project-lead" && JSON.parse(txt(on, ".bootstrap/manifest.json")).config.mainAgent === "project-lead", upd.res.stderr);
+  // désactivation explicite : null n'est ni hérité ni consigné, et permet de retirer le module
+  const off = run({ ...base, visibility: "private", modules: full, mainAgent: null }, ["--update"], on.out);
+  check("mainAgent null : désactive la clé (ni héritée ni consignée), code 0", off.res.status === 0 && JSON.parse(txt(on, ".bootstrap/manifest.json")).config.mainAgent === undefined, off.res.stderr);
+  const removed = run({ ...base, visibility: "private", modules: ["claude", "github"], mainAgent: null }, ["--update"], on.out);
+  check("retrait du module agent-profiles avec mainAgent null : accepté", removed.res.status === 0, removed.res.stderr);
+  // un agent déjà déclaré par le projet est conservé et signalé
+  const own = gen(["claude", "github"]);
+  const ownSettings = path.join(own.out, ".claude/settings.json");
+  const ownJson = JSON.parse(readFileSync(ownSettings, "utf8"));
+  ownJson.agent = "mon-agent";
+  writeFileSync(ownSettings, JSON.stringify(ownJson, null, 2));
+  const adopt = run({ ...base, visibility: "private", modules: full, mainAgent: "project-lead" }, ["--update"], own.out);
+  check("mainAgent avec un agent déjà déclaré : clé conservée, avertissement dans le rapport", adopt.res.status === 0 && JSON.parse(readFileSync(ownSettings, "utf8")).agent === "mon-agent" && (adopt.report?.warnings ?? []).some((w) => /mon-agent/.test(w)), JSON.stringify(adopt.report?.warnings ?? adopt.report));
+  const withArchgatePlugin = gen([...full, "archgate-plugin"], { mainAgent: "project-lead" });
+  check("mainAgent avec archgate-plugin : combinaison acceptée, sans conflit", withArchgatePlugin.res.status === 0 && settingsOf(withArchgatePlugin).agent === "project-lead", withArchgatePlugin.res.stderr);
 }
 
 console.log(failed ? `\n${failed} échec(s)` : "\nTous les tests passent");

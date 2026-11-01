@@ -168,11 +168,23 @@ L'audit SHALL appeler `archgate check`, `openspec validate --all --strict --no-i
 - **THEN** l'audit les trouve sans qu'elles soient dans le `PATH` du poste
 
 ### Requirement: Réglages et ADR d'exemple
-L'audit SHALL signaler comme écart un `agent` imposé dans `.claude/settings.json` ou `.claude/settings.local.json` du projet quand il vaut `archgate:developer`, et la présence d'un ADR d'exemple `GEN-001` dans `.archgate/adrs/`.
+L'audit SHALL signaler comme écart un `agent` imposé dans `.claude/settings.json` ou `.claude/settings.local.json` du projet quand il vaut `archgate:developer`, ou quand il diffère de `mainAgent` consigné au manifeste, ou quand `mainAgent` est consigné sans `agent` dans `settings.json`. Il SHALL signaler la présence d'un ADR d'exemple `GEN-001` dans `.archgate/adrs/`.
 
 #### Scenario: Agent imposé
 - **WHEN** `.claude/settings.local.json` contient `"agent": "archgate:developer"`
 - **THEN** le contrôle est un écart avec la correction de retirer la clé
+
+#### Scenario: mainAgent cohérent
+- **WHEN** le manifeste consigne `mainAgent` et `settings.json` déclare le même agent
+- **THEN** le contrôle est ok et nomme l'agent principal
+
+#### Scenario: Agent différent de mainAgent
+- **WHEN** le manifeste consigne `mainAgent` et un fichier de réglages, `settings.local.json` compris, déclare un autre agent
+- **THEN** le contrôle est un écart avec la correction de retirer la clé ou de mettre `mainAgent` à `null`
+
+#### Scenario: mainAgent absent des réglages
+- **WHEN** le manifeste consigne `mainAgent` et `settings.json` ne déclare aucun agent
+- **THEN** le contrôle est un écart avec la correction de relancer `scaffold.mjs --update`
 
 ### Requirement: Contrôles de la forge
 Sur l'option `--forge`, l'audit SHALL, en lecture seule, comparer les labels des formulaires à ceux du dépôt, et les contextes exigés sur `main` (protection de branche et rulesets) aux noms des jobs de tous les workflows, matrices développées. Un contexte d'une autre application, une protection absente ou un accès refusé est `non-verifiable`; un contexte exigé qui n'existe nulle part est un écart.

@@ -7,6 +7,7 @@
   ".claude/agents/arc42-keeper.md": "487e09f2cb74ee98d3ecf894ed1774cac84d4597dfe7f4c73820729d111baea1",
   ".claude/agents/architect.md": "711e09c3e092048040313aac33c04c5b75aecbeb87453d7d415ad894d17cc247",
   ".claude/agents/architecture-explorer.md": "5b0b160c2d6d472e62faadc0aa802938578464a867e351e2154b1e80fb64797d",
+  ".claude/agents/project-lead.md": "9bcc96c4ac18a5f817f6cc274157d10439f0fa7fa121345455597b78850aafae",
   ".claude/agents/qa-engineer.md": "b07af1454ff167b8ac98d2223917a75e304a61f35ebd5b9d5df16306b405a2c6",
   ".claude/agents/spec-reviewer.md": "91897672927ce1aa2172a76ffad17acdb7387c545ee294d9709d62ecaf2e7d79",
   ".claude/agents/traceability-checker.md": "7c5e027196e723d5b2011ba106853d18835da06bfc140006906156405935e08b",

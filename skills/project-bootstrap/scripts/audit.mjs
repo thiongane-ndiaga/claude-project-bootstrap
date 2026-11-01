@@ -361,16 +361,22 @@ function checkTools(ctx) {
 function checkSettings(ctx) {
   if (!ctx.manifest) return [];
   const results = [];
+  const mainAgent = ctx.manifest.config?.mainAgent;
+  let declared;
   for (const f of ["settings.json", "settings.local.json"]) {
     const file = path.join(ctx.target, ".claude", f);
     if (!existsSync(file)) continue;
     try {
-      if (readJson(file).agent === "archgate:developer") results.push(ecart("agent-impose", `.claude/${f} impose l'agent archgate:developer`, `retirer la clé "agent" de .claude/${f}`));
+      const agent = readJson(file).agent;
+      if (agent === "archgate:developer") results.push(ecart("agent-impose", `.claude/${f} impose l'agent archgate:developer`, `retirer la clé "agent" de .claude/${f}`));
+      else if (mainAgent && agent !== undefined && agent !== mainAgent) results.push(ecart("agent-impose", `.claude/${f} déclare l'agent « ${agent} » alors que le manifeste consigne mainAgent « ${mainAgent} »`, `retirer la clé "agent" de .claude/${f}, ou mettre mainAgent à null dans la configuration`));
+      if (agent !== undefined && f === "settings.json") declared = agent;
     } catch {
       results.push(nv("agent-impose", `.claude/${f} illisible`));
     }
   }
-  if (!results.length) results.push(ok("agent-impose", "aucun agent imposé par les réglages du projet"));
+  if (mainAgent && !results.length && declared !== mainAgent) results.push(ecart("agent-impose", `le manifeste consigne mainAgent « ${mainAgent} » mais .claude/settings.json ne déclare pas cet agent`, `relancer scaffold.mjs --update ou ajouter "agent": "${mainAgent}" à .claude/settings.json`));
+  if (!results.length) results.push(ok("agent-impose", mainAgent ? `agent principal du projet : ${mainAgent} (mainAgent)` : "aucun agent imposé par les réglages du projet"));
   const adrs = path.join(ctx.target, ".archgate", "adrs");
   if (ctx.modules?.has("archgate") && existsSync(adrs) && readdirSync(adrs).some((n) => /^GEN-001/.test(n))) results.push(ecart("adr-exemple", "ADR d'exemple GEN-001 créé par archgate init", "supprimer .archgate/adrs/GEN-001*"));
   else if (ctx.modules?.has("archgate")) results.push(ok("adr-exemple", "pas d'ADR d'exemple"));
