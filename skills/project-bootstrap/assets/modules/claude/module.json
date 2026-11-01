@@ -1,0 +1,8 @@
+{
+  "description": "Claude Code : .claude/settings.json, hooks Node, agents du projet",
+  "default": true,
+  "files": [
+    {"path": ".claude/hooks/quality-gate.mjs"},
+    {"path": ".claude/hooks/read-only-bash.mjs"}
+  ]
+}

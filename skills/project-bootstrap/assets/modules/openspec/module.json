@@ -1,0 +1,7 @@
+{
+  "description": "Spec-driven development avec OpenSpec (openspec init + conventions)",
+  "default": true,
+  "files": [
+    {"path": ".claude/agents/spec-reviewer.md", "when": ["claude"]}
+  ]
+}

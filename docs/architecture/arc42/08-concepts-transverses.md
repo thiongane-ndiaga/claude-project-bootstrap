@@ -19,6 +19,15 @@ Les appels `openspec` et `archgate` sont identiques dans tous les modes ; jamais
 
 Voir [ARCH-008](../adrs/ARCH-008-modeles-de-documentation-par-langue.md).
 
+## Propriété des fichiers par module
+
+- Un fichier appartient au module qui le déclare ; `when` ne liste que les modules supplémentaires nécessaires. Les ADR d'outillage ARCH-001 à ARCH-005 appartiennent à `archgate`, les formulaires d'issues à `github`, les fichiers transverses à `core`.
+- `.claude/settings.json`, `package.json`, `.bootstrap/manifest.json`, `.bootstrap/base/**`, `.bootstrap/local/**` et `.git/**` sont réservés au générateur : un module ne peut pas les déclarer.
+- Les liens symboliques ne sont pas suivis dans un dossier de module.
+- Un fichier est généré si son module propriétaire et tous ses `when` sont actifs ; les instantanés de la matrice le vérifient.
+
+Voir [ARCH-010](../adrs/ARCH-010-modules-auto-decrits.md).
+
 ## Reprise et traçabilité des effets
 
 - L'état et le journal sont propres à la machine : `.bootstrap/local/` s'ignore seul, même avant la génération des fichiers du projet ; le manifeste `.bootstrap/manifest.json` reste versionné.

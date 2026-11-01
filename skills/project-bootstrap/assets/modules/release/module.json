@@ -1,0 +1,10 @@
+{
+  "description": "release-please : changelog, version SemVer, tags et GitHub Releases",
+  "requires": ["github"],
+  "default": true,
+  "files": [
+    {"path": ".github/workflows/release.yml"},
+    {"path": "release-please-config.json"},
+    {"path": ".release-please-manifest.json"}
+  ]
+}

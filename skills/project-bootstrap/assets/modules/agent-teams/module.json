@@ -1,0 +1,5 @@
+{
+  "description": "Active les agent teams (expérimental) dans .claude/settings.local.json",
+  "requires": ["claude"],
+  "default": false
+}

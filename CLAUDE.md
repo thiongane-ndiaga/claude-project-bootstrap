@@ -22,7 +22,7 @@ Le détail est dans `docs/workflow.md`.
 - Pourquoi et contraintes : `docs/architecture/arc42/`.
 - Décisions : `docs/architecture/adrs/`.
 - Quoi : `openspec/specs/` (en vigueur), `openspec/changes/` (en cours).
-- Skill : `skills/project-bootstrap/SKILL.md` ; modèles : `skills/project-bootstrap/assets/templates/` (blocs `@@module:…`, paramètres `{{…}}`) ; catalogue : `assets/modules.json`.
+- Skill : `skills/project-bootstrap/SKILL.md` ; modules : `skills/project-bootstrap/assets/modules/<nom>/` (`module.json`, modèles dans `templates/` avec blocs `@@module:…` et paramètres `{{…}}`) ; liste : `node skills/project-bootstrap/scripts/scaffold.mjs --list-modules`.
 - Pièges connus : `skills/project-bootstrap/references/pitfalls.md`.
 - Tests : `tests/scaffold.test.mjs` (comportements), `tests/matrix.test.mjs` (matrice des modules, instantanés dans `tests/snapshots/`) et `tests/state.test.mjs` (état de reprise, journal des effets) ; ensemble : `node .bootstrap/run-checks.mjs`.
 

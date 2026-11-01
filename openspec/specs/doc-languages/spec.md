@@ -6,7 +6,7 @@ Définir les langues de la documentation générée (`fr`, `en`), la sélection 
 ## Requirements
 
 ### Requirement: Langue de la documentation générée
-`bootstrap.json` SHALL accepter une clé facultative `docLanguage`. Les langues disponibles SHALL être `fr` et chaque code `<lang>` pour lequel le dossier `assets/templates.<lang>/` existe (un dossier `templates.fr` est ignoré). Une valeur absente équivaut à `fr` et MUST NOT être écrite au manifeste ; une valeur présente SHALL y être consignée. Une langue indisponible MUST faire échouer `scaffold.mjs` (code de sortie 1, aucun fichier écrit) en listant les langues disponibles.
+`bootstrap.json` SHALL accepter une clé facultative `docLanguage`. Les langues disponibles SHALL être `fr` et chaque code `<lang>` pour lequel le module `core` a un dossier `templates.<lang>/` (`templates.fr` est refusé). Une valeur absente équivaut à `fr` et MUST NOT être écrite au manifeste ; une valeur présente SHALL y être consignée. Une langue indisponible MUST faire échouer `scaffold.mjs` (code de sortie 1, aucun fichier écrit) en listant les langues disponibles.
 
 #### Scenario: Valeur absente
 - **WHEN** `docLanguage` est absente
@@ -36,7 +36,7 @@ Définir les langues de la documentation générée (`fr`, `en`), la sélection 
 - **THEN** il liste les langues disponibles (`languages`) et rapporte la langue et le mode du manifeste
 
 ### Requirement: Sélection des modèles par langue
-Pour une langue autre que `fr`, le générateur SHALL lire un modèle dans `assets/templates.<lang>/` quand le fichier de même chemin relatif y existe, sinon dans `assets/templates/`. Les chemins générés MUST être identiques dans toutes les langues, et la génération MUST être identique à chaque exécution pour une langue donnée.
+Pour une langue autre que `fr`, le générateur SHALL lire un modèle dans le dossier `templates.<lang>/` du module qui le déclare quand le fichier de même chemin relatif y existe, sinon dans le dossier `templates/` de ce module. Les chemins générés MUST être identiques dans toutes les langues, et la génération MUST être identique à chaque exécution pour une langue donnée.
 
 #### Scenario: Fichier sans version anglaise
 - **WHEN** un projet est généré en anglais et qu'un modèle n'a pas de version anglaise
@@ -69,7 +69,7 @@ Les ADR générés SHALL écrire leur section de statut et leurs valeurs dans la
 - **THEN** les ADR ont `## Status` avec la valeur `Proposed` et `archgate check` réussit
 
 ### Requirement: Parité des marqueurs et des paramètres
-Chaque modèle anglais SHALL avoir les mêmes lignes de marqueurs `@@module`/`@@end` (dans le même ordre) et les mêmes paramètres `{{…}}` que le modèle français de même chemin. Un modèle sans version anglaise MUST NOT contenir de lettre accentuée. Un fichier de `assets/templates.<lang>/` sans équivalent dans `assets/templates/` MUST faire échouer le test.
+Chaque modèle anglais SHALL avoir les mêmes lignes de marqueurs `@@module`/`@@end` (dans le même ordre) et les mêmes paramètres `{{…}}` que le modèle français de même chemin. Un modèle sans version anglaise MUST NOT contenir de lettre accentuée. Un fichier du dossier `templates.<lang>/` d'un module sans équivalent dans son dossier `templates/` MUST faire échouer le test.
 
 #### Scenario: Modèle anglais divergent
 - **WHEN** un modèle anglais perd un marqueur ou un paramètre
@@ -80,7 +80,7 @@ Chaque modèle anglais SHALL avoir les mêmes lignes de marqueurs `@@module`/`@@
 - **THEN** le test de parité échoue en nommant le fichier
 
 #### Scenario: Modèle anglais orphelin
-- **WHEN** un fichier de `assets/templates.en/` n'existe pas dans `assets/templates/`
+- **WHEN** un fichier du dossier `templates.en/` d'un module n'existe pas dans le dossier `templates/` de ce module
 - **THEN** le test échoue en nommant le fichier
 
 ### Requirement: Parité du code des scripts

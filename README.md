@@ -17,8 +17,8 @@ Puis, dans le dossier du nouveau projet, demander à Claude de « bootstrapper c
 .claude-plugin/          plugin.json + marketplace.json (ce dépôt est sa propre marketplace)
 skills/project-bootstrap/
   SKILL.md               procédure par phases avec points d'arrêt
-  assets/modules.json    catalogue des modules, dépendances, fichiers
-  assets/templates/      modèles (blocs @@module:… et paramètres {{…}})
+  assets/modules/<nom>/  un dossier par module : module.json (description, dépendances, fichiers), templates/ et templates.<lang>/ (blocs @@module:… et paramètres {{…}}), tests/
+  scripts/catalog.mjs    découvre, valide et assemble les modules ; scaffold.mjs --list-modules
   scripts/scaffold.mjs   génère, met à jour et fusionne les fichiers (manifeste .bootstrap/manifest.json), n'écrase jamais un fichier modifié
   scripts/migrate.mjs    migrations hors fichiers (réglages côté forge), simulation puis --apply
   scripts/state.mjs      état de reprise du bootstrap et journal des effets globaux (.bootstrap/local/, ignoré par git)

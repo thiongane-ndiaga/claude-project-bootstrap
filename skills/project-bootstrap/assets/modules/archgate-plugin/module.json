@@ -1,0 +1,5 @@
+{
+  "description": "Plugin Claude Code d'Archgate (nécessite archgate login, compte Archgate)",
+  "requires": ["archgate","claude"],
+  "default": false
+}
