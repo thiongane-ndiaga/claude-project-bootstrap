@@ -35,3 +35,4 @@ tests/state.test.mjs     état de reprise et journal des effets globaux
 - `node tests/scaffold.test.mjs`, `node tests/matrix.test.mjs` et `node tests/state.test.mjs` doivent passer avant tout commit (ensemble : `node .bootstrap/run-checks.mjs`).
 - Un piège découvert sur un nouveau projet va dans `references/pitfalls.md`.
 - Modèles en français ; le skill traduit après génération si le projet utilise une autre langue.
+- Feuille de route : l'issue [#52](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/52) (jalons, ordre, dépendances) et le [Project](https://github.com/users/thiongane-ndiaga/projects/4) (priorités).
