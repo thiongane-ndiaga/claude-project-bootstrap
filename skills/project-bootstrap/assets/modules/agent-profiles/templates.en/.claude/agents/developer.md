@@ -20,6 +20,9 @@ Method:
 @@end
 - One atomic commit per task, Conventional Commits message.
 - Run the project's tests and checks before handing back.
+@@module:advisor-on
+- If a second opinion helps (before settling your approach, at the second identical failure of a test or a build, before handing back), consult the advisor (a session tool, set by the user with `/advisor`): you decide whether to call it, nothing forces it, and in a team the call is not guaranteed. If it is unavailable, carry on without it.
+@@end
 
 Rules:
 - Whoever writes does not review: you do not declare your work reviewed; `qa-engineer` reviews it.

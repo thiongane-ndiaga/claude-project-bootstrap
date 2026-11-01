@@ -3,7 +3,7 @@
   ".bootstrap/manifest.json": null,
   ".bootstrap/run-checks.mjs": "469af1333ac019b6d573fe015119069be733baf2814f3cd34814f55bbad13456",
   ".claude/agents/architect.md": "c5258cd62d0ca46148af31fada09c62ab632ff74909b578e80bd2c9b4e215de7",
-  ".claude/agents/project-lead.md": "efb1431689b1dc08c30fe2f0470b69a53f61a33eab7c8ca2411ec80977c9842c",
+  ".claude/agents/project-lead.md": "a22d11e493c22a4b6a4ca4df80651474fe53f567d104e70eee30501d221ee4bb",
   ".claude/agents/qa-engineer.md": "90e732a5da1add993b2d36b9e91155a9f4b39a15ac62dc82aea1ef0fa42a6be5",
   ".claude/hooks/profile-guard.mjs": "e77b2d813fec407f83d5a2bbb12345bee861b3887fb64380982ce1fca12db1ec",
   ".claude/hooks/quality-gate.mjs": "961058e2b9d4c75192991ec9d900efa9ace35fc7700409d605abb100d975b1ab",
@@ -12,5 +12,5 @@
   ".gitattributes": "380e0cc171b6bedcfaa42aec15cff80245e3adbbeb10bba6becdbef9143b7f37",
   ".gitignore": "bbb7a6669f4e6557474827de0d4e0bb38586aea32f0a639aeb9f82a7cec7e717",
   "CLAUDE.md": "40f0fd325b3b5a9e16b229b204240524ca6bc9ac2770334d3486fba6322f5d0a",
-  "docs/workflow.md": "cb42895499938101a3537c73292b299f9d616d579924fe577d7a2a48e2b179af"
+  "docs/workflow.md": "32d8ab5504dbad7417ab6e35bc019f0a27df340696be78f4fc34b22a241ca22e"
 }

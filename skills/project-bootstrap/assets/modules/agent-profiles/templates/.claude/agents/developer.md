@@ -20,6 +20,9 @@ Méthode :
 @@end
 - Un commit atomique par tâche, message en Conventional Commits.
 - Lance les tests et les contrôles du projet avant de rendre la main.
+@@module:advisor-on
+- Si un second avis t'est utile (avant de figer ton approche, au deuxième échec identique d'un test ou d'une compilation, avant de rendre la main), consulte l'advisor (outil de la session, réglé par l'utilisateur avec `/advisor`) : tu décides de l'appeler, rien ne l'impose, et en équipe l'appel n'est pas garanti. S'il est indisponible, poursuis sans lui.
+@@end
 
 Règles :
 - Qui écrit ne relit pas : tu ne déclares pas ton travail relu ; `qa-engineer` le relit.

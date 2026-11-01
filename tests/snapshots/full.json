@@ -7,7 +7,7 @@
   ".claude/agents/arc42-keeper.md": "487e09f2cb74ee98d3ecf894ed1774cac84d4597dfe7f4c73820729d111baea1",
   ".claude/agents/architect.md": "711e09c3e092048040313aac33c04c5b75aecbeb87453d7d415ad894d17cc247",
   ".claude/agents/architecture-explorer.md": "5b0b160c2d6d472e62faadc0aa802938578464a867e351e2154b1e80fb64797d",
-  ".claude/agents/project-lead.md": "1f6ad6da82e53f5e48fde79be0b71b3c8d7927eb0bccad3d1ee5e0d58e618ac2",
+  ".claude/agents/project-lead.md": "9bcc96c4ac18a5f817f6cc274157d10439f0fa7fa121345455597b78850aafae",
   ".claude/agents/qa-engineer.md": "b07af1454ff167b8ac98d2223917a75e304a61f35ebd5b9d5df16306b405a2c6",
   ".claude/agents/spec-reviewer.md": "91897672927ce1aa2172a76ffad17acdb7387c545ee294d9709d62ecaf2e7d79",
   ".claude/agents/traceability-checker.md": "7c5e027196e723d5b2011ba106853d18835da06bfc140006906156405935e08b",
@@ -51,7 +51,7 @@
   "docs/architecture/arc42/10-exigences-de-qualite.md": "fa484a5dff8a8ec4b73630376a8cf50bd4a96de365429ae683ca621722780c87",
   "docs/architecture/arc42/11-risques-et-dette-technique.md": "881b3fb55998e5c575dfdda25a71cecf4e764066a3291f64d9f8eb6b00f54041",
   "docs/architecture/arc42/12-glossaire.md": "83d031c21025254f642f9b4affb6687e4f9d7e3143051354aade49cf29834dab",
-  "docs/workflow.md": "68c92c4c0722eccffb5ace7c3505d027f04768a5b6d3f6f8bfe9f484741be855",
+  "docs/workflow.md": "a11e3edae58884b83380ca104169cc12ee82d6f4d9095c32b643df881c597be7",
   "release-please-config.json": "c4a900e93d479b4264ac754c5925c6a699cb08272b864af8d0bc0986f27a8e27",
   "scripts/check-pr-title.mjs": "6bd4d1a35fc2ad9c483c7ae09361b8061d8c3681e4c744528e219f9f2f61c401",
   "scripts/sync-labels.mjs": "fec29054527bad66276014e15548ce0913ee9e923d14a30881f2b4a3d73e33b6"

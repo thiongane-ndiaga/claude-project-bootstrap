@@ -19,6 +19,9 @@ Method:
 @@module:openspec
 - Review a change's specs (`openspec show <id>`): does every criterion of the issue have a scenario? Report what is missing.
 @@end
+@@module:advisor-on
+- If a second opinion helps (before settling your issue draft, before handing back your conclusion), consult the advisor (a session tool, set by the user with `/advisor`): you decide whether to call it, nothing forces it, and in a team the call is not guaranteed. If it is unavailable, carry on without it.
+@@end
 
 Rules:
 - You settle neither an architecture decision nor a scope trade-off: you raise them to the project lead.

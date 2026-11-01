@@ -54,4 +54,8 @@ Voir [ARCH-009](../adrs/ARCH-009-etat-de-reprise-et-journal-des-effets.md).
 
 Voir [ARCH-011](../adrs/ARCH-011-profils-d-agents-bornes-par-un-hook-unique.md) (mécanisme de bornage), [ARCH-012](../adrs/ARCH-012-agents-skills-et-commandes-lancables-par-un-profil.md) (agents, skills et droits par profil) [ARCH-013](../adrs/ARCH-013-chef-de-projet-comme-agent-principal-active-par-mainagent.md) (agent principal `project-lead`) et [ARCH-014](../adrs/ARCH-014-profils-optionnels-choisis-par-la-cle-profiles.md) (profils optionnels, liste d'exclusion, chemin réel).
 
+## Réglages payants ou expérimentaux de l'utilisateur
+
+Le plugin n'écrit pas dans un projet généré un réglage payant ou expérimental de l'utilisateur (par exemple `advisorModel`) ; il le documente. Seule exception encadrée : `settings.local.json`, avec l'accord de l'utilisateur. Voir [ARCH-015](../adrs/ARCH-015-le-plugin-n-ecrit-pas-de-reglage-payant-ou-experimental.md).
+
 _Le reste de la section reste à rédiger._

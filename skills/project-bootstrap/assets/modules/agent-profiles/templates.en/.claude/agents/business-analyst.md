@@ -18,6 +18,9 @@ Method:
 - Validate with `openspec validate <id> --strict --no-interactive` before handing back.
 @@end
 - Take the issue's acceptance criteria as they are; report any gap with the issue to the project lead.
+@@module:advisor-on
+- If a second opinion helps (before settling the proposal, before handing back the change), consult the advisor (a session tool, set by the user with `/advisor`): you decide whether to call it, nothing forces it, and in a team the call is not guaranteed. If it is unavailable, carry on without it.
+@@end
 
 Rules:
 - Whoever writes does not review: your specs are reviewed by `qa-engineer`, never by you.
