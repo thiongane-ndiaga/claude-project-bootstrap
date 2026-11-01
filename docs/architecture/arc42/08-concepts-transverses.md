@@ -19,4 +19,14 @@ Les appels `openspec` et `archgate` sont identiques dans tous les modes ; jamais
 
 Voir [ARCH-008](../adrs/ARCH-008-modeles-de-documentation-par-langue.md).
 
+## Reprise et traçabilité des effets
+
+- L'état et le journal sont propres à la machine : `.bootstrap/local/` s'ignore seul, même avant la génération des fichiers du projet ; le manifeste `.bootstrap/manifest.json` reste versionné.
+- L'état ne contient que les clés du schéma de `bootstrap.json` et les statuts des étapes, jamais de jeton.
+- La reprise ne croit pas l'état aveuglément : une étape faite sans preuve vérifiable est à refaire.
+- Le journal est écrit avant l'action et porte la valeur précédente ; une annulation qui retirerait un élément déjà présent avant l'action n'est pas proposée sans mise en garde.
+- Le format est versionné : une version inconnue est refusée, pas convertie.
+
+Voir [ARCH-009](../adrs/ARCH-009-etat-de-reprise-et-journal-des-effets.md).
+
 _Le reste de la section reste à rédiger._

@@ -16,7 +16,8 @@
 ```
 node tests/scaffold.test.mjs     # comportements du générateur, de la mise à jour, des migrations, de l'audit
 node tests/matrix.test.mjs       # matrice des modules, instantanés, validation par les CLI réelles
-node .bootstrap/run-checks.mjs   # les deux, comme la CI et le pre-push
+node tests/state.test.mjs        # état de reprise du bootstrap et journal des effets globaux
+node .bootstrap/run-checks.mjs   # les trois, comme la CI et le pre-push
 ```
 Node.js ≥ 20.19. Les tests doivent passer sous Linux, Windows et macOS (séparateurs de chemins, fins de ligne, bit exécutable).
 

@@ -79,6 +79,7 @@ if (args.detect === true) {
         updateAvailable: previous?.plugin?.version !== undefined && previous.plugin.version !== pluginVersion,
         claude: has(".claude"),
         packageJson: has("package.json"),
+        resumable: has(".bootstrap/local/state.json"),
         ci: has(".github/workflows") ? readdirSync(path.join(target, ".github", "workflows")).sort() : [],
         sharedFiles: [".gitignore", ".gitattributes", "CLAUDE.md", ".claude/settings.json"].filter(has),
         topLevel: existsSync(target) ? readdirSync(target).filter((n) => n !== ".git").sort() : [],

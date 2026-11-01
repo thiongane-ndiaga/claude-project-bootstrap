@@ -12,7 +12,7 @@ Closes #
 <!-- Ce qui change et pourquoi. -->
 
 ## Checklist
-- [ ] `node tests/scaffold.test.mjs` et `node tests/matrix.test.mjs` passent (instantanés relus si un modèle a changé)
+- [ ] `node tests/scaffold.test.mjs`, `node tests/matrix.test.mjs` et `node tests/state.test.mjs` passent (instantanés relus si un modèle a changé)
 - [ ] `openspec validate --all --strict --no-interactive` passe
 - [ ] Changement OpenSpec archivé (`/opsx:archive`)
 - [ ] `archgate check` passe

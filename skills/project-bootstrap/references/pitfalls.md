@@ -60,3 +60,10 @@ Constatés lors de la mise en place de référence (Claude Code 2.1.31x, OpenSpe
 - La CI de sa PR de release reste en `action_required` (run déclenché par le bot) : *Approve and run* dans l'interface.
 - Seuls `feat` et `fix` apparaissent dans le changelog ; des commits uniquement `docs`/`chore` ne proposent pas de release.
 - Une action peut publier un correctif sur une **ancienne majeure** après la dernière majeure : choisir les versions par numéro, pas par date (`resolve-versions.mjs` le fait).
+
+## Reprise et journal des effets (`state.mjs`)
+- `state.mjs init` est refusé quand un état existe : après un redémarrage, lancer `resume` (et `config --out` pour restituer `bootstrap.json`), jamais `init --force`, qui efface l'avancement.
+- `resume` ne croit pas aveuglément l'état : une étape faite dont la preuve manque (`.git`, manifeste, `openspec/config.yaml`, `core.hooksPath`) redevient la prochaine.
+- Sans état, la déduction se fonde sur le dépôt : un `.git` ou un manifeste antérieurs au bootstrap donnent de fausses preuves.
+- Le journal n'annule rien tout seul. Une annulation de plugin ou de marketplace est omise si l'élément existait avant l'action, car d'autres projets peuvent l'utiliser ; l'installation de `gh` n'est annulable que si l'outil était absent.
+- `--prefix` n'a pas de sens sous Windows : `state.mjs effect --kind npm-global` le refuse (mode `user` = mode `global`).
