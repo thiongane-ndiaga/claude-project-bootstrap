@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.11](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.10...v0.1.11) (2026-11-01)
+
+
+### Features
+
+* **skill:** phase 0 question to make project-lead the main agent ([#120](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/120)) ([92a17d3](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/92a17d3be02b569c7f994e1bd4e048ae3ca1c395)), closes [#42](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/42)
+
 ## [0.1.10](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.9...v0.1.10) (2026-11-01)
 
 
