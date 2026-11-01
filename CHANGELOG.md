@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.9](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.8...v0.1.9) (2026-11-01)
+
+
+### Features
+
+* **scaffold:** profiles launch their own bounded agents and skills ([#115](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/115)) ([aa7d848](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/aa7d848a9e915f423e77d91e74eafb45089fd6c6)), closes [#113](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/113)
+
 ## [0.1.8](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.7...v0.1.8) (2026-11-01)
 
 
