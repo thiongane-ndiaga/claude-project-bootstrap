@@ -21,15 +21,17 @@ skills/project-bootstrap/
   assets/templates/      modèles (blocs @@module:… et paramètres {{…}})
   scripts/scaffold.mjs   génère, met à jour et fusionne les fichiers (manifeste .bootstrap/manifest.json), n'écrase jamais un fichier modifié
   scripts/migrate.mjs    migrations hors fichiers (réglages côté forge), simulation puis --apply
+  scripts/state.mjs      état de reprise du bootstrap et journal des effets globaux (.bootstrap/local/, ignoré par git)
   migrations/            une migration par fichier, idempotente
   scripts/resolve-versions.mjs  dernières versions CLI ; SHA d'actions publiés depuis ≥ 14 jours
   references/            pièges connus, configuration, GitHub, vérification
 tests/scaffold.test.mjs  tests du générateur (node tests/scaffold.test.mjs)
 tests/matrix.test.mjs    matrice des modules, instantanés (tests/snapshots/) et validation par les CLI réelles
+tests/state.test.mjs     état de reprise et journal des effets globaux
 ```
 
 ## Développement
 
-- `node tests/scaffold.test.mjs` et `node tests/matrix.test.mjs` doivent passer avant tout commit (ensemble : `node .bootstrap/run-checks.mjs`).
+- `node tests/scaffold.test.mjs`, `node tests/matrix.test.mjs` et `node tests/state.test.mjs` doivent passer avant tout commit (ensemble : `node .bootstrap/run-checks.mjs`).
 - Un piège découvert sur un nouveau projet va dans `references/pitfalls.md`.
 - Modèles en français ; le skill traduit après génération si le projet utilise une autre langue.

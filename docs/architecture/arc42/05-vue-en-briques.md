@@ -27,4 +27,13 @@ Voir [ARCH-007](../adrs/ARCH-007-installation-des-cli-d-outillage.md).
 
 Voir [ARCH-008](../adrs/ARCH-008-modeles-de-documentation-par-langue.md).
 
+## Briques liées à la reprise
+
+- `skills/project-bootstrap/scripts/state.mjs` : commandes `init`, `config`, `step`, `show`, `next`, `resume`, `effect`, `effects [--undo]` ; écrit `state.json` et `effects.json` (format versionné) dans `.bootstrap/local/`, dont le `.gitignore` vaut `*`. Réponses en JSON ; n'exécute jamais une action ni son annulation.
+- `skills/project-bootstrap/scripts/scaffold.mjs` : `--detect` rapporte `resumable` ; la génération laisse l'état intact.
+- `skills/project-bootstrap/SKILL.md` : appelle `resume` en début de session, `step` avant chaque étape et `effect` avant chaque action globale.
+- `tests/state.test.mjs` : arrêt simulé après chaque étape, preuves réelles, journal, liste blanche des clés, état intact après `scaffold.mjs`.
+
+Voir [ARCH-009](../adrs/ARCH-009-etat-de-reprise-et-journal-des-effets.md).
+
 _Le reste de la section reste à rédiger._

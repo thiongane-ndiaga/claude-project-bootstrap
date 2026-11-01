@@ -10,6 +10,9 @@
 | Deux versions de chaque modèle à maintenir (français et langue traduite) | Haute | Moyen | Modifier les deux dans la même PR ; tests de parité ([ARCH-008](../adrs/ARCH-008-modeles-de-documentation-par-langue.md)) |
 | Écart de sens entre deux versions, ou français sans accent dans un modèle sans version traduite : non détectable par les tests | Moyenne | Moyen | Relecture en PR ([ARCH-008](../adrs/ARCH-008-modeles-de-documentation-par-langue.md)) |
 | Langue autre que `fr` et celles de `templates.*` refusée (le skill ne traduit plus) | Moyenne | Faible | Ajouter un dossier `templates.<code>/` ([ARCH-008](../adrs/ARCH-008-modeles-de-documentation-par-langue.md)) |
+| Étape non vérifiable marquée faite à tort : crue par la reprise | Moyenne | Moyen | L'audit de la phase 3 reste le contrôle final ([ARCH-009](../adrs/ARCH-009-etat-de-reprise-et-journal-des-effets.md)) |
+| Preuves antérieures au bootstrap (`.git`, manifeste existants) : déduction faussée sans état | Moyenne | Faible | Lire `resume` et ses incohérences avant de poursuivre ([ARCH-009](../adrs/ARCH-009-etat-de-reprise-et-journal-des-effets.md)) |
+| Journal des effets limité à ce que le skill déclare, non recoupé par l'audit | Moyenne | Faible | Accepté ; `effect` avant toute action globale ([ARCH-009](../adrs/ARCH-009-etat-de-reprise-et-journal-des-effets.md)) |
 
 - Quels risques pèsent sur les objectifs de qualité ?
 - Quelle dette est acceptée consciemment, et jusqu'à quand ?
