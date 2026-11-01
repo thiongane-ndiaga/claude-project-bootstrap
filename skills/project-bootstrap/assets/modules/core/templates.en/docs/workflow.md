@@ -152,7 +152,7 @@ Steps marked "optional" are not needed for the repository to work.
 @@end
 @@module:cli-local
    - Installation mode: local to the repository (`cliInstall: local`). The CLIs are in the `devDependencies` of `package.json` (versions from `package-lock.json`): `npm ci`, no global installation.
-   - Start Claude Code with `npm run claude` (options after `--`): the `/opsx:*` skills call `openspec` by its name, which a session started otherwise does not find. The `quality-gate.mjs` hook and the CI add `node_modules/.bin` to the `PATH` themselves.
+   - The `/opsx:*` skills call `openspec` by its name. The `session-path.mjs` session hook adds `node_modules/.bin` to the `PATH` of Claude Code's Bash tool, and `quality-gate.mjs` and the CI do the same: a plain `claude` is enough. The PowerShell tool and your own terminal do not receive this `PATH`: use `npm run claude` (options after `--`) or prefix the command with `npx` (`npx openspec list`).
    - Update a CLI: `npm install --save-dev --save-exact <package>@<version>`, then commit `package.json` and `package-lock.json`.
 @@end
 1. **Telemetry** (optional):

@@ -197,8 +197,41 @@ for (const c of cases) {
     const hook = txt(loc, ".claude/hooks/quality-gate.mjs");
     check(`mode local (${label}) : quality-gate avec node_modules/.bin, path.delimiter, clé PATH insensible à la casse, chemin depuis import.meta.url`, /node_modules/.test(hook) && /path\.delimiter/.test(hook) && /toUpperCase\(\) === "PATH"/.test(hook) && /import\.meta\.url/.test(hook));
     const wf = txt(loc, "docs/workflow.md");
-    check(`mode local (${label}) : workflow.md avec npm ci et npm run claude, sans npm install -g`, /npm ci/.test(wf) && /npm run claude/.test(wf) && !/npm install -g/.test(wf));
+    check(`mode local (${label}) : workflow.md avec npm ci et npm run claude, sans npm install -g`, /npm ci/.test(wf) && /npm run claude/.test(wf) && /npx/.test(wf) && !/npm install -g/.test(wf));
     check(`mode local (${label}) : package.json consigné au manifeste, relance idempotente`, Boolean(man(loc).files["package.json"]) && run({ ...base, visibility: vis, modules: mods, cliInstall: "local" }, [], loc.out).report.created.length === 0);
+  }
+  {
+    // hook SessionStart du mode local (#104)
+    const loc = gen({ cliInstall: "local" }, mods);
+    const sess = JSON.parse(txt(loc, ".claude/settings.json")).hooks?.SessionStart;
+    check("mode local : settings.json déclare le hook SessionStart session-path.mjs", sess?.[0]?.hooks?.[0]?.command === "node" && /session-path\.mjs$/.test(sess[0].hooks[0].args[0]), JSON.stringify(sess));
+    check("mode local : session-path.mjs généré, absent en modes global et user", existsSync(path.join(loc.out, ".claude/hooks/session-path.mjs")) && !existsSync(path.join(glob.out, ".claude/hooks/session-path.mjs")) && !existsSync(path.join(user.out, ".claude/hooks/session-path.mjs")) && !JSON.parse(txt(glob, ".claude/settings.json")).hooks.SessionStart && !JSON.parse(txt(user, ".claude/settings.json")).hooks.SessionStart);
+    // exécution : projet dont le chemin contient une espace et une apostrophe
+    const proj = path.join(mkdtempSync(path.join(tmpdir(), "pb-sess-")), "it's here");
+    mkdirSync(path.join(proj, ".claude", "hooks"), { recursive: true });
+    cpSync(path.join(loc.out, ".claude/hooks/session-path.mjs"), path.join(proj, ".claude/hooks/session-path.mjs"));
+    const envFile = path.join(proj, "env.sh");
+    writeFileSync(envFile, "export A=1\n");
+    const hookRun = (env) => spawnSync(process.execPath, [path.join(proj, ".claude/hooks/session-path.mjs")], { encoding: "utf8", env });
+    const r1 = hookRun({ ...process.env, CLAUDE_ENV_FILE: envFile });
+    const written = readFileSync(envFile, "utf8");
+    check("session-path.mjs : code 0, ajoute une ligne export PATH sans écraser l'existant", r1.status === 0 && written.startsWith("export A=1\n") && /^export PATH='.*node_modules\/\.bin':"\$PATH"$/m.test(written) && !/\\/.test(written.split("\n")[1].replace(/'\\''/g, "")), written);
+    check("session-path.mjs : l'apostrophe du chemin est échappée ('\\'')", /it'\\''s here/.test(written), written);
+    const noVar = { ...process.env };
+    delete noVar.CLAUDE_ENV_FILE;
+    const r2 = hookRun(noVar);
+    check("session-path.mjs : sans CLAUDE_ENV_FILE, code 0 et rien d'écrit", r2.status === 0 && r2.stdout === "" && readFileSync(envFile, "utf8") === written);
+    const r3 = hookRun({ ...process.env, CLAUDE_ENV_FILE: path.join(proj, "absent", "env.sh") });
+    check("session-path.mjs : écriture impossible, code 0", r3.status === 0, r3.stderr);
+    const posix = (p) => (process.platform === "win32" ? p.replace(/^([A-Za-z]):/, (_, d) => "/" + d.toLowerCase()).replace(/\\/g, "/") : p);
+    const en = gen({ cliInstall: "local", docLanguage: "en" }, mods);
+    check("mode local en anglais : session-path.mjs généré, commentaires anglais", /SessionStart hook/.test(txt(en, ".claude/hooks/session-path.mjs")) && !/[àâçéèêëîïôùûü]/i.test(txt(en, ".claude/hooks/session-path.mjs")));
+    rmSync(path.join(loc.out, ".claude/hooks/session-path.mjs"));
+    const again = run({ ...base, visibility: "private", modules: mods, cliInstall: "local" }, ["--update"], loc.out);
+    check("--update d'un projet local sans le hook : session-path.mjs recréé, un seul SessionStart", existsSync(path.join(loc.out, ".claude/hooks/session-path.mjs")) && JSON.parse(txt(loc, ".claude/settings.json")).hooks.SessionStart.length === 1, JSON.stringify(again.report ?? again));
+    const sh = spawnSync("bash", ["-c", '. "$F"; printf %s "$PATH"'], { encoding: "utf8", env: { ...process.env, F: posix(envFile) } });
+    if (sh.error) console.log("skip session-path.mjs : bash indisponible pour relire la ligne");
+    else check("session-path.mjs : la ligne écrite est du Bash valide qui met le dossier en tête du PATH", sh.status === 0 && sh.stdout.startsWith(posix(path.join(proj, "node_modules", ".bin")) + ":"), sh.stdout.slice(0, 200) + sh.stderr);
   }
   check("mode global : hook sans node_modules, workflow.md et ci.yml avec npm install -g", !/node_modules/.test(txt(glob, ".claude/hooks/quality-gate.mjs")) && /npm install -g/.test(txt(glob, ".github/workflows/ci.yml")) && !existsSync(path.join(glob.out, "package.json")));
 

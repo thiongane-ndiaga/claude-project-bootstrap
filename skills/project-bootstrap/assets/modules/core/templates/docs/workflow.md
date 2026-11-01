@@ -152,7 +152,7 @@ Les étapes marquées « optionnel » ne sont pas nécessaires au fonctionnement
 @@end
 @@module:cli-local
    - Mode d'installation : local au dépôt (`cliInstall: local`). Les CLI sont dans les `devDependencies` de `package.json` (versions de `package-lock.json`) : `npm ci`, sans installation globale.
-   - Démarrer Claude Code avec `npm run claude` (options après `--`) : les skills `/opsx:*` appellent `openspec` par son nom, qu'une session démarrée autrement ne trouve pas. Le hook `quality-gate.mjs` et la CI ajoutent eux-mêmes `node_modules/.bin` au `PATH`.
+   - Les skills `/opsx:*` appellent `openspec` par son nom. Le hook de session `session-path.mjs` ajoute `node_modules/.bin` au `PATH` de l'outil Bash de Claude Code, et `quality-gate.mjs` comme la CI font de même : `claude` suffit. L'outil PowerShell et ton terminal personnel ne reçoivent pas ce `PATH` : lance alors `npm run claude` (options après `--`) ou préfixe la commande par `npx` (`npx openspec list`).
    - Mettre à jour une CLI : `npm install --save-dev --save-exact <paquet>@<version>`, puis committer `package.json` et `package-lock.json`.
 @@end
 1. **Télémétrie** (optionnel) :
