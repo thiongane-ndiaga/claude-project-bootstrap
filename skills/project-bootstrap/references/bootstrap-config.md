@@ -30,6 +30,7 @@ Entrée de `scripts/scaffold.mjs`. Fusionne la sortie de `scripts/resolve-versio
 | `docLanguageName` | — | libellé affiché de la langue (défaut : « Français », « English » selon `docLanguage`) ; à omettre sauf libellé voulu (« English (US) »), car une valeur explicite l'emporte |
 | `stack` | — | stack déjà connue, en une ligne ; absente, `CLAUDE.md` dit que la stack n'est pas choisie |
 | `cliInstall` | — | installation des CLI : `global` (défaut, clé à omettre), `user` ou `local`. `local` exige `openspec` ou `archgate` et crée `package.json` (voir ARCH-007) ; la clé est consignée au manifeste seulement si elle est présente |
+| `mainAgent` | — | agent principal du projet : `"project-lead"` écrit `"agent": "project-lead"` dans `.claude/settings.json` ; exige le module `agent-profiles` (voir ARCH-013). Absente (défaut), aucune clé `agent` ; `null` désactive la clé, qui n'est alors ni héritée du manifeste ni consignée. Consignée au manifeste seulement quand elle est présente, héritée par `--update`. Un `agent` déjà déclaré dans `settings.json` ou `settings.local.json` est conservé et signalé par `warnings` |
 | `keep` | — | fichiers du modèle que le projet gère lui-même : jamais créés, modifiés ni signalés en conflit, consignés dans le manifeste |
 | `date` | — | date de vérification des conditions GitHub (défaut : aujourd'hui) |
 | `actionsCreditNote` | archgate + github + privé | chiffres **relevés dans la doc du jour**, jamais de mémoire |

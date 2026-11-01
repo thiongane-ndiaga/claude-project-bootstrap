@@ -59,6 +59,7 @@ export function combinations(modulesCatalog) {
     { name: "default-cli-user", modules: defaults, config: { cliInstall: "user" }, single: null },
     { name: "default-cli-local", modules: defaults, config: { cliInstall: "local" }, single: null },
     { name: "default-en", modules: defaults, config: ENGLISH, single: null },
+    { name: "agent-profiles-main", modules: [...closure("agent-profiles")].filter((x) => x !== "core"), config: { mainAgent: "project-lead" }, single: null },
     { name: "full", modules: names, single: null },
     { name: "full-en", modules: names, config: ENGLISH, single: null },
     { name: "full-public", modules: names, config: { visibility: "public" }, single: null },
@@ -161,7 +162,7 @@ const combos = combinations(catalog.modules);
 const covered = new Set(combos.filter((c) => c.single).map((c) => c.single));
 const uncovered = Object.keys(catalog.modules).filter((m) => m !== "core" && !covered.has(m));
 check("matrice : chaque module du catalogue a sa combinaison", uncovered.length === 0, `modules sans combinaison : ${uncovered.join(", ")}`);
-check("matrice : core seul, un module par combinaison, défaut, défaut avec stack, modes user et local, anglais, complet, complet en public", combos.length === Object.keys(catalog.modules).length - 1 + 9 && combos.some((c) => c.name === "core" && c.modules.length === 0) && ["default", "default-stack", "default-cli-user", "default-cli-local", "default-en", "full", "full-public", "full-en"].every((n) => combos.some((c) => c.name === n)));
+check("matrice : core seul, un module par combinaison, défaut, défaut avec stack, modes user et local, anglais, agent principal, complet, complet en public", combos.length === Object.keys(catalog.modules).length - 1 + 10 && combos.some((c) => c.name === "core" && c.modules.length === 0) && ["default", "default-stack", "default-cli-user", "default-cli-local", "default-en", "agent-profiles-main", "full", "full-public", "full-en"].every((n) => combos.some((c) => c.name === n)));
 {
   // instantané orphelin : module retiré ou renommé ; la mise à jour supprime les orphelins
   const orphans = existsSync(SNAPSHOTS) ? readdirSync(SNAPSHOTS).filter((f) => f.endsWith(".json") && !combos.some((c) => `${c.name}.json` === f)) : [];

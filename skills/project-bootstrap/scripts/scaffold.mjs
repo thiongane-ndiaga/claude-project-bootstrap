@@ -116,7 +116,9 @@ const config = typeof args.config === "string" ? JSON.parse(readFileSync(args.co
 config.date = config.date ?? previous?.config?.date ?? new Date().toISOString().slice(0, 10);
 // langue de la documentation et mode d'installation des CLI : hérités du manifeste quand --config ne les redéfinit pas
 // (une configuration sans la clé ne fait changer ni la langue ni le mode)
-for (const key of ["docLanguage", "cliInstall"]) if (config[key] === undefined && previous?.config?.[key] !== undefined) config[key] = previous.config[key];
+for (const key of ["docLanguage", "cliInstall", "mainAgent"]) if (config[key] === undefined && previous?.config?.[key] !== undefined) config[key] = previous.config[key];
+// mainAgent: null désactive l'agent principal : la valeur n'est ni héritée du manifeste ni consignée
+if (config.mainAgent === null) delete config.mainAgent;
 const dryRun = args["dry-run"] === true;
 
 // --- modules sélectionnés et dépendances ---
@@ -134,6 +136,9 @@ if (!availableLanguages.includes(docLanguage)) errors.push(`docLanguage ${JSON.s
 const CLI_MODES = ["global", "user", "local"];
 if (config.cliInstall !== undefined && !CLI_MODES.includes(config.cliInstall)) errors.push(`cliInstall doit valoir ${CLI_MODES.join(", ")} (reçu : ${JSON.stringify(config.cliInstall)})`);
 if (config.cliInstall === "local" && !selected.has("openspec") && !selected.has("archgate")) errors.push("cliInstall local exige le module openspec ou archgate (rien à installer en local sinon)");
+const MAIN_AGENTS = ["project-lead"];
+if (config.mainAgent !== undefined && !MAIN_AGENTS.includes(config.mainAgent)) errors.push(`mainAgent doit valoir ${MAIN_AGENTS.join(", ")} (reçu : ${JSON.stringify(config.mainAgent)})`);
+if (config.mainAgent !== undefined && !selected.has("agent-profiles")) errors.push("mainAgent exige le module agent-profiles");
 if (errors.length) {
   console.error(errors.join("\n"));
   process.exit(1);
@@ -242,6 +247,7 @@ function buildSettings() {
   settings.hooks = {
     TaskCompleted: [{ hooks: [{ type: "command", command: "node", args: ["${CLAUDE_PROJECT_DIR}/.claude/hooks/quality-gate.mjs"] }] }],
   };
+  if (config.mainAgent === "project-lead") settings.agent = "project-lead";
   if (active.has("agent-profiles")) settings.hooks.PreToolUse = [{ matcher: "Write|Edit|MultiEdit|NotebookEdit|Bash|PowerShell|Agent|Task|Skill", hooks: [{ type: "command", command: "node", args: ["${CLAUDE_PROJECT_DIR}/.claude/hooks/profile-guard.mjs"] }] }];
   if (active.has("cli-local")) settings.hooks.SessionStart = [{ hooks: [{ type: "command", command: "node", args: ["${CLAUDE_PROJECT_DIR}/.claude/hooks/session-path.mjs"] }] }];
   return JSON.stringify(settings, null, 2) + "\n";
@@ -325,6 +331,17 @@ const report = {
   baseInvalid: [],
   conflicts: [],
 };
+const warnings = [];
+if (config.mainAgent === "project-lead") {
+  for (const f of ["settings.json", "settings.local.json"]) {
+    try {
+      const current = JSON.parse(readFileSync(path.join(target, ".claude", f), "utf8")).agent;
+      if (current !== undefined && current !== "project-lead") warnings.push(`.claude/${f} déclare déjà l'agent « ${current} » : la clé existante est conservée et mainAgent n'a pas d'effet tant qu'elle y est`);
+    } catch {
+      // fichier absent ou illisible : rien à signaler
+    }
+  }
+}
 const diffs = {};
 const put = (dest, text) => {
   if (dryRun) return;
@@ -443,5 +460,6 @@ if (manifestCurrent !== manifestOut) {
   report.manifest = manifestCurrent === null ? "created" : "updated";
 }
 if (Object.keys(diffs).length) report.diffs = diffs;
+if (warnings.length) report.warnings = warnings;
 console.log(JSON.stringify(report, null, 2));
 process.exit(report.conflicts.length ? 3 : 0);

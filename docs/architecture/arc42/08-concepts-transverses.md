@@ -45,8 +45,10 @@ Voir [ARCH-009](../adrs/ARCH-009-etat-de-reprise-et-journal-des-effets.md).
 - Refus par défaut : pour un profil de la table, une entrée incomplète, un chemin absent, une racine inconnue ou une erreur interne donnent le code 2 ; pour les agents et skills lançables, tout ce que la table n'autorise pas est refusé ([ARCH-012](../adrs/ARCH-012-agents-skills-et-commandes-lancables-par-un-profil.md)). Un `agent_type` absent de la table (agent principal, autre agent) n'est pas borné.
 - Convention de nommage : un teammate porte le nom de son profil (`qa-engineer`), car `agent_type` vaut le nom du teammate ; un teammate nommé autrement n'est pas borné.
 - Commandes supplémentaires d'un profil : motifs ancrés sur la commande entière, sans séparateur ni redirection ; la lecture seule est déléguée à `read-only-bash.mjs`.
+- Agent principal non borné : `project-lead` est l'agent principal quand `mainAgent` est présent ; l'entrée du hook ne porte pas d'`agent_type` pour lui, il n'est donc pas dans la table. Ses garde-fous (délégation, arbitrage, accord pour les écritures visibles) sont des consignes de son prompt, pas des mécanismes. Les ADR sont des bloquants (niveau 1 de l'échelle d'arbitrage) ; la validation et la rédaction d'ADR d'Archgate sont réparties entre `qa-engineer` (valider) et `architect` (décider, rédiger), `project-lead` lançant `lessons-learned` que le hook interdit à `architect`.
+- Précédence : le réglage `agent` du `.claude/settings.json` du projet l'emporte sur l'agent `archgate:developer` imposé par le plugin Archgate ; les deux modules se combinent sans conflit.
 - Portée : garde-fou contre l'erreur d'un agent, pas un bac à sable. La relecture humaine des changements reste la garantie.
 
-Voir [ARCH-011](../adrs/ARCH-011-profils-d-agents-bornes-par-un-hook-unique.md) (mécanisme de bornage) et [ARCH-012](../adrs/ARCH-012-agents-skills-et-commandes-lancables-par-un-profil.md) (agents, skills et droits par profil).
+Voir [ARCH-011](../adrs/ARCH-011-profils-d-agents-bornes-par-un-hook-unique.md) (mécanisme de bornage), [ARCH-012](../adrs/ARCH-012-agents-skills-et-commandes-lancables-par-un-profil.md) (agents, skills et droits par profil) et [ARCH-013](../adrs/ARCH-013-chef-de-projet-comme-agent-principal-active-par-mainagent.md) (agent principal `project-lead`).
 
 _Le reste de la section reste à rédiger._

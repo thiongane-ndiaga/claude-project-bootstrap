@@ -44,6 +44,15 @@ Claude Code 2.1.316, `claude -p` avec `--agents` et `--settings` (aucun réglage
 
 Conséquence : l'allowlist est celle de la table du hook (ARCH-011), pas `Agent(<types>)`.
 
+## Agent principal project-lead (#35)
+
+Claude Code 2.1.316, plugin Archgate 0.18.0 chargé par `--plugin-dir`, `claude -p`.
+
+| Question | Constat |
+|---|---|
+| Le réglage `agent` du projet l'emporte-t-il sur l'agent imposé par le plugin Archgate ? | **Oui.** Sans réglage de projet, l'agent répond en agent Archgate ; avec `"agent": "project-lead"` dans `.claude/settings.json`, il répond en `project-lead`. Aucun conflit à déclarer entre `agent-profiles` et `archgate-plugin` |
+| `project-lead` délègue-t-il avec sa consigne ? | **Oui.** Sur « fais relire util.py » dans un projet généré avec `mainAgent`, il lance `qa-engineer` (sous-agent) et rapporte ses constats, sans relire lui-même |
+
 ## Consigner un constat
 
 Pour chaque ligne : version de Claude Code (`claude --version`), commande ou action, résultat observé, et le mot « confirmé », « infirmé » ou « partiel ». Un constat qui contredit #43 ou #31 se signale dans ces issues ; un piège reproductible s'ajoute à `pitfalls.md`.
