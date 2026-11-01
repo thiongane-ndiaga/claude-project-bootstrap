@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.10](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.9...v0.1.10) (2026-11-01)
+
+
+### Features
+
+* **scaffold:** project-lead main agent enabled by mainAgent ([#118](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/118)) ([f7ea84a](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/f7ea84acc48183780c3a2dca8e6931ed5c6f6c08)), closes [#35](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/35)
+
 ## [0.1.9](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.8...v0.1.9) (2026-11-01)
 
 
