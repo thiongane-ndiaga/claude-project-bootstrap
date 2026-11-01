@@ -1,0 +1,13 @@
+{
+  ".archgate/config.json": "61d6f5a218b25df60ad64167e761bf4b387dc95aba6c1a1a9f4bdc57a5a284e0",
+  ".archgate/lint/README.md": "dccb43956dcf07790a26e8ab5de17aaf7a677d4df124d49a66174daf2dcdc54b",
+  ".bootstrap/checks.json": "0653e67071e2464f552db4a37de960b06e64332c27ec4bb891b7357df508f0d7",
+  ".bootstrap/manifest.json": null,
+  ".bootstrap/run-checks.mjs": "469af1333ac019b6d573fe015119069be733baf2814f3cd34814f55bbad13456",
+  ".gitattributes": "380e0cc171b6bedcfaa42aec15cff80245e3adbbeb10bba6becdbef9143b7f37",
+  ".gitignore": "e9e571edd71a732e006a483cd4aeffcb511bd60a1e77ee4031e0cd215c3314af",
+  "CLAUDE.md": "653bd8930f5d3c4f9fe305b6685bedb492c9ea1e12b171d1a9fef0cbe10dee27",
+  "docs/architecture/adrs/ARCH-003-emplacement-et-format-des-adr.md": "8c29d2f24d5e701dd795c5ad88826b99625e0097b5c49dd7114dc29ac81ad32d",
+  "docs/architecture/adrs/ARCH-003-emplacement-et-format-des-adr.rules.ts": "8b27b675ab5f10c5964038a986200194e5e405913f92a04353c54c6aebbea041",
+  "docs/workflow.md": "5923891687288e5004f5bde91aac5dcbbc8cf4ad69dfd78c63cc50c6ef2ea329"
+}

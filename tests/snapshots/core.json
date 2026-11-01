@@ -1,0 +1,9 @@
+{
+  ".bootstrap/checks.json": "0653e67071e2464f552db4a37de960b06e64332c27ec4bb891b7357df508f0d7",
+  ".bootstrap/manifest.json": null,
+  ".bootstrap/run-checks.mjs": "469af1333ac019b6d573fe015119069be733baf2814f3cd34814f55bbad13456",
+  ".gitattributes": "380e0cc171b6bedcfaa42aec15cff80245e3adbbeb10bba6becdbef9143b7f37",
+  ".gitignore": "bbb7a6669f4e6557474827de0d4e0bb38586aea32f0a639aeb9f82a7cec7e717",
+  "CLAUDE.md": "4190866cc480ef64f86a4b67a8354c609119182e4687f23922c5353198738dac",
+  "docs/workflow.md": "8cb1193115a080ed792c3a363ae85731d480c91418a0f21bb0630f3527e86d37"
+}
