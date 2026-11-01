@@ -1667,12 +1667,15 @@ for (const dirName of ["templates", "templates.en"]) {
   check("agent-profiles : génération réussie", r.res.status === 0, r.res.stderr);
   for (const name of ["architect", "qa-engineer"]) {
     const text = txt(r, `.claude/agents/${name}.md`);
-    check(`agent-profiles : ${name} sans Agent ni Skill ni hooks de frontmatter, nom du fichier = name`, !tools(text).includes("Agent") && !tools(text).includes("Skill") && !/^hooks:/m.test(front(text)) && new RegExp(`^name: ${name}$`, "m").test(front(text)));
+    check(`agent-profiles : ${name} sans hooks de frontmatter, nom du fichier = name`, !/^hooks:/m.test(front(text)) && new RegExp(`^name: ${name}$`, "m").test(front(text)));
   }
+  check("agent-profiles : architect a Agent et Skill, qa-engineer a Agent sans Skill (bornés par la table du hook)", tools(txt(r, ".claude/agents/architect.md")).includes("Agent") && tools(txt(r, ".claude/agents/architect.md")).includes("Skill") && tools(txt(r, ".claude/agents/qa-engineer.md")).includes("Agent") && !tools(txt(r, ".claude/agents/qa-engineer.md")).includes("Skill"));
+  const guardText = txt(r, ".claude/hooks/profile-guard.mjs");
+  check("agent-profiles : la table du hook liste les agents et skills des profils, identique en anglais", /agents: \["architecture-explorer", "arc42-keeper"\]/.test(guardText) && /skills: \["archgate:adr-author"\]/.test(guardText) && /agents: \["spec-reviewer"\]/.test(guardText) && /skills: \[\]/.test(guardText) && /agents: \["architecture-explorer", "arc42-keeper"\]/.test(txt(gen(full, { docLanguage: "en" }), ".claude/hooks/profile-guard.mjs")));
   check("agent-profiles : architect et qa-engineer disposent de Write et Edit (bornés par le hook)", ["architect", "qa-engineer"].every((n) => ["Write", "Edit"].every((t) => tools(txt(r, `.claude/agents/${n}.md`)).includes(t))));
   const settings = JSON.parse(txt(r, ".claude/settings.json"));
   const pre = settings.hooks?.PreToolUse ?? [];
-  check("agent-profiles : settings.json déclare le hook PreToolUse de profile-guard.mjs, sans clé agent", pre.length === 1 && pre[0].matcher === "Write|Edit|MultiEdit|NotebookEdit|Bash|PowerShell" && pre[0].hooks[0].command === "node" && /profile-guard\.mjs$/.test(pre[0].hooks[0].args[0]) && settings.agent === undefined, JSON.stringify(pre));
+  check("agent-profiles : settings.json déclare le hook PreToolUse de profile-guard.mjs, sans clé agent", pre.length === 1 && pre[0].matcher === "Write|Edit|MultiEdit|NotebookEdit|Bash|PowerShell|Agent|Task|Skill" && pre[0].hooks[0].command === "node" && /profile-guard\.mjs$/.test(pre[0].hooks[0].args[0]) && settings.agent === undefined, JSON.stringify(pre));
   check("agent-profiles : read-only-bash.mjs présent (le hook y délègue)", existsSync(path.join(r.out, ".claude/hooks/read-only-bash.mjs")));
   const q = txt(r, ".claude/agents/qa-engineer.md");
   const a = txt(r, ".claude/agents/architect.md");

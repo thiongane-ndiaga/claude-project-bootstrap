@@ -10,7 +10,7 @@ files: ["skills/project-bootstrap/assets/modules/agent-profiles/**"]
 
 ## Statut
 
-Accepté.
+Accepté. ARCH-012 en décide les outils `Agent` et `Skill`.
 
 ## Context
 
@@ -23,8 +23,8 @@ Le module `agent-profiles` génère des profils d'agents (`.claude/agents/*.md`)
 
 ## Decision
 
-1. **Droits d'outils par profil** : la liste `tools` du frontmatter. Aucun profil généré n'a l'outil `Agent` (un agent lancé par un profil porterait un autre `agent_type` et échapperait à ses bornes) ni `Skill` (un skill peut lancer des agents). Ce qu'un profil ne peut pas lancer, il le demande à l'agent principal.
-2. **Bornes d'écriture et de commandes par un hook unique** : `.claude/hooks/profile-guard.mjs`, déclaré dans `.claude/settings.json` (événement `PreToolUse`, outils `Write`, `Edit`, `MultiEdit`, `NotebookEdit`, `Bash`, `PowerShell`). Il lit `agent_type` et applique la table `PROFILES` (profil, préfixes d'écriture permis, commandes de shell permises en plus de la lecture seule). Un `agent_type` absent de la table (agent principal, autre agent) n'est pas borné. Pour un profil de la table, une entrée incomplète ou une erreur interne est un refus (code 2).
+1. **Droits d'outils par profil** : la liste `tools` du frontmatter, respectée en sous-agent et en équipe. Les outils `Agent` et `Skill` des profils et ce qu'ils peuvent lancer sont décidés par ARCH-012.
+2. **Bornes d'écriture et de commandes par un hook unique** : `.claude/hooks/profile-guard.mjs`, déclaré dans `.claude/settings.json` (événement `PreToolUse`, outils d'écriture, `Bash` et `PowerShell`, plus `Agent`, `Task` et `Skill` selon ARCH-012). Il lit `agent_type` et applique la table `PROFILES` (profil, préfixes d'écriture permis, commandes de shell permises en plus de la lecture seule). Un `agent_type` absent de la table (agent principal, autre agent) n'est pas borné. Pour un profil de la table, une entrée incomplète ou une erreur interne est un refus (code 2).
 3. **Convention de nommage** : un teammate porte le nom de son profil (`qa-engineer`). Un teammate nommé autrement n'est pas borné.
 4. **Lecture seule du shell** : le hook délègue à `read-only-bash.mjs` (module `claude`) ; les commandes supplémentaires d'un profil sont des motifs ancrés sur la commande entière, sans séparateur ni redirection. Le titre d'un ADR se limite aux lettres, chiffres et à la ponctuation simple, car PowerShell évalue les parenthèses et traite les guillemets typographiques comme des guillemets doubles.
 5. **Pas de hook de frontmatter** dans les profils générés : il ne protégerait pas les teammates.
@@ -40,7 +40,6 @@ Le module `agent-profiles` génère des profils d'agents (`.claude/agents/*.md`)
 
 ### Don't
 
-- Ne pas donner l'outil `Agent` à un profil borné.
 - Ne pas compter sur un hook de frontmatter pour borner un profil utilisé en équipe.
 - Ne pas déclarer `agent` dans `.claude/settings.json` : le choix de l'agent principal appartient à une autre décision.
 
@@ -73,5 +72,6 @@ Tests du module (`assets/modules/agent-profiles/tests/profile-guard.test.mjs`) p
 ## References
 
 - Issue #33 ; changement OpenSpec `33-agent-profiles-module`
+- ARCH-012 (agents, skills et commandes lançables par un profil)
 - Issue #32 et `skills/project-bootstrap/references/agent-profiles-prototype.md` (constats)
 - ARCH-010 (modules auto-décrits)

@@ -40,13 +40,13 @@ Voir [ARCH-009](../adrs/ARCH-009-etat-de-reprise-et-journal-des-effets.md).
 
 ## Bornage des agents par profil
 
-- Les droits d'outils d'un profil viennent de la liste `tools` de son frontmatter. Aucun profil n'a l'outil `Agent` ni `Skill` : un agent lancé par un profil porterait un autre `agent_type` et échapperait au bornage, et un skill peut lancer des agents. Le profil demande à l'agent principal.
-- Les écritures et les commandes de shell sont bornées par un seul hook `PreToolUse` de `.claude/settings.json`, car il voit l'agent principal, les sous-agents et les teammates, ce que ne font ni le hook de frontmatter ni les règles `permissions`. Il lit `agent_type` et applique la table `PROFILES`. Pas de hook de frontmatter dans les profils générés.
-- Refus par défaut : pour un profil de la table, une entrée incomplète, un chemin absent, une racine inconnue ou une erreur interne donnent le code 2. Un `agent_type` absent de la table (agent principal, autre agent) n'est pas borné.
+- Les droits d'outils d'un profil viennent de la liste `tools` de son frontmatter, dont `Agent` (`architect`, `qa-engineer`) et `Skill` (`architect`). Les agents et skills qu'un profil peut lancer sont ceux de la table `PROFILES` ; tout le reste est refusé, et la restriction `Agent(<types>)` du frontmatter ne borne pas un sous-agent ([ARCH-012](../adrs/ARCH-012-agents-skills-et-commandes-lancables-par-un-profil.md)). Les agents lançables (`arc42-keeper`, `spec-reviewer`, `architecture-explorer`) ont leurs propres bornes dans la table du hook et ne dépendent plus de leur hook de frontmatter. Ce qu'un profil ne peut pas lancer, il le demande à l'agent principal.
+- Les écritures, les commandes de shell, les agents et les skills sont bornés par un seul hook `PreToolUse` de `.claude/settings.json` (outils d'écriture, shell, `Agent`, l'ancien nom `Task` et `Skill`), car il voit l'agent principal, les sous-agents et les teammates, ce que ne font ni le hook de frontmatter ni les règles `permissions`. Il lit `agent_type` et applique la table `PROFILES`. Pas de hook de frontmatter dans les profils générés.
+- Refus par défaut : pour un profil de la table, une entrée incomplète, un chemin absent, une racine inconnue ou une erreur interne donnent le code 2 ; pour les agents et skills lançables, tout ce que la table n'autorise pas est refusé ([ARCH-012](../adrs/ARCH-012-agents-skills-et-commandes-lancables-par-un-profil.md)). Un `agent_type` absent de la table (agent principal, autre agent) n'est pas borné.
 - Convention de nommage : un teammate porte le nom de son profil (`qa-engineer`), car `agent_type` vaut le nom du teammate ; un teammate nommé autrement n'est pas borné.
 - Commandes supplémentaires d'un profil : motifs ancrés sur la commande entière, sans séparateur ni redirection ; la lecture seule est déléguée à `read-only-bash.mjs`.
 - Portée : garde-fou contre l'erreur d'un agent, pas un bac à sable. La relecture humaine des changements reste la garantie.
 
-Voir [ARCH-011](../adrs/ARCH-011-profils-d-agents-bornes-par-un-hook-unique.md).
+Voir [ARCH-011](../adrs/ARCH-011-profils-d-agents-bornes-par-un-hook-unique.md) (mécanisme de bornage) et [ARCH-012](../adrs/ARCH-012-agents-skills-et-commandes-lancables-par-un-profil.md) (agents, skills et droits par profil).
 
 _Le reste de la section reste à rédiger._

@@ -31,6 +31,19 @@ Dépôt jetable, hors de ce dépôt, créé avec le plugin (modules `claude`, `o
 | H9 | Un schéma local (`openspec schema fork spec-driven`) survit à `openspec update` et accepte un artefact supplémentaire avec sa propre `instruction` | Expérimental | Forker, ajouter un artefact « revue », lancer `openspec update`, puis `openspec schema validate` et `openspec instructions` | **Confirmé** (Claude Code 2.1.316, OpenSpec 1.16.0, 2026-11-01). `openspec schema fork spec-driven essai-schema`, artefact `review` ajouté avec sa propre `instruction` (placé avant le bloc `apply:`) : `openspec schema validate` valide, `openspec update --force` laisse `openspec/schemas/` intact, `openspec instructions review` restitue l'instruction, `openspec status` liste l'artefact |
 | H10 | `openspec status --json` et `openspec list --json` suffisent à relire l'avancement depuis le disque | Non vérifié | Créer un changement, avancer ses artefacts, comparer les sorties à l'état réel des fichiers | **Confirmé avec réserve** (Claude Code 2.1.316, OpenSpec 1.16.0, 2026-11-01). `status --json` suit les fichiers (`proposal` fait, `specs` et `design` prêts, puis `review` prêt quand `tasks` existe), `list --json` donne les tâches faites sur le total (1/2), `instructions apply --json` donne l'état et la progression. Réserve : l'état ne mesure que l'existence des fichiers, pas leur contenu |
 
+## Agents et skills lançables par un profil (#113)
+
+Claude Code 2.1.316, `claude -p` avec `--agents` et `--settings` (aucun réglage modifié).
+
+| # | Question | Constat |
+|---|---|---|
+| Q1 | `tools: Agent(<types>)` restreint-il les agents qu'un profil lance ? | **Agent principal : oui** (`general-purpose` refusé, « Agent type 'general-purpose' not found »). **Sous-agent : non**, `general-purpose` a été lancé. Cas teammate : non essayé |
+| Q2 | Un agent lancé par un profil garde-t-il ses bornes ? | **Oui en sous-agent, y compris imbriqué** : son hook de frontmatter l'a bloqué. En équipe, le hook de frontmatter ne s'applique pas (H1) |
+| Q3 | Un skill peut-il être borné ? | Un hook `PreToolUse` sur l'outil `Skill` reçoit `tool_input.skill` : la table peut autoriser par nom. `archgate:reviewer` lance des agents, refusés par la table |
+| Q4 | Quel `agent_type` pour un agent lancé par un profil ? | Un hook sur l'outil `Agent` reçoit l'appelant (`agent_type`) et `tool_input.subagent_type`, `prompt`, `description`, `run_in_background`, plus `name` pour un agent nommé. L'agent lancé porte son propre type. Appelant teammate : non constaté en session d'équipe |
+
+Conséquence : l'allowlist est celle de la table du hook (ARCH-011), pas `Agent(<types>)`.
+
 ## Consigner un constat
 
 Pour chaque ligne : version de Claude Code (`claude --version`), commande ou action, résultat observé, et le mot « confirmé », « infirmé » ou « partiel ». Un constat qui contredit #43 ou #31 se signale dans ces issues ; un piège reproductible s'ajoute à `pitfalls.md`.
