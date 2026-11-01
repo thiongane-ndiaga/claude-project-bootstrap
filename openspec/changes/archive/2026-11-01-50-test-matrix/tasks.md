@@ -16,9 +16,9 @@
 ## 4. Intégration, documentation et évaluation du skill
 
 - [x] 4.1 Ajouter la commande de la matrice à `.bootstrap/checks.json`; vérifier : `node .bootstrap/run-checks.mjs` la lance (code 0) et échouerait si la matrice échouait.
-- [ ] 4.2 `CONTRIBUTING.md` : lancer les tests (les deux fichiers), mettre à jour les instantanés (`UPDATE_SNAPSHOTS=1`) et relire leur diff dans la PR, durée de la matrice; `CLAUDE.md` et le modèle de PR de ce dépôt citent aussi la matrice.
-- [ ] 4.3 Essai local de `claude plugin eval` plafonné par `--max-cost-usd` (cas minimal du déclenchement du skill), résultat et coût relevés; consigner la décision dans `CONTRIBUTING.md` (écartée en CI avec la raison; usage local décrit).
-- [ ] 4.4 `node .claude/hooks/quality-gate.mjs` renvoie 0 localement et la CI de la PR est verte sur les trois systèmes (mêmes empreintes).
+- [x] 4.2 `CONTRIBUTING.md` : lancer les tests (les deux fichiers), mettre à jour les instantanés (`UPDATE_SNAPSHOTS=1`) et relire leur diff dans la PR, durée de la matrice; `CLAUDE.md` et le modèle de PR de ce dépôt citent aussi la matrice.
+- [x] 4.3 Essai local de `claude plugin eval` plafonné par `--max-cost-usd` (cas minimal du déclenchement du skill), résultat et coût relevés; consigner la décision dans `CONTRIBUTING.md` (écartée en CI avec la raison; usage local décrit).
+- [x] 4.4 `node .claude/hooks/quality-gate.mjs` renvoie 0 localement et la CI de la PR est verte sur les trois systèmes (mêmes empreintes).
 
 ## Workflow follow-up
 - `/opsx:archive` dans la PR, avant le merge.

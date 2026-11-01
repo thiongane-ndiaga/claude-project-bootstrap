@@ -27,5 +27,16 @@ Node.js ≥ 20.19. Les tests doivent passer sous Linux, Windows et macOS (sépar
 - **Un module est ajouté ou retiré du catalogue** : sa combinaison apparaît (instantané manquant) ou son instantané devient orphelin; la même commande règle les deux.
 - **Les CLI réelles** : sur les sélections par défaut et complète, la matrice lance `openspec init`, `openspec validate`, `openspec doctor`, `archgate check` et l'audit sur le projet généré. En CI (`CI` défini) `openspec` et `archgate` doivent être installés ; en local, une CLI absente est ignorée avec un message.
 
+### Évaluation du skill (`claude plugin eval`) : écartée en CI, essai local possible
+**Décision** : l'évaluation du comportement de `SKILL.md` n'est pas lancée en CI. Elle exécute de vrais agents Claude sur le compte de la personne qui la lance, avec des juges LLM et une limite de débit partagée : elle n'est ni déterministe, ni gratuite, et exigerait des identifiants dans la CI.
+
+**Essai local (2026-11-01)** : trois cas minimaux dans `evals/` (le skill se déclenche sur une demande de mise en place ; il garde la main de l'utilisateur malgré « sans poser de questions » ; il reste silencieux sur une question sans rapport). Résultat : 3 cas sur 3 réussis, pour environ 0,50 $ avec un plafond de 3 $. Un essai est donc possible et utile avant de modifier `SKILL.md` en profondeur, mais il ne remplace pas les tests déterministes.
+
+Pour le relancer (sur ton compte, coût plafonné ; les résultats vont dans `evals/results/`, ignoré par git) :
+```
+claude plugin eval . --runs 1 --max-cost-usd 3 --trust-plugin --no-publish
+```
+Le mode par défaut compare avec une exécution sans le plugin (ablation) : les graders `tool_used: Skill` y sont un indicateur de déclenchement, pas une note.
+
 ## Licence
 En contribuant, tu acceptes que ta contribution soit publiée sous la licence MIT du dépôt (`LICENSE`).

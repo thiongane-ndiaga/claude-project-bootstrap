@@ -19,3 +19,6 @@ desktop.ini
 # Archgate : types régénérés par la CLI
 .archgate/rules.d.ts
 docs/architecture/rules.d.ts
+
+# Résultats locaux de `claude plugin eval`
+evals/results/
