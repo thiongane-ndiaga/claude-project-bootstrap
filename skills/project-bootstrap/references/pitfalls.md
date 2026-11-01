@@ -72,5 +72,9 @@ Constatés lors de la mise en place de référence (Claude Code 2.1.31x, OpenSpe
 - `operations.apply.guidance` et `operations.archive.guidance` de `openspec/config.yaml` sont des **listes** de chaînes ; une chaîne seule n'est pas restituée par `openspec instructions apply|archive --json` (`operationGuidance`).
 - Un profil d'agent principal (`"agent"` dans `.claude/settings.json`) qui a les outils d'écriture et aucune consigne de délégation écrit lui-même : la délégation doit être dite dans son corps.
 - Dans un schéma local (`openspec schema fork`), un artefact ajouté se place **avant** le bloc `apply:` du `schema.yaml`, sinon le YAML est invalide.
-- Dans un dépôt dont la boîte de confiance n'a pas été acceptée (`claude -p` dans un dossier neuf), les règles `permissions.allow` du projet sont ignorées et le hook de frontmatter d'un agent de `.claude/agents/` n'a pas été déclenché lors de l'essai : valider les agents « lecture seule » dans un dépôt approuvé.
+- Dans un dépôt dont la boîte de confiance n'a pas été acceptée (`claude -p` dans un dossier neuf), les règles `permissions.allow` du projet sont ignorées et le hook de frontmatter d'un agent de `.claude/agents/` n'est pas déclenché : valider les agents « lecture seule » dans un dépôt approuvé, où il bloque bien en subagent.
 - Le hook d'un agent « lecture seule » doit cibler `Bash|PowerShell` : `cat` est un alias de PowerShell sous Windows.
+- **Le hook de frontmatter d'un agent ne s'applique pas à un teammate** (constaté : `cat` et une commande composée exécutés par un teammate `qa-engineer`, bloqués en subagent). Seules les règles `permissions.allow` / `deny` protègent un teammate : elles refusent bien une écriture hors du chemin permis (`docs/**`).
+- `/agents` n'existe plus (2.1.316) : vérifier un profil en l'invoquant.
+- Un hook `SessionStart` sans `matcher` est rejoué après `/compact` (`source=compact`).
+- L'advisor (`/advisor`) est appelé par le lead ; sur un teammate, l'appel n'a pu être établi que par son propre rapport. Trois niveaux de subagents imbriqués écrivent, le quatrième n'a rien écrit sans message d'erreur.
