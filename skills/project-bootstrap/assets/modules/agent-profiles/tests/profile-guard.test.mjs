@@ -78,6 +78,31 @@ check("architect : titres légitimes (accents, apostrophe, ponctuation) permis",
 check("architect : archgate adr domain list permis", shell("architect", "archgate adr domain list").code === 0 && shell("architect", "archgate adr domain list --x").code === 2);
 check("qa-engineer : archgate review-context --domain exige un domaine", shell("qa-engineer", "archgate review-context --domain").code === 2 && shell("qa-engineer", "archgate review-context --staged --strict --verbose").code === 0);
 
+// agents et skills lançables
+const launch = (agent, input) => run({ agent_type: agent, tool_name: "Agent", tool_input: input });
+const skill = (agent, name) => run({ agent_type: agent, tool_name: "Skill", tool_input: { skill: name } });
+check("architect : architecture-explorer et arc42-keeper permis", launch("architect", { subagent_type: "architecture-explorer", prompt: "x" }).code === 0 && launch("architect", { subagent_type: "arc42-keeper", prompt: "x", run_in_background: true }).code === 0);
+check("qa-engineer : spec-reviewer permis", launch("qa-engineer", { subagent_type: "spec-reviewer", prompt: "x" }).code === 0);
+const gp = launch("architect", { subagent_type: "general-purpose", prompt: "x" });
+check("general-purpose refusé, agent nommé dans le message", gp.code === 2 && /general-purpose/.test(gp.err), gp.err);
+check("appel sans subagent_type (vaut general-purpose) refusé", launch("architect", { prompt: "x" }).code === 2 && launch("qa-engineer", {}).code === 2);
+check("agent d'un autre profil refusé (qa-engineer ne lance pas arc42-keeper)", launch("qa-engineer", { subagent_type: "arc42-keeper" }).code === 2 && launch("architect", { subagent_type: "spec-reviewer" }).code === 2);
+check("agent nommé ou d'équipe refusé même s'il est permis", launch("architect", { subagent_type: "arc42-keeper", name: "k" }).code === 2 && launch("qa-engineer", { subagent_type: "spec-reviewer", team_name: "t" }).code === 2);
+check("noms hérités d'Object.prototype refusés comme agents", launch("architect", { subagent_type: "constructor" }).code === 2 && launch("architect", { subagent_type: "toString" }).code === 2);
+check("architect : archgate:adr-author permis", skill("architect", "archgate:adr-author").code === 0);
+check("skills non permis refusés (reviewer, onboard, sans nom, autre profil)", skill("architect", "archgate:onboard").code === 2 && skill("qa-engineer", "archgate:reviewer").code === 2 && skill("qa-engineer", "archgate:adr-author").code === 2 && run({ agent_type: "architect", tool_name: "Skill", tool_input: {} }).code === 2);
+check("agent principal et autres agents peuvent lancer agents et skills", run({ tool_name: "Agent", tool_input: { subagent_type: "general-purpose" } }).code === 0 && launch("writer", { subagent_type: "general-purpose" }).code === 0 && skill("writer", "x").code === 0);
+
+check("Task, ancien nom de l'outil Agent, est borné comme Agent", run({ agent_type: "architect", tool_name: "Task", tool_input: { subagent_type: "general-purpose" } }).code === 2 && run({ agent_type: "architect", tool_name: "Task", tool_input: { subagent_type: "arc42-keeper" } }).code === 0);
+check("team_name seul refusé ; un profil ne lance ni un autre profil ni lui-même", launch("architect", { subagent_type: "arc42-keeper", team_name: "t" }).code === 2 && launch("architect", { subagent_type: "qa-engineer" }).code === 2 && launch("architect", { subagent_type: "architect" }).code === 2 && launch("qa-engineer", { subagent_type: "architect" }).code === 2);
+check("agent de plugin préfixé et casse différente refusés", launch("architect", { subagent_type: "archgate:developer" }).code === 2 && launch("architect", { subagent_type: "Arc42-Keeper" }).code === 2 && launch("architect", { subagent_type: "" }).code === 2 && launch("architect", { subagent_type: null }).code === 2);
+
+// agents lançables : leurs bornes viennent de la table, pas de leur hook de frontmatter (inactif pour un teammate)
+check("liste agents ou skills absente : tout refusé (arc42-keeper, spec-reviewer, architecture-explorer ne lancent rien)", ["arc42-keeper", "spec-reviewer", "architecture-explorer"].every((a) => launch(a, { subagent_type: "general-purpose" }).code === 2 && launch(a, { subagent_type: "spec-reviewer" }).code === 2 && skill(a, "archgate:adr-author").code === 2));
+check("arc42-keeper n'écrit que dans docs/architecture/arc42/", write("arc42-keeper", "docs/architecture/arc42/05.md").code === 0 && write("arc42-keeper", "docs/architecture/adrs/x.md").code === 2 && write("arc42-keeper", "src/x.js").code === 2);
+check("spec-reviewer et architecture-explorer n'écrivent nulle part", write("spec-reviewer", "docs/x.md").code === 2 && write("architecture-explorer", "docs/architecture/x.md").code === 2);
+check("spec-reviewer : shell en lecture seule", shell("spec-reviewer", "openspec validate x --strict").code === 0 && shell("spec-reviewer", "git status").code === 0 && shell("spec-reviewer", "rm -rf x").code === 2 && shell("spec-reviewer", "cat x").code === 2);
+
 // agents non bornés et entrées inattendues
 check("agent principal (sans agent_type) non borné", run({ tool_name: "Write", tool_input: { file_path: "src/x.js" } }).code === 0 && run({ tool_name: "Bash", tool_input: { command: "rm -rf x" } }).code === 0);
 check("agent hors de la table non borné", write("writer", "src/x.js").code === 0 && shell("developer", "npm test").code === 0);

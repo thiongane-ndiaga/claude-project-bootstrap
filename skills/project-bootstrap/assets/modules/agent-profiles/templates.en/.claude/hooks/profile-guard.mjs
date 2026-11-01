@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Single PreToolUse hook for agent profiles: bounds each profile's writes and shell according to agent_type.
+// Single PreToolUse hook for agent profiles: bounds each profile's writes, shell, agents and skills according to agent_type.
 // Subagent: agent_type is the profile name. Teammate: agent_type is the teammate name, which must carry its profile's name.
 // An agent missing from PROFILES (main agent, other agent) is not bounded. Exit 2 = refusal (stderr is sent back to Claude).
 import { spawnSync } from "node:child_process";
@@ -8,24 +8,36 @@ import { fileURLToPath } from "node:url";
 
 // write: prefixes (relative to the project root) where the profile may write.
 // shell: commands allowed on top of read-only-bash.mjs's read-only set (patterns anchored on the whole command).
+// agents, skills: agents (subagent_type) and skills the profile may launch itself; everything else is refused. A launched agent escapes this table
+// (its agent_type is its own): list only agents already bounded by their own frontmatter and without the Agent tool.
 const PROFILES = {
   architect: {
     write: ["docs/architecture/"],
+    agents: ["architecture-explorer", "arc42-keeper"],
+    skills: ["archgate:adr-author"],
     // title: letters, digits, spaces and simple punctuation only (no quote, parenthesis or substitution: PowerShell evaluates parentheses)
     shell: [/^archgate adr create --title "[\p{L}\p{N} ,.:'’_-]+" --domain [a-z0-9-]+$/u, /^archgate adr domain list$/],
   },
   "qa-engineer": {
     write: ["tests/", "test/"],
+    agents: ["spec-reviewer"],
+    skills: [],
     shell: [
       /^node \.claude[\\/]hooks[\\/]quality-gate\.mjs$/,
       /^node \.bootstrap[\\/]run-checks\.mjs$/,
       /^archgate review-context( --(staged|run-checks|verbose|strict|base( [\w./-]+)?|domain [\w-]+))*$/,
     ],
   },
+  // Agents the profiles may launch: their bounds are repeated here so they do not depend on their frontmatter hook (inactive for a teammate).
+  // Without agents or skills lists, they launch nothing.
+  "arc42-keeper": { write: ["docs/architecture/arc42/"], shell: [] },
+  "spec-reviewer": { write: [], shell: [] },
+  "architecture-explorer": { write: [], shell: [] },
 };
 
 const WRITE_TOOLS = new Set(["Write", "Edit", "MultiEdit", "NotebookEdit"]);
 const SHELL_TOOLS = new Set(["Bash", "PowerShell"]);
+const AGENT_TOOLS = new Set(["Agent", "Task"]);
 
 let raw = "";
 for await (const chunk of process.stdin) raw += chunk;
@@ -56,6 +68,13 @@ try {
     if (!profile.write.some((prefix) => rel.startsWith(prefix))) {
       deny(`write refused: ${rel} is outside ${profile.write.join(", ")}`);
     }
+  } else if (AGENT_TOOLS.has(event.tool_name)) {
+    const type = toolInput.subagent_type ?? "general-purpose";
+    if (toolInput.name || toolInput.team_name) deny("named agent refused (a named agent is a teammate, which the frontmatter hook does not bound)");
+    if (!(profile.agents ?? []).includes(type)) deny(`agent "${type}" not allowed (allowed: ${(profile.agents ?? []).join(", ") || "none"})`);
+  } else if (event.tool_name === "Skill") {
+    const skill = String(toolInput.skill ?? "");
+    if (!(profile.skills ?? []).includes(skill)) deny(`skill "${skill}" not allowed`);
   } else if (SHELL_TOOLS.has(event.tool_name)) {
     const command = String(toolInput.command ?? "").trim();
     if (!profile.shell.some((re) => re.test(command))) {
