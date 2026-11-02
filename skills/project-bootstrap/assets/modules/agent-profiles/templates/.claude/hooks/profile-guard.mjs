@@ -31,6 +31,10 @@ const PROFILES = {
     ],
   },
   "product-owner": { write: [], shell: [], agents: [], skills: [] },
+  // profils en lecture seule du lot 2a ; l'entrée de second-opinion borne aussi un teammate de ce nom lancé avec un autre type d'agent
+  "acceptance-tester": { write: [], shell: [], agents: [], skills: [] },
+  scout: { write: [], shell: [], agents: [], skills: [] },
+  "second-opinion": { write: [], shell: [], agents: [], skills: [] },
   // developer : la stack n'est pas choisie, donc pas de dossiers d'écriture permis ; les dossiers de gouvernance lui sont interdits.
   // Son shell n'est pas borné (build, tests) : il peut écrire dans ces dossiers par la ligne de commande, le bornage est un garde-fou.
   developer: { writeExcept: [".archgate/", ".bootstrap/", ".claude/", ".git/", ".githooks/", ".github/", ".release-please-manifest.json", "agents.md", "claude.md", "docs/architecture/", "docs/workflow.md", "openspec/changes/archive/", "openspec/config.yaml", "openspec/config.yml", "openspec/schemas/", "openspec/specs/", "release-please-config.json"], shellOpen: true, agents: [], skills: [] },

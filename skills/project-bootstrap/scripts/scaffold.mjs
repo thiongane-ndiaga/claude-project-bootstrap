@@ -15,7 +15,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, mkdtempSync, readdi
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { CatalogError, OPTIONAL_PROFILES, PSEUDO_MODULES, describeModules, loadCatalog, modulesTable, templatePath } from "./catalog.mjs";
+import { ADVISOR_PROFILES, CatalogError, OPTIONAL_PROFILES, PSEUDO_MODULES, describeModules, loadCatalog, modulesTable, templatePath } from "./catalog.mjs";
 import { mergeJson, mergeLines, mergeThreeWay } from "./merge.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -352,7 +352,7 @@ if (config.mainAgent === "project-lead") {
     }
   }
 }
-if (config.advisor === true && !(Array.isArray(config.profiles) && config.profiles.length)) warnings.push("advisor: true sans profil optionnel (profiles) : aucun profil sonnet ou haiku ne reçoit la consigne, seule l'étape du « Nouveau poste » de docs/workflow.md est générée");
+if (config.advisor === true && !(Array.isArray(config.profiles) && config.profiles.some((p) => ADVISOR_PROFILES.includes(p)))) warnings.push("advisor: true sans profil optionnel sonnet ou haiku (profiles) : aucun profil ne reçoit la consigne, seule l'étape du « Nouveau poste » de docs/workflow.md est générée");
 if (selected.has("agent-profiles") && (config.keep ?? []).includes(".claude/hooks/profile-guard.mjs")) warnings.push("profile-guard.mjs est dans keep : les profils ne sont bornés que par votre version du hook (vérifie qu'elle contient les entrées de leurs profils)");
 const diffs = {};
 const put = (dest, text) => {

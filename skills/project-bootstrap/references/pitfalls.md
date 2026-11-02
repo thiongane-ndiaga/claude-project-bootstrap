@@ -91,7 +91,7 @@ Constatés lors de la mise en place de référence (Claude Code 2.1.31x, OpenSpe
 - Clé `profiles` (module `agent-profiles`) : seuls les profils listés sont générés ; la retirer de la configuration ne les retire pas (la liste est héritée du manifeste), il faut `profiles: []`, après quoi les fichiers sont signalés (`retired`) et sortent du manifeste, mais restent sur le disque : supprime-les à la main, car `project-lead` délègue tant qu'ils existent. `business-analyst` exige `openspec`.
 - `developer` est borné par une **liste d'exclusion** (`writeExcept` de `profile-guard.mjs`) : il écrit partout sauf dans les dossiers de gouvernance, comparés sans tenir compte de la casse ni des points et espaces finals d'un segment (Windows). Son shell n'est pas borné : il peut écrire dans ces dossiers par la ligne de commande, et les liens ou jonctions ne sont pas résolus. Un dossier de gouvernance ajouté plus tard n'est protégé qu'une fois listé dans la table. `openspec/changes/` reste ouvert pour cocher les tâches.
 - Le nom d'un skill OpenSpec varie selon l'installation (`opsx:propose`, `openspec-propose`) : la table de `business-analyst` liste les deux formes. Un skill de la table à revoir à chaque mise à jour d'OpenSpec.
-- Les entrées `developer`, `product-owner` et `business-analyst` de la table du hook s'appliquent même sans la clé `profiles` : un agent du projet qui porte l'un de ces noms est borné (le nommer autrement l'en dispense). Avec `keep` sur `profile-guard.mjs`, les profils choisis ne sont bornés que par ta version du hook (le rapport avertit).
+- Les entrées de la table du hook des profils optionnels (dont `scout`, nom courant) s'appliquent même sans la clé `profiles` : un agent du projet qui porte l'un de ces noms est borné (le nommer autrement l'en dispense). Avec `keep` sur `profile-guard.mjs`, les profils choisis ne sont bornés que par ta version du hook (le rapport avertit).
 - La liste d'exclusion de `developer` résout le chemin réel (liens, jonctions, noms courts 8.3, casse) et refuse un segment avec `:` ; elle ne couvre pas un dossier de gouvernance ajouté plus tard tant qu'il n'est pas listé, et un teammate isolé dans un worktree (`.claude/worktrees/`) se voit tout refuser. Revoir la table de `business-analyst` après chaque `openspec update` (noms de skills, formes des commandes).
 
 ## Module advisor (documentation lue le 2026-11-01)
@@ -108,10 +108,13 @@ Constatés lors de la mise en place de référence (Claude Code 2.1.31x, OpenSpe
   | Agent | model | effort | maxTurns |
   |---|---|---|---|
   | `architect`, `qa-engineer`, `architecture-explorer` | opus | high | 40 |
+  | `second-opinion` | opus | high | 30 |
   | `spec-reviewer` | opus | high | 30 |
   | `developer` | sonnet | high | 60 |
   | `business-analyst` | sonnet | high | 40 |
   | `product-owner` | sonnet | medium | 20 |
+  | `acceptance-tester` | sonnet | medium | 25 |
+  | `scout` | haiku | medium | 20 |
   | `arc42-keeper` | sonnet | medium | 30 |
   | `traceability-checker` | sonnet | medium | 25 |
 
@@ -120,3 +123,9 @@ Constatés lors de la mise en place de référence (Claude Code 2.1.31x, OpenSpe
 - Coût : `opus` et `high` sont les valeurs les plus chères ; un compte sans accès à `opus` retombe sur l'ordre de modèles de Claude Code, d'où l'intérêt d'éditer le frontmatter. Les niveaux d'`effort` dépendent du modèle : un niveau peut ne pas exister sur un modèle de remplacement (non vérifié).
 - `maxTurns` : un sous-agent arrêté par la limite rend, selon la documentation, une sortie marquée partielle que l'on peut reprendre (non vérifié ici). Un teammate ne reprend que `tools`, `disallowedTools`, `model` et le corps, et `effort` en in-process seulement : pour `maxTurns`, la borne ne vaut sûrement qu'en sous-agent.
 - Un champ de frontmatter inconnu ou mal orthographié est ignoré sans erreur : le test du générateur valide les champs, `effort`, `maxTurns` et le nommage des fichiers de tous les agents générés.
+
+## Profils acceptance-tester, scout et second-opinion (#34, lot 2a)
+- `acceptance-tester` ne lit pas le code par consigne seulement : `Read` reste disponible. Son shell est celui de `read-only-bash.mjs` : il lit l'état de la CI (`gh pr checks`, `gh run view`) et valide les specs (`openspec validate`), mais ne lance ni lanceur de tests ni contrôle qualité ; le rapport de tests vient de `qa-engineer`, joint au brief.
+- `scout` se distingue de l'agent intégré `Explore` par un rapport structuré dont chaque constat cite fichier et ligne, et par sa borne `maxTurns`. Son modèle haiku est le moins fiable sur un gros dépôt : le chef de projet vérifie les preuves citées. `effort: medium` sur haiku : la prise en compte du niveau par ce modèle n'est pas vérifiée.
+- `second-opinion` n'est indépendant que si son brief est neutre (question, options, preuves) : le sous-agent ne reçoit que ce texte, mais rien ne garantit que `project-lead` l'a rédigé sans préférence. Lance-le en sous-agent ; en équipe, les messages d'un teammate peuvent lui transmettre la préférence. Il n'a pas de shell mais dispose de `WebSearch` et `WebFetch`, que le hook ne borne pas : le contenu du brief peut sortir dans une requête.
+- Son entrée de table existe malgré l'absence de `Bash` : elle ramène à la lecture seule un teammate nommé `second-opinion` mais lancé avec un autre type d'agent.
