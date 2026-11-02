@@ -61,10 +61,10 @@ export function combinations(modulesCatalog) {
     { name: "default-cli-local", modules: defaults, config: { cliInstall: "local" }, single: null },
     { name: "default-en", modules: defaults, config: ENGLISH, single: null },
     { name: "agent-profiles-main", modules: [...closure("agent-profiles")].filter((x) => x !== "core"), config: { mainAgent: "project-lead" }, single: null },
-    { name: "agent-profiles-optional", modules: [...new Set([...closure("agent-profiles"), "github", "openspec", "archgate"])].filter((x) => x !== "core"), config: { profiles: ["business-analyst", "developer", "product-owner"] }, single: null },
-    { name: "advisor-on", modules: [...new Set([...closure("advisor"), "github", "openspec", "archgate"])].filter((x) => x !== "core"), config: { advisor: true, profiles: ["business-analyst", "developer", "product-owner"] }, single: null },
+    { name: "agent-profiles-optional", modules: [...new Set([...closure("agent-profiles"), "github", "openspec", "archgate"])].filter((x) => x !== "core"), config: { profiles: ["acceptance-tester", "business-analyst", "developer", "product-owner", "scout", "second-opinion"] }, single: null },
+    { name: "advisor-on", modules: [...new Set([...closure("advisor"), "github", "openspec", "archgate"])].filter((x) => x !== "core"), config: { advisor: true, profiles: ["acceptance-tester", "business-analyst", "developer", "product-owner", "scout", "second-opinion"] }, single: null },
     { name: "full", modules: names, single: null },
-    { name: "full-en", modules: names, config: { ...ENGLISH, profiles: ["business-analyst", "developer", "product-owner"] }, single: null },
+    { name: "full-en", modules: names, config: { ...ENGLISH, profiles: ["acceptance-tester", "business-analyst", "developer", "product-owner", "scout", "second-opinion"] }, single: null },
     { name: "full-public", modules: names, config: { visibility: "public" }, single: null },
   ];
 }

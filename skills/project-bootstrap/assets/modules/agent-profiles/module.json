@@ -3,16 +3,19 @@
   "requires": ["claude"],
   "default": false,
   "files": [
+    {"path": ".claude/agents/acceptance-tester.md", "when": ["profile-acceptance-tester"]},
     {"path": ".claude/agents/architect.md"},
     {"path": ".claude/agents/business-analyst.md", "when": ["profile-business-analyst"]},
     {"path": ".claude/agents/developer.md", "when": ["profile-developer"]},
     {"path": ".claude/agents/product-owner.md", "when": ["profile-product-owner"]},
     {"path": ".claude/agents/project-lead.md"},
     {"path": ".claude/agents/qa-engineer.md"},
+    {"path": ".claude/agents/scout.md", "when": ["profile-scout"]},
+    {"path": ".claude/agents/second-opinion.md", "when": ["profile-second-opinion"]},
     {"path": ".claude/hooks/profile-guard.mjs"}
   ],
   "questions": [
     "Faire de project-lead l'agent principal des sessions du projet (clé mainAgent) ? Le choix s'applique à toutes les sessions du clone et remplace l'agent par défaut, y compris celui du plugin Archgate. Défaut : non.",
-    "Quels profils optionnels générer (clé profiles) parmi product-owner, developer et business-analyst ? business-analyst exige le module openspec. Défaut : aucun."
+    "Quels profils optionnels générer (clé profiles) parmi product-owner, developer, business-analyst, acceptance-tester, scout et second-opinion ? business-analyst exige le module openspec. Défaut : aucun."
   ]
 }

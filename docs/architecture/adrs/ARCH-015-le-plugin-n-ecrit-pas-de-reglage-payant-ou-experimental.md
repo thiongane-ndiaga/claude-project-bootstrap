@@ -52,7 +52,7 @@ Claude Code expose des réglages qui coûtent de l'argent, activent une fonction
 ### Risks
 
 - Un nouveau réglage de ce type ajouté par Claude Code n'est protégé qu'une fois ajouté au test et à la liste.
-- Les champs `model` et `effort` des définitions d'agents engagent aussi une dépense. Les valeurs de départ sont opus et high pour `architect`, `qa-engineer`, `spec-reviewer` et `architecture-explorer` (les plus coûteux), sonnet et high pour `developer` et `business-analyst`, sonnet et medium pour `product-owner`, `arc42-keeper` et `traceability-checker` ; `maxTurns` borne chaque agent. Elles sont fixes, documentées dans `pitfalls.md`, et l'utilisateur les surcharge dans le frontmatter ou par `CLAUDE_CODE_EFFORT_LEVEL` et `CLAUDE_CODE_SUBAGENT_MODEL`.
+- Les champs `model` et `effort` des définitions d'agents engagent aussi une dépense. Les valeurs de départ sont opus et high pour `architect`, `qa-engineer`, `spec-reviewer`, `architecture-explorer` et `second-opinion` (les plus coûteux), sonnet et high pour `developer` et `business-analyst`, sonnet et medium pour `product-owner`, `acceptance-tester`, `arc42-keeper` et `traceability-checker`, haiku et medium pour `scout` ; `maxTurns` borne chaque agent. Elles sont fixes, documentées dans `pitfalls.md`, et l'utilisateur les surcharge dans le frontmatter ou par `CLAUDE_CODE_EFFORT_LEVEL` et `CLAUDE_CODE_SUBAGENT_MODEL`.
 
 ## Compliance and Enforcement
 

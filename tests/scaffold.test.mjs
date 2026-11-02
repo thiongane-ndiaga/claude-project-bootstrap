@@ -1825,7 +1825,7 @@ const d = mkdtempSync(path.join(tmpdir(), "pb-sonde-")); writeFileSync(path.join
   check("project-lead : délègue à developer et business-analyst quand ils existent (consigne inchangée)", /sinon écris-les toi-même/.test(txt(three, ".claude/agents/project-lead.md")));
 
   // refus
-  const bad = gen(full, { profiles: ["devops-engineer"] });
+  const bad = gen(full, { profiles: ["profil-inexistant"] });
   check("profiles : nom inconnu refusé (code 1, noms permis)", bad.res.status === 1 && /profiles doit être une liste de noms parmi/.test(bad.res.stderr), bad.res.stderr);
   const notList = gen(full, { profiles: "developer" });
   check("profiles : une chaîne au lieu d'une liste refusée", notList.res.status === 1, notList.res.stderr);
@@ -1953,10 +1953,10 @@ const d = mkdtempSync(path.join(tmpdir(), "pb-sonde-")); writeFileSync(path.join
   check("frontmatter agents : name différent du fichier refusé", validateAgent("developer.md", ok.replace("name: developer", "name: dev")).some((p) => /différent du nom de fichier/.test(p)));
   check("frontmatter agents : effort inconnu et maxTurns non entier ou nul refusés", validateAgent("developer.md", ok.replace("description: x", "description: x\neffort: huge")).some((p) => /effort invalide/.test(p)) && ["0", "-3", "4.5", "abc"].every((v) => validateAgent("developer.md", ok.replace("description: x", `description: x\nmaxTurns: ${v}`)).some((p) => /maxTurns invalide/.test(p))));
 
-  const PROFILES = ["business-analyst", "developer", "product-owner"];
+  const PROFILES = ["acceptance-tester", "business-analyst", "developer", "product-owner", "scout", "second-opinion"];
   const TABLE = {
     architect: ["opus", "high", "40"], "qa-engineer": ["opus", "high", "40"], "spec-reviewer": ["opus", "high", "30"], "architecture-explorer": ["opus", "high", "40"],
-    developer: ["sonnet", "high", "60"], "business-analyst": ["sonnet", "high", "40"], "product-owner": ["sonnet", "medium", "20"], "arc42-keeper": ["sonnet", "medium", "30"], "traceability-checker": ["sonnet", "medium", "25"],
+    developer: ["sonnet", "high", "60"], "business-analyst": ["sonnet", "high", "40"], "product-owner": ["sonnet", "medium", "20"], "arc42-keeper": ["sonnet", "medium", "30"], "traceability-checker": ["sonnet", "medium", "25"], "acceptance-tester": ["sonnet", "medium", "25"], scout: ["haiku", "medium", "20"], "second-opinion": ["opus", "high", "30"],
   };
   const field = (text, k) => new RegExp(`^${k}: (\\S+)\\r?$`, "m").exec(text)?.[1];
   const withKeys = { effort: "max", model: "haiku", maxTurns: 1 };
@@ -1974,6 +1974,59 @@ const d = mkdtempSync(path.join(tmpdir(), "pb-sonde-")); writeFileSync(path.join
     const ignored = run({ ...base, visibility: "private", modules: allModules, profiles: PROFILES, ...lang, ...withKeys });
     check(`frontmatter agents (${tag}) : les clés effort, model et maxTurns de la configuration n'ont aucun effet`, ignored.res.status === 0 && files.every((f) => readFileSync(path.join(ignored.out, ".claude", "agents", f), "utf8") === readFileSync(path.join(agentsDir, f), "utf8")), ignored.res.stderr);
   }
+}
+
+// profils optionnels du lot 2a (#34) : acceptance-tester, scout, second-opinion
+{
+  const gen = (modules, extra = {}) => run({ ...base, visibility: "private", modules, ...extra });
+  const txt = (r, rel) => readFileSync(path.join(r.out, ...rel.split("/")), "utf8");
+  const has = (r, n) => existsSync(path.join(r.out, ".claude/agents", n + ".md"));
+  const front = (t) => /^---\r?\n([\s\S]*?)\r?\n---/.exec(t)?.[1] ?? "";
+  const toolsOf = (t) => (/^tools: (.*)$/m.exec(front(t))?.[1] ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+  const NEW = ["acceptance-tester", "scout", "second-opinion"];
+  const mods = ["claude", "github", "openspec", "archgate", "agent-profiles", "advisor"];
+
+  const only = gen(mods, { profiles: ["second-opinion", "scout", "acceptance-tester"] });
+  check("lot 2a : les trois profils sont générés sur choix, consignés triés au manifeste", only.res.status === 0 && NEW.every((n) => has(only, n)) && JSON.parse(txt(only, ".bootstrap/manifest.json")).config.profiles.join() === NEW.join(), only.res.stderr);
+  const none = gen(mods);
+  check("lot 2a : absents sans la clé profiles", NEW.every((n) => !has(none, n)));
+  const one = gen(mods, { profiles: ["scout"] });
+  check("lot 2a : seul le profil listé est généré", has(one, "scout") && !has(one, "acceptance-tester") && !has(one, "second-opinion"));
+
+  for (const n of NEW) {
+    const t = txt(only, `.claude/agents/${n}.md`);
+    check(`profil ${n} : nom = fichier, sans hooks, sans Write, Edit, Agent ni Skill`, new RegExp(`^name: ${n}$`, "m").test(front(t)) && !/^hooks:/m.test(front(t)) && !toolsOf(t).some((x) => ["Write", "Edit", "Agent", "Skill"].includes(x)));
+    check(`profil ${n} : qui écrit ne relit pas, en français et en anglais`, /Qui écrit ne relit pas/.test(t) && /Whoever writes does not review/.test(txt(gen(mods, { profiles: NEW, docLanguage: "en" }), `.claude/agents/${n}.md`)));
+  }
+  check("second-opinion : ni Bash (lecture web et dépôt seulement)", !toolsOf(txt(only, ".claude/agents/second-opinion.md")).includes("Bash") && ["WebSearch", "WebFetch"].every((x) => toolsOf(txt(only, ".claude/agents/second-opinion.md")).includes(x)));
+  check("acceptance-tester et scout : Read, Glob, Grep et Bash", ["acceptance-tester", "scout"].every((n) => ["Read", "Glob", "Grep", "Bash"].every((x) => toolsOf(txt(only, `.claude/agents/${n}.md`)).includes(x))));
+  check("second-opinion : brief neutre, préférence écartée et signalée, lancement en sous-agent", /écarte-les et signale-le/.test(txt(only, ".claude/agents/second-opinion.md")) && /sous-agent/.test(txt(only, ".claude/agents/second-opinion.md")));
+  check("acceptance-tester : ne lit pas le code, preuves par gh et openspec, pas de lanceur de tests", /Ne lis pas le code source/.test(txt(only, ".claude/agents/acceptance-tester.md")) && /gh pr checks/.test(txt(only, ".claude/agents/acceptance-tester.md")) && /openspec validate/.test(txt(only, ".claude/agents/acceptance-tester.md")) && /ne lances pas de lanceur de tests/.test(txt(only, ".claude/agents/acceptance-tester.md")));
+  const bare = gen(["claude", "agent-profiles"], { profiles: NEW });
+  check("lot 2a sans github, openspec ni archgate : aucune référence à ces modules, critères pris dans le brief", NEW.every((n) => !/archgate|openspec|opsx|gh |arc42|spec-reviewer/i.test(txt(bare, `.claude/agents/${n}.md`))) && /critères d'acceptation dans le brief/.test(txt(bare, ".claude/agents/acceptance-tester.md")));
+
+  // table du hook
+  const guard = txt(only, ".claude/hooks/profile-guard.mjs");
+  check("lot 2a : entrées de la table du hook (écriture vide)", NEW.every((n) => new RegExp(`"?${n}"?: \\{ write: \\[\\], shell: \\[\\], agents: \\[\\], skills: \\[\\] \\}`).test(guard)));
+
+  // project-lead
+  const lead = txt(only, ".claude/agents/project-lead.md");
+  check("project-lead : délègue au lot 2a s'il existe, brief neutre en sous-agent, recette et contre-avis dans le parcours", /`scout` pour l'exploration/.test(lead) && /`acceptance-tester` pour la recette/.test(lead) && /brief neutre/.test(lead) && /jamais en équipe/.test(lead) && /recette d'`acceptance-tester`/.test(lead) && /contre-avis de `second-opinion`/.test(lead));
+  const leadEn = txt(gen(mods, { profiles: NEW, docLanguage: "en" }), ".claude/agents/project-lead.md");
+  check("project-lead (en) : même délégation", /`scout` for factual exploration/.test(leadEn) && /neutral brief/.test(leadEn) && /never in a team/.test(leadEn) && /counter-opinion from `second-opinion`/.test(leadEn));
+
+  // advisor : consigne dans acceptance-tester et scout (sonnet, haiku), pas dans second-opinion (opus)
+  const adv = gen(mods, { advisor: true, profiles: NEW });
+  check("advisor : acceptance-tester et scout portent la consigne, second-opinion non", ["acceptance-tester", "scout"].every((n) => /consulte l'advisor/.test(txt(adv, `.claude/agents/${n}.md`))) && !/advisor/i.test(txt(adv, ".claude/agents/second-opinion.md")), adv.res.stderr);
+  const advOnly = gen(mods, { advisor: true, profiles: ["second-opinion"] });
+  check("advisor : avertissement quand seul second-opinion est choisi", advOnly.res.status === 0 && (advOnly.report?.warnings ?? []).some((w) => /advisor: true sans profil optionnel sonnet ou haiku/.test(w)), JSON.stringify(advOnly.report?.warnings));
+  const advScout = gen(mods, { advisor: true, profiles: ["scout"] });
+  check("advisor : pas d'avertissement avec scout", !(advScout.report?.warnings ?? []).some((w) => /advisor: true sans profil/.test(w)));
+
+  // catalogue : question de phase 0 aux six noms
+  const listed = JSON.parse(spawnSync(process.execPath, [scaffold, "--list-modules"], { encoding: "utf8" }).stdout);
+  const ap = listed.modules.find((m) => m.name === "agent-profiles");
+  check("agent-profiles : la question de phase 0 cite les six profils", ap && ["acceptance-tester", "scout", "second-opinion", "business-analyst", "developer", "product-owner"].every((n) => ap.questions.some((q) => q.includes(n))), JSON.stringify(ap?.questions));
 }
 
 console.log(failed ? `\n${failed} échec(s)` : "\nTous les tests passent");
