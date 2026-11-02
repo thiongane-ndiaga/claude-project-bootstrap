@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.13](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.12...v0.1.13) (2026-11-02)
+
+
+### Features
+
+* **skill:** model, effort and maxTurns on generated agents with frontmatter validation ([#37](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/37)) ([#128](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/128)) ([f7894c1](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/f7894c1ec69b37dda2422f375a34ffdfcced0b22))
+* **skill:** optional profiles acceptance-tester, scout and second-opinion ([#34](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/34)) ([#130](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/130)) ([186c639](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/186c639d1b28aca3f2812f7ecc61231857d3dbe8))
+
 ## [0.1.12](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.11...v0.1.12) (2026-11-01)
 
 
