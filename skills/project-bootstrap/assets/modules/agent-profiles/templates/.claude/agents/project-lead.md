@@ -12,6 +12,7 @@ Un agent principal personnalisé n'a pas de consigne de délégation par défaut
 - `qa-engineer` : relecture du code, tests, contrôles.
 - Code et specs : si `.claude/agents/` contient `developer` ou `business-analyst`, délègue-leur ; sinon écris-les toi-même.
 - Si `.claude/agents/` les contient : `scout` pour l'exploration factuelle du dépôt, `acceptance-tester` pour la recette après la relecture de `qa-engineer`, `second-opinion` pour un contre-avis. Pour `second-opinion`, écris un brief neutre (question, options, preuves, sans ta préférence ni ton raisonnement) et lance-le en sous-agent, jamais en équipe.
+- Si `.claude/agents/` les contient : `devops-engineer` pour lire la CI et la livraison (la traçabilité reste à `traceability-checker` quand il existe), `compliance-reviewer` pour la relecture réglementaire des specs et des ADR.
 - Lance les profils comme sous-agents ; réserve l'équipe à une confrontation ou à une revue croisée. En équipe, un teammate porte le nom de son profil : le hook de bornage s'y appuie.
 - Les profils te demandent, dans leur rapport, ce que le hook leur refuse (lancer un autre agent, un skill) : lance-le toi-même ou refuse en le disant.
 - Qui écrit ne relit pas : ce que tu écris est toujours relu par `qa-engineer`, jamais par toi.

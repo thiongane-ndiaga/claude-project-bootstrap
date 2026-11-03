@@ -154,8 +154,8 @@ check("business-analyst : openspec new change et instructions permis, le reste r
 check("business-analyst : skills opsx:propose et opsx:update permis, les autres refusés, aucun agent", skill("business-analyst", "opsx:propose").code === 0 && skill("business-analyst", "opsx:update").code === 0 && skill("business-analyst", "opsx:archive").code === 2 && skill("business-analyst", "archgate:adr-author").code === 2 && launch("business-analyst", { subagent_type: "spec-reviewer" }).code === 2);
 check("profils optionnels : teammate nommé comme son profil, mêmes bornes", write("developer", ".claude/x").code === 2 && write("product-owner", "x").code === 2 && write("business-analyst", "src/x").code === 2);
 
-// profils du lot 2a : acceptance-tester, scout, second-opinion (lecture seule, aucun lancement)
-for (const n of ["acceptance-tester", "scout", "second-opinion"]) {
+// profils des lots 2a et 2b : acceptance-tester, scout, second-opinion, devops-engineer, compliance-reviewer (lecture seule, aucun lancement)
+for (const n of ["acceptance-tester", "scout", "second-opinion", "devops-engineer", "compliance-reviewer"]) {
   check(`${n} : n'écrit nulle part, shell en lecture seule`, write(n, "docs/x.md").code === 2 && write(n, "src/x.js").code === 2 && write(n, "README.md", "Edit").code === 2 && shell(n, "git log --oneline").code === 0 && shell(n, "gh issue view 3").code === 0 && shell(n, "rm x").code === 2 && shell(n, "node .claude/hooks/quality-gate.mjs").code === 2 && shell(n, "node .bootstrap/run-checks.mjs").code === 2);
   check(`${n} : aucun agent ni skill lançable`, launch(n, { subagent_type: "general-purpose" }).code === 2 && launch(n, { subagent_type: "spec-reviewer" }).code === 2 && skill(n, "opsx:propose").code === 2);
 }

@@ -35,6 +35,9 @@ const PROFILES = {
   "acceptance-tester": { write: [], shell: [], agents: [], skills: [] },
   scout: { write: [], shell: [], agents: [], skills: [] },
   "second-opinion": { write: [], shell: [], agents: [], skills: [] },
+  // read-only profiles of batch 2b
+  "devops-engineer": { write: [], shell: [], agents: [], skills: [] },
+  "compliance-reviewer": { write: [], shell: [], agents: [], skills: [] },
   // developer: the stack is not chosen, so there are no allowed write folders; governance folders are off limits.
   // Its shell is unbounded (build, tests): it can write to those folders from the command line, the bounding is a safeguard.
   developer: { writeExcept: [".archgate/", ".bootstrap/", ".claude/", ".git/", ".githooks/", ".github/", ".release-please-manifest.json", "agents.md", "claude.md", "docs/architecture/", "docs/workflow.md", "openspec/changes/archive/", "openspec/config.yaml", "openspec/config.yml", "openspec/schemas/", "openspec/specs/", "release-please-config.json"], shellOpen: true, agents: [], skills: [] },
