@@ -15,7 +15,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, mkdtempSync, readdi
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { ADVISOR_PROFILES, CatalogError, OPTIONAL_PROFILES, PSEUDO_MODULES, describeModules, loadCatalog, modulesTable, templatePath } from "./catalog.mjs";
+import { ADVISOR_PROFILES, CatalogError, OPTIONAL_PROFILES, REGULATED_DOMAIN_RE, PSEUDO_MODULES, describeModules, loadCatalog, modulesTable, templatePath } from "./catalog.mjs";
 import { mergeJson, mergeLines, mergeThreeWay } from "./merge.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -116,11 +116,14 @@ const config = typeof args.config === "string" ? JSON.parse(readFileSync(args.co
 config.date = config.date ?? previous?.config?.date ?? new Date().toISOString().slice(0, 10);
 // langue de la documentation et mode d'installation des CLI : hérités du manifeste quand --config ne les redéfinit pas
 // (une configuration sans la clé ne fait changer ni la langue ni le mode)
-for (const key of ["docLanguage", "cliInstall", "mainAgent", "profiles", "advisor"]) if (config[key] === undefined && previous?.config?.[key] !== undefined) config[key] = previous.config[key];
+for (const key of ["docLanguage", "cliInstall", "mainAgent", "profiles", "advisor", "regulatedDomain"]) if (config[key] === undefined && previous?.config?.[key] !== undefined) config[key] = previous.config[key];
 // mainAgent: null désactive l'agent principal : la valeur n'est ni héritée du manifeste ni consignée
 if (config.mainAgent === null) delete config.mainAgent;
 // advisor: null ou false désactive la clé : ni héritée du manifeste ni consignée
 if (config.advisor === null || config.advisor === false) delete config.advisor;
+// regulatedDomain: null désactive la clé : ni héritée du manifeste ni consignée ; texte normalisé NFC, espaces de début et de fin retirés
+if (config.regulatedDomain === null) delete config.regulatedDomain;
+else if (typeof config.regulatedDomain === "string") config.regulatedDomain = config.regulatedDomain.normalize("NFC").replace(/^ +| +$/g, "");
 // profiles: [] (ou null) ne choisit aucun profil optionnel : ni héritée ni consignée ; sinon ensemble trié sans doublon
 if (config.profiles === null || (Array.isArray(config.profiles) && config.profiles.length === 0)) delete config.profiles;
 else if (Array.isArray(config.profiles) && config.profiles.every((p) => typeof p === "string")) config.profiles = [...new Set(config.profiles)].sort();
@@ -149,6 +152,9 @@ if (config.advisor !== undefined && !selected.has("advisor")) errors.push("advis
 if (config.profiles !== undefined && (!Array.isArray(config.profiles) || config.profiles.some((p) => !OPTIONAL_PROFILES.includes(p)))) errors.push(`profiles doit être une liste de noms parmi ${OPTIONAL_PROFILES.join(", ")} (reçu : ${JSON.stringify(config.profiles)})`);
 if (config.profiles !== undefined && !selected.has("agent-profiles")) errors.push("profiles exige le module agent-profiles");
 if (Array.isArray(config.profiles) && config.profiles.includes("business-analyst") && !selected.has("openspec")) errors.push("le profil business-analyst exige le module openspec");
+if (config.regulatedDomain !== undefined && (typeof config.regulatedDomain !== "string" || !REGULATED_DOMAIN_RE.test(config.regulatedDomain))) errors.push(`regulatedDomain doit être un texte de 1 à 120 caractères (lettres, chiffres, espaces et ,.;:'’()/&_-, au moins une lettre ou un chiffre), ou null pour le désactiver (reçu : ${JSON.stringify(config.regulatedDomain)})`);
+if (config.regulatedDomain !== undefined && !selected.has("agent-profiles")) errors.push("regulatedDomain exige le module agent-profiles");
+if (Array.isArray(config.profiles) && config.profiles.includes("compliance-reviewer") && config.regulatedDomain === undefined) errors.push("le profil compliance-reviewer exige la clé regulatedDomain (domaine réglementé déclaré en phase 0)");
 if (errors.length) {
   console.error(errors.join("\n"));
   process.exit(1);
@@ -192,6 +198,7 @@ const params = {
   PROJECT_DESCRIPTION: config.description,
   STACK: config.stack,
   DOC_LANGUAGE_NAME: config.docLanguageName ?? langParams.DOC_LANGUAGE_NAME,
+  REGULATED_DOMAIN: config.regulatedDomain,
   DATE: config.date ?? new Date().toISOString().slice(0, 10),
   VISIBILITY_LABEL: langParams.VISIBILITY_LABEL,
   OPENSPEC_VERSION: config.versions?.openspec,
@@ -352,6 +359,7 @@ if (config.mainAgent === "project-lead") {
     }
   }
 }
+if (config.regulatedDomain !== undefined && !(Array.isArray(config.profiles) && config.profiles.includes("compliance-reviewer"))) warnings.push("regulatedDomain sans le profil compliance-reviewer (profiles) : la clé est sans effet");
 if (config.advisor === true && !(Array.isArray(config.profiles) && config.profiles.some((p) => ADVISOR_PROFILES.includes(p)))) warnings.push("advisor: true sans profil optionnel sonnet ou haiku (profiles) : aucun profil ne reçoit la consigne, seule l'étape du « Nouveau poste » de docs/workflow.md est générée");
 if (selected.has("agent-profiles") && (config.keep ?? []).includes(".claude/hooks/profile-guard.mjs")) warnings.push("profile-guard.mjs est dans keep : les profils ne sont bornés que par votre version du hook (vérifie qu'elle contient les entrées de leurs profils)");
 const diffs = {};

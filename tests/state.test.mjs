@@ -90,6 +90,11 @@ const MODULE_SETS = {
   const state = stateOf(target);
   check("init : état dans .bootstrap/local/, configuration conservée, aucune étape faite", out.modules.join() === "openspec" && state.answers.projectName === "Test" && Object.keys(state.steps).length === 0 && state.version === 1);
   check("init : les clés hors schéma (jeton) ne sont jamais enregistrées et sont signalées", !JSON.stringify(state).includes("ghp_secret") && !("token" in state.answers) && out.ignoredKeys.join() === "token,GITHUB_TOKEN" && ANSWER_KEYS.includes("modules"));
+  const cfg2 = path.join(t, "bootstrap2.json");
+  writeFileSync(cfg2, JSON.stringify({ projectName: "Test", modules: ["claude", "agent-profiles"], profiles: ["compliance-reviewer"], regulatedDomain: "RGPD, paiement" }));
+  const target2 = repo();
+  run(["init", "--target", target2, "--config", cfg2]);
+  check("init : regulatedDomain fait partie du schéma de réponses et est conservée pour la reprise", ANSWER_KEYS.includes("regulatedDomain") && stateOf(target2).answers.regulatedDomain === "RGPD, paiement" && stateOf(target2).answers.profiles.join() === "compliance-reviewer");
   check("init : le dossier s'ignore seul et aucun fichier temporaire ne reste (écriture atomique)", readFileSync(path.join(target, ".bootstrap", "local", ".gitignore"), "utf8") === "*\n" && readdirSync(path.join(target, ".bootstrap", "local")).every((f) => !f.endsWith(".tmp")));
   const g = (...a) => spawnSync("git", ["-C", target, ...a], { encoding: "utf8" });
   g("init", "-q");

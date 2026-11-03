@@ -1,0 +1,24 @@
+## Contexte
+
+Le lot 2a a appliqué le mécanisme d'ARCH-014 à trois profils sans dépendance. Le lot 2b ajoute `devops-engineer` (lecture de la livraison) et `compliance-reviewer`, qui dépend d'un paramètre libre : le domaine réglementé.
+
+## Décisions
+
+- **D1. `regulatedDomain`, texte libre.** Le plugin ne porte aucune liste d'exigences ni de domaines : le texte est injecté dans le corps du modèle du profil par `{{REGULATED_DOMAIN}}`, jamais dans un frontmatter (`&` ou `'` en tête, ou `: `, y changeraient le sens du YAML). Les blocs sont résolus avant les paramètres et `applyParams` ne repasse pas sur le texte substitué : `@@module` ou `{{X}}` dans la valeur resteraient littéraux, mais ils feraient échouer les tests d'invariants et ne sont pas permis. La liste blanche ne protège donc pas d'une consigne glissée en clair (« ignore ... ») : la garantie est la table du hook (le profil n'écrit rien) et le fait que l'auteur du texte est l'utilisateur. Règle : NFC, retrait des espaces U+0020 de début et de fin, puis `/^(?=.*[\p{L}\p{N}])[\p{L}\p{M}\p{N} ,.;:'’()\/&_-]{1,120}$/u` (espace = U+0020 seulement, longueur en points de code). `false`, nombre et liste sont refusés ; seul `null` désactive.
+- **D2. Dépendance en sens unique.** `compliance-reviewer` exige `regulatedDomain` (erreur sinon, code 1). `regulatedDomain` sans le profil n'a aucun effet et le rapport avertit (pas d'erreur : un projet peut vouloir déclarer son domaine avant de choisir le profil).
+- **D3. Cycle de vie.** Comme `advisor` : `null` désactive, la clé est héritée par `--update` et consignée au manifeste (`ANSWER_KEYS`). Retirer la clé alors que le profil est hérité échoue, comme pour `business-analyst` sans `openspec`.
+- **D4. `devops-engineer`.** Entrée de table sans écriture, shell de `read-only-bash.mjs`. Outils `Read, Glob, Grep, Bash`. Sources : `gh pr checks`, `gh run view`, `gh pr list`, `gh release list`, `git log --oneline`, `openspec list`, `archgate adr list`, selon les modules `github`, `release`, `openspec` et `archgate` présents. Le jeu de caractères de `read-only-bash.mjs` (`[\w ./:@^~=,#+-]`) refuse `%`, les guillemets, `|`, `*` et `$` : les exemples du modèle n'en contiennent pas, et un test vérifie que chaque commande entre accents graves des deux modèles est acceptée par le hook. Recouvrement : la traçabilité issue, changement, PR et ADR reste à `traceability-checker` jusqu'à #110 ; `devops-engineer` lit la CI et la livraison. Sans le module `github`, il se réduit à `git log` et le modèle le dit.
+- **D5. `compliance-reviewer`.** Outils `Read, Glob, Grep, Bash`, lecture seule, blocs `openspec` (`openspec show`) et `archgate` (`archgate adr list`). Chaque constat cite un document et un passage ; l'exigence connue est distinguée de l'hypothèse ; le profil rappelle qu'il ne remplace pas un juriste. opus, high, 30 : le raisonnement réglementaire justifie le modèle le plus capable ; il ne porte donc pas la consigne de l'advisor.
+- **D6. Valeurs de départ (#37).** `devops-engineer` sonnet, medium, 25 (avec consigne advisor) ; `compliance-reviewer` opus, high, 30.
+- **D7. `project-lead`.** Une ligne de délégation conditionnée à la présence des fichiers, comme pour le lot 2a.
+- **D8. ARCH-014.** Amendé pour la clé liée à un profil et la dépendance. Sa section Decision dépasse la limite des briefings (3172 caractères pour 2000) : les détails portés par les specs en vigueur (liste d'exclusion de `developer`, formes des skills OpenSpec, chemin réel) quittent l'ADR, qui renvoie aux specs. Aucune décision ne change. Le chemin réel (décision de sécurité commune) reste en une phrase. Le `files:` d'ARCH-014 s'étend à `scaffold.mjs`, `catalog.mjs` et `state.mjs`, où vit la logique des clés. La longueur est vérifiée par `archgate review-context` sans avertissement de section tronquée.
+- **D11. Politique des paramètres libres.** `regulatedDomain` est le seul paramètre libre à liste blanche ; `PROJECT_NAME` et la description restent libres. Le choix est assumé : ces deux-là sont des noms et descriptions d'usage courant, alors que `regulatedDomain` est un fragment d'instruction de profil.
+- **D9. Avertissement advisor.** La liste des profils concernés ajoute `devops-engineer` ; `compliance-reviewer` (opus) n'y figure pas.
+- **D10. État de reprise.** `regulatedDomain` rejoint `ANSWER_KEYS` : une reprise après interruption conserve la réponse.
+
+## Risques
+
+- Un domaine mal décrit donne une relecture hors sujet : le profil cite ses sources et signale ses hypothèses.
+- Une relecture réglementaire par un modèle n'a pas de valeur juridique ; le profil le dit et ne tranche pas.
+- `devops-engineer` et `traceability-checker` se recouvrent jusqu'à #110.
+- Le texte du domaine est visible dans le dépôt (modèle du profil et manifeste) : ne pas y mettre d'information sensible.

@@ -541,7 +541,7 @@ for (const c of cases) {
   check("--list-modules : sans --target, JSON des 14 modules avec leurs champs et les langues", list.status === 0 && listed.modules.length === 14 && listed.modules.find((m) => m.name === "release").requires.join() === "github" && listed.modules.find((m) => m.name === "dependabot").default === false && listed.languages.join() === "fr,en", list.stderr);
   const table = spawnSync(process.execPath, [scaffold, "--list-modules", "--format", "table"], { encoding: "utf8" });
   const apQuestions = listed.modules.find((m) => m.name === "agent-profiles")?.questions ?? [];
-  check("--list-modules : agent-profiles déclare les questions de phase 0 sur mainAgent et sur profiles (défaut non / aucun), listées aussi dans le tableau", apQuestions.length === 2 && /mainAgent/.test(apQuestions[0]) && /Défaut : non/.test(apQuestions[0]) && /profiles/.test(apQuestions[1]) && /Défaut : aucun/.test(apQuestions[1]) && /project-lead/.test(table.stdout.split("\n").find((l) => l.startsWith("| `agent-profiles`")) ?? ""));
+  check("--list-modules : agent-profiles déclare les questions de phase 0 sur mainAgent et sur profiles (défaut non / aucun), listées aussi dans le tableau", apQuestions.length === 3 && /regulatedDomain/.test(apQuestions[2]) && /Défaut : non/.test(apQuestions[2]) && /mainAgent/.test(apQuestions[0]) && /Défaut : non/.test(apQuestions[0]) && /profiles/.test(apQuestions[1]) && /Défaut : aucun/.test(apQuestions[1]) && /project-lead/.test(table.stdout.split("\n").find((l) => l.startsWith("| `agent-profiles`")) ?? ""));
   check("--list-modules --format table : tableau markdown avec les questions de phase 0", table.status === 0 && /^\| Module \| Apporte \| Requiert \| Incompatible avec \| Par défaut \| Questions de phase 0 \|/.test(table.stdout) && table.stdout.split("\n").filter((l) => l.startsWith("| `")).length === 14);
   const badCatalog = spawnSync(process.execPath, [scaffold, "--list-modules", "--catalog", path.join(mkdtempSync(path.join(tmpdir(), "pb-vide-")), "rien")], { encoding: "utf8" });
   check("--catalog invalide : code 1 et message", badCatalog.status === 1 && /Catalogue introuvable/.test(badCatalog.stderr));
@@ -1953,16 +1953,17 @@ const d = mkdtempSync(path.join(tmpdir(), "pb-sonde-")); writeFileSync(path.join
   check("frontmatter agents : name différent du fichier refusé", validateAgent("developer.md", ok.replace("name: developer", "name: dev")).some((p) => /différent du nom de fichier/.test(p)));
   check("frontmatter agents : effort inconnu et maxTurns non entier ou nul refusés", validateAgent("developer.md", ok.replace("description: x", "description: x\neffort: huge")).some((p) => /effort invalide/.test(p)) && ["0", "-3", "4.5", "abc"].every((v) => validateAgent("developer.md", ok.replace("description: x", `description: x\nmaxTurns: ${v}`)).some((p) => /maxTurns invalide/.test(p))));
 
-  const PROFILES = ["acceptance-tester", "business-analyst", "developer", "product-owner", "scout", "second-opinion"];
+  const PROFILES = ["acceptance-tester", "business-analyst", "compliance-reviewer", "developer", "devops-engineer", "product-owner", "scout", "second-opinion"];
+  const DOMAIN = { regulatedDomain: "RGPD, paiement" };
   const TABLE = {
     architect: ["opus", "high", "40"], "qa-engineer": ["opus", "high", "40"], "spec-reviewer": ["opus", "high", "30"], "architecture-explorer": ["opus", "high", "40"],
-    developer: ["sonnet", "high", "60"], "business-analyst": ["sonnet", "high", "40"], "product-owner": ["sonnet", "medium", "20"], "arc42-keeper": ["sonnet", "medium", "30"], "traceability-checker": ["sonnet", "medium", "25"], "acceptance-tester": ["sonnet", "medium", "25"], scout: ["haiku", "medium", "20"], "second-opinion": ["opus", "high", "30"],
+    developer: ["sonnet", "high", "60"], "business-analyst": ["sonnet", "high", "40"], "product-owner": ["sonnet", "medium", "20"], "arc42-keeper": ["sonnet", "medium", "30"], "traceability-checker": ["sonnet", "medium", "25"], "acceptance-tester": ["sonnet", "medium", "25"], scout: ["haiku", "medium", "20"], "second-opinion": ["opus", "high", "30"], "compliance-reviewer": ["opus", "high", "30"], "devops-engineer": ["sonnet", "medium", "25"],
   };
   const field = (text, k) => new RegExp(`^${k}: (\\S+)\\r?$`, "m").exec(text)?.[1];
   const withKeys = { effort: "max", model: "haiku", maxTurns: 1 };
   for (const lang of [{}, { docLanguage: "en" }]) {
     const tag = lang.docLanguage ?? "fr";
-    const g = run({ ...base, visibility: "private", modules: allModules, profiles: PROFILES, ...lang });
+    const g = run({ ...base, visibility: "private", modules: allModules, profiles: PROFILES, ...DOMAIN, ...lang });
     const agentsDir = path.join(g.out, ".claude", "agents");
     const files = g.res.status === 0 ? readdirSync(agentsDir).filter((f) => f.endsWith(".md")) : [];
     const problems = files.flatMap((f) => validateAgent(f, readFileSync(path.join(agentsDir, f), "utf8")));
@@ -1971,7 +1972,7 @@ const d = mkdtempSync(path.join(tmpdir(), "pb-sonde-")); writeFileSync(path.join
     check(`frontmatter agents (${tag}) : valeurs de départ de la table pour les neuf agents`, g.res.status === 0 && wrong.length === 0, wrong.join(", "));
     const lead = readFileSync(path.join(agentsDir, "project-lead.md"), "utf8");
     check(`frontmatter agents (${tag}) : project-lead sans model, effort ni maxTurns`, !/^(model|effort|maxTurns):/m.test(lead));
-    const ignored = run({ ...base, visibility: "private", modules: allModules, profiles: PROFILES, ...lang, ...withKeys });
+    const ignored = run({ ...base, visibility: "private", modules: allModules, profiles: PROFILES, ...DOMAIN, ...lang, ...withKeys });
     check(`frontmatter agents (${tag}) : les clés effort, model et maxTurns de la configuration n'ont aucun effet`, ignored.res.status === 0 && files.every((f) => readFileSync(path.join(ignored.out, ".claude", "agents", f), "utf8") === readFileSync(path.join(agentsDir, f), "utf8")), ignored.res.stderr);
   }
 }
@@ -2026,7 +2027,112 @@ const d = mkdtempSync(path.join(tmpdir(), "pb-sonde-")); writeFileSync(path.join
   // catalogue : question de phase 0 aux six noms
   const listed = JSON.parse(spawnSync(process.execPath, [scaffold, "--list-modules"], { encoding: "utf8" }).stdout);
   const ap = listed.modules.find((m) => m.name === "agent-profiles");
-  check("agent-profiles : la question de phase 0 cite les six profils", ap && ["acceptance-tester", "scout", "second-opinion", "business-analyst", "developer", "product-owner"].every((n) => ap.questions.some((q) => q.includes(n))), JSON.stringify(ap?.questions));
+  check("agent-profiles : la question de phase 0 cite les huit profils", ap && ["acceptance-tester", "scout", "second-opinion", "business-analyst", "developer", "product-owner", "devops-engineer", "compliance-reviewer"].every((n) => ap.questions.some((q) => q.includes(n))), JSON.stringify(ap?.questions));
+}
+
+// profils du lot 2b (#34) : devops-engineer, compliance-reviewer et la clé regulatedDomain
+{
+  const gen = (modules, extra = {}, vis = "private") => run({ ...base, visibility: vis, modules, ...extra });
+  const txt = (r, rel) => readFileSync(path.join(r.out, ...rel.split("/")), "utf8");
+  const has = (r, n) => existsSync(path.join(r.out, ".claude/agents", n + ".md"));
+  const front = (t) => /^---\r?\n([\s\S]*?)\r?\n---/.exec(t)?.[1] ?? "";
+  const toolsOf = (t) => (/^tools: (.*)$/m.exec(front(t))?.[1] ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+  const mods = ["claude", "github", "release", "openspec", "archgate", "agent-profiles", "advisor"];
+  const DOM = "RGPD, paiement (UE)";
+  const manifestOf = (r) => JSON.parse(txt(r, ".bootstrap/manifest.json")).config;
+
+  // génération sur choix
+  const both = gen(mods, { profiles: ["devops-engineer", "compliance-reviewer"], regulatedDomain: DOM });
+  check("lot 2b : les deux profils sont générés sur choix, la clé et la liste sont consignées au manifeste", both.res.status === 0 && has(both, "devops-engineer") && has(both, "compliance-reviewer") && manifestOf(both).regulatedDomain === DOM && manifestOf(both).profiles.join() === "compliance-reviewer,devops-engineer", both.res.stderr);
+  const devOnly = gen(mods, { profiles: ["devops-engineer"] });
+  check("lot 2b : devops-engineer seul n'exige pas de domaine", devOnly.res.status === 0 && has(devOnly, "devops-engineer") && !has(devOnly, "compliance-reviewer") && manifestOf(devOnly).regulatedDomain === undefined, devOnly.res.stderr);
+
+  // dépendance
+  const noDomain = gen(mods, { profiles: ["compliance-reviewer"] });
+  check("compliance-reviewer sans regulatedDomain refusé (code 1, clé nommée, aucun fichier)", noDomain.res.status === 1 && /compliance-reviewer exige la clé regulatedDomain/.test(noDomain.res.stderr) && !existsSync(path.join(noDomain.out, ".claude")), noDomain.res.stderr);
+
+  // valeurs de regulatedDomain
+  const valid = ["RGPD", "RGPD, paiement", "Santé (HDS)", "Statut des travailleurs / emploi", "L'accès & l’audit", "a", "x".repeat(120), "Données personnelles".normalize("NFD"), "  RGPD  "];
+  const invalid = ["", "   ", "--", "...", "x".repeat(121), "a\nb", "a\tb", 'a"b', "a{b", "a}b", "a`b", "a@@b", "a@b", "a b", "a|b", "a$b", "<x>", "a b", "a%b"];
+  const okAll = valid.every((v) => gen(mods, { profiles: ["compliance-reviewer"], regulatedDomain: v }).res.status === 0);
+  check("regulatedDomain : valeurs valides acceptées (accents, NFD, parenthèses, longueur 120, espaces de bord retirés)", okAll);
+  const badOnes = invalid.filter((v) => gen(mods, { profiles: ["compliance-reviewer"], regulatedDomain: v }).res.status !== 1);
+  check("regulatedDomain : valeurs invalides refusées (vide, espaces seuls, ponctuation seule, 121, retour à la ligne, tabulation, guillemet, accolades, accent grave, @, séparateur U+2028, espace insécable, tube, dollar, chevrons, pourcent)", badOnes.length === 0, JSON.stringify(badOnes));
+  const nonText = [false, 12, ["RGPD"], true, {}].filter((v) => gen(mods, { profiles: ["compliance-reviewer"], regulatedDomain: v }).res.status !== 1);
+  check("regulatedDomain : false, nombre, booléen, liste et objet refusés", nonText.length === 0, JSON.stringify(nonText));
+  const trimmed = gen(mods, { profiles: ["compliance-reviewer"], regulatedDomain: "  RGPD  " });
+  const nfd = gen(mods, { profiles: ["compliance-reviewer"], regulatedDomain: "Données".normalize("NFD") });
+  check("regulatedDomain : espaces de bord retirés, texte normalisé NFC au manifeste", manifestOf(trimmed).regulatedDomain === "RGPD" && manifestOf(nfd).regulatedDomain === "Données");
+  const noModule = gen(["claude", "github"], { regulatedDomain: "RGPD" });
+  check("regulatedDomain sans le module agent-profiles refusée (code 1)", noModule.res.status === 1 && /regulatedDomain exige le module agent-profiles/.test(noModule.res.stderr), noModule.res.stderr);
+
+  // emplacement de l'injection
+  const reviewer = txt(both, ".claude/agents/compliance-reviewer.md");
+  const inFront = front(reviewer).includes("RGPD");
+  const elsewhere = walk(both.out).filter((f) => !f.includes(`${path.sep}.bootstrap${path.sep}`) && !f.endsWith(`compliance-reviewer.md`) && readFileSync(f, "utf8").includes(DOM));
+  check("regulatedDomain : le domaine figure dans le corps de compliance-reviewer, ni dans son frontmatter ni dans un autre fichier généré", reviewer.includes(`Domaine déclaré à la mise en place du projet : ${DOM}.`) && !inFront && elsewhere.length === 0, elsewhere.join(", "));
+  check("compliance-reviewer : sources par constat, hypothèses distinguées, ne remplace pas un juriste", /ne rends pas d'avis juridique/.test(reviewer) && /Chaque constat cite sa source/.test(reviewer) && /hypothèse à faire confirmer/.test(reviewer) && /Tu ne remplaces pas un juriste/.test(reviewer));
+
+  // cycle de vie
+  const upd = run({ ...base, visibility: "private", modules: mods, profiles: ["compliance-reviewer"] }, ["--update"], both.out);
+  check("--update sans regulatedDomain : la valeur du manifeste est conservée, le profil reste généré", upd.res.status === 0 && manifestOf(both).regulatedDomain === DOM && has(both, "compliance-reviewer"), upd.res.stderr);
+  const off = run({ ...base, visibility: "private", modules: mods, profiles: ["compliance-reviewer"], regulatedDomain: null }, ["--update"], both.out);
+  check("regulatedDomain: null avec compliance-reviewer hérité : refusé (code 1)", off.res.status === 1 && /compliance-reviewer exige la clé regulatedDomain/.test(off.res.stderr), off.res.stderr);
+  const dev = gen(mods, { profiles: ["devops-engineer"], regulatedDomain: "RGPD" });
+  const offDev = run({ ...base, visibility: "private", modules: mods, profiles: ["devops-engineer"], regulatedDomain: null }, ["--update"], dev.out);
+  check("regulatedDomain: null sans compliance-reviewer : la clé quitte le manifeste", dev.res.status === 0 && offDev.res.status === 0 && manifestOf(dev).regulatedDomain === undefined, offDev.res.stderr);
+  const removed = run({ ...base, visibility: "private", modules: ["claude", "github"], profiles: [] }, ["--update"], both.out);
+  check("--update qui retire agent-profiles alors que regulatedDomain est héritée : échec (code 1)", removed.res.status === 1 && /regulatedDomain exige le module agent-profiles/.test(removed.res.stderr), removed.res.stderr);
+  const removedOk = run({ ...base, visibility: "private", modules: ["claude", "github"], profiles: [], regulatedDomain: null }, ["--update"], both.out);
+  check("avec regulatedDomain: null en plus : le retrait réussit", removedOk.res.status === 0, removedOk.res.stderr);
+
+  // avertissements
+  const warnDom = gen(mods, { profiles: ["devops-engineer"], regulatedDomain: "RGPD" });
+  check("regulatedDomain sans compliance-reviewer : sans effet, avertissement du rapport", warnDom.res.status === 0 && !has(warnDom, "compliance-reviewer") && (warnDom.report?.warnings ?? []).some((w) => /regulatedDomain sans le profil compliance-reviewer/.test(w)), JSON.stringify(warnDom.report?.warnings));
+  check("avec le profil : pas d'avertissement sur regulatedDomain", !(both.report?.warnings ?? []).some((w) => /regulatedDomain/.test(w)));
+  const advOpus = gen(mods, { advisor: true, profiles: ["compliance-reviewer"], regulatedDomain: "RGPD" });
+  check("advisor avec compliance-reviewer seul (opus) : avertissement", advOpus.res.status === 0 && (advOpus.report?.warnings ?? []).some((w) => /advisor: true sans profil optionnel sonnet ou haiku/.test(w)), JSON.stringify(advOpus.report?.warnings));
+  const advDev = gen(mods, { advisor: true, profiles: ["devops-engineer"] });
+  check("advisor avec devops-engineer : pas d'avertissement, consigne présente ; compliance-reviewer sans consigne", !(advDev.report?.warnings ?? []).some((w) => /advisor: true sans profil/.test(w)) && /consulte l'advisor/.test(txt(advDev, ".claude/agents/devops-engineer.md")) && !/advisor/i.test(reviewer));
+
+  // outils et droits
+  for (const n of ["devops-engineer", "compliance-reviewer"]) {
+    const t = txt(both, `.claude/agents/${n}.md`);
+    check(`profil ${n} : Read, Glob, Grep et Bash, sans Write, Edit, Agent ni Skill`, ["Read", "Glob", "Grep", "Bash"].every((x) => toolsOf(t).includes(x)) && !toolsOf(t).some((x) => ["Write", "Edit", "Agent", "Skill"].includes(x)) && !/^hooks:/m.test(front(t)));
+    check(`profil ${n} : entrée de la table du hook sans droit`, new RegExp(`"${n}": \\{ write: \\[\\], shell: \\[\\], agents: \\[\\], skills: \\[\\] \\}`).test(txt(both, ".claude/hooks/profile-guard.mjs")));
+    check(`profil ${n} : qui écrit ne relit pas, en français et en anglais`, /Qui écrit ne relit pas/.test(t) && /Whoever writes does not review/.test(txt(gen(mods, { profiles: ["devops-engineer", "compliance-reviewer"], regulatedDomain: DOM, docLanguage: "en" }), `.claude/agents/${n}.md`)));
+  }
+
+  // modules absents
+  const bare = gen(["claude", "agent-profiles"], { profiles: ["devops-engineer", "compliance-reviewer"], regulatedDomain: "RGPD" });
+  check("lot 2b sans github, release, openspec ni archgate : aucune référence à ces modules", ["devops-engineer", "compliance-reviewer"].every((n) => !/archgate|openspec|opsx|gh |release-please|arc42|spec-reviewer/i.test(txt(bare, `.claude/agents/${n}.md`))), txt(bare, ".claude/agents/devops-engineer.md"));
+  const devPart = txt(gen(["claude", "github", "agent-profiles"], { profiles: ["devops-engineer"] }), ".claude/agents/devops-engineer.md");
+  check("devops-engineer avec github seul : CI lue, pas de release ni d'openspec", /gh pr checks/.test(devPart) && !/release-please|gh release/.test(devPart) && !/openspec|archgate/.test(devPart));
+
+  // commandes des modèles : acceptées par le hook en lecture seule (le jeu de caractères refuse %, les guillemets, les tubes)
+  const readOnly = path.join(root, "skills", "project-bootstrap", "assets", "modules", "claude", "templates", ".claude", "hooks", "read-only-bash.mjs");
+  const bad2 = [];
+  for (const tpl of ["templates", "templates.en"]) {
+    for (const n of ["devops-engineer", "compliance-reviewer"]) {
+      const text = readFileSync(path.join(root, "skills", "project-bootstrap", "assets", "modules", "agent-profiles", tpl, ".claude", "agents", `${n}.md`), "utf8");
+      for (const m of text.matchAll(/`((?:gh|git|openspec|archgate) [^`]*)`/g)) {
+        const cmd = m[1].replace(/<[^>]+>/g, "1");
+        const r = spawnSync(process.execPath, [readOnly], { input: JSON.stringify({ tool_name: "Bash", tool_input: { command: cmd } }), encoding: "utf8" });
+        if (r.status !== 0) bad2.push(`${tpl}/${n} : ${cmd}`);
+      }
+    }
+  }
+  check("lot 2b : toutes les commandes citées dans les modèles sont acceptées par read-only-bash.mjs", bad2.length === 0, bad2.join(" ; "));
+
+  // project-lead
+  const lead = txt(both, ".claude/agents/project-lead.md");
+  check("project-lead : délègue à devops-engineer et compliance-reviewer s'ils existent, traçabilité gardée par traceability-checker", /`devops-engineer` pour lire la CI et la livraison/.test(lead) && /`compliance-reviewer` pour la relecture réglementaire/.test(lead) && /reste à `traceability-checker`/.test(lead));
+  const leadEn = txt(gen(mods, { profiles: ["devops-engineer", "compliance-reviewer"], regulatedDomain: DOM, docLanguage: "en" }), ".claude/agents/project-lead.md");
+  check("project-lead (en) : même délégation", /`devops-engineer` to read CI and delivery/.test(leadEn) && /`compliance-reviewer` for the regulatory review/.test(leadEn));
+
+  // anglais
+  const en = gen(mods, { profiles: ["devops-engineer", "compliance-reviewer"], regulatedDomain: "GDPR, payment", docLanguage: "en" });
+  check("compliance-reviewer (en) : domaine dans le corps, ne remplace pas un juriste", /Domain declared when the project was set up: GDPR, payment\./.test(txt(en, ".claude/agents/compliance-reviewer.md")) && /do not replace a lawyer/.test(txt(en, ".claude/agents/compliance-reviewer.md")));
 }
 
 console.log(failed ? `\n${failed} échec(s)` : "\nTous les tests passent");

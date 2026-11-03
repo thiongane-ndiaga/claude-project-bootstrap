@@ -18,9 +18,11 @@ export class CatalogError extends Error {
 
 // pseudo-modules calculés par scaffold.mjs : autorisés seulement dans `when`, jamais des dossiers
 // profils optionnels d'agent-profiles, choisis par la clé de configuration « profiles » (un pseudo-module profile-<nom> par profil)
-export const OPTIONAL_PROFILES = ["acceptance-tester", "business-analyst", "developer", "product-owner", "scout", "second-opinion"];
+export const OPTIONAL_PROFILES = ["acceptance-tester", "business-analyst", "compliance-reviewer", "developer", "devops-engineer", "product-owner", "scout", "second-opinion"];
 // profils optionnels dont le modèle est de la famille sonnet ou haiku : ils portent la consigne de l'advisor (clé advisor)
-export const ADVISOR_PROFILES = ["acceptance-tester", "business-analyst", "developer", "product-owner", "scout"];
+export const ADVISOR_PROFILES = ["acceptance-tester", "business-analyst", "developer", "devops-engineer", "product-owner", "scout"];
+// domaine réglementé (clé regulatedDomain) : texte libre injecté dans le corps du modèle de compliance-reviewer, d'où la liste blanche
+export const REGULATED_DOMAIN_RE = /^(?=.*[\p{L}\p{N}])[\p{L}\p{M}\p{N} ,.;:'’()\/&_-]{1,120}$/u;
 export const PSEUDO_MODULES = ["visibility-private", "visibility-public", "stack-chosen", "stack-open", "cli-npm-global", "cli-default", "cli-user", "cli-local", "advisor-on", ...OPTIONAL_PROFILES.map((p) => `profile-${p}`)];
 // chemins écrits par le générateur ou par state.mjs : aucun module ne peut les déclarer
 export const RESERVED_PATHS = [".claude/settings.json", "package.json", ".bootstrap/manifest.json"];

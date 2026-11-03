@@ -108,12 +108,12 @@ Constatés lors de la mise en place de référence (Claude Code 2.1.31x, OpenSpe
   | Agent | model | effort | maxTurns |
   |---|---|---|---|
   | `architect`, `qa-engineer`, `architecture-explorer` | opus | high | 40 |
-  | `second-opinion` | opus | high | 30 |
+  | `second-opinion`, `compliance-reviewer` | opus | high | 30 |
   | `spec-reviewer` | opus | high | 30 |
   | `developer` | sonnet | high | 60 |
   | `business-analyst` | sonnet | high | 40 |
   | `product-owner` | sonnet | medium | 20 |
-  | `acceptance-tester` | sonnet | medium | 25 |
+  | `acceptance-tester`, `devops-engineer` | sonnet | medium | 25 |
   | `scout` | haiku | medium | 20 |
   | `arc42-keeper` | sonnet | medium | 30 |
   | `traceability-checker` | sonnet | medium | 25 |
@@ -129,3 +129,9 @@ Constatés lors de la mise en place de référence (Claude Code 2.1.31x, OpenSpe
 - `scout` se distingue de l'agent intégré `Explore` par un rapport structuré dont chaque constat cite fichier et ligne, et par sa borne `maxTurns`. Son modèle haiku est le moins fiable sur un gros dépôt : le chef de projet vérifie les preuves citées. `effort: medium` sur haiku : la prise en compte du niveau par ce modèle n'est pas vérifiée.
 - `second-opinion` n'est indépendant que si son brief est neutre (question, options, preuves) : le sous-agent ne reçoit que ce texte, mais rien ne garantit que `project-lead` l'a rédigé sans préférence. Lance-le en sous-agent ; en équipe, les messages d'un teammate peuvent lui transmettre la préférence. Il n'a pas de shell mais dispose de `WebSearch` et `WebFetch`, que le hook ne borne pas : le contenu du brief peut sortir dans une requête.
 - Son entrée de table existe malgré l'absence de `Bash` : elle ramène à la lecture seule un teammate nommé `second-opinion` mais lancé avec un autre type d'agent.
+
+## Profils devops-engineer et compliance-reviewer (#34, lot 2b)
+- `regulatedDomain` est écrit dans le corps de `compliance-reviewer` et dans le manifeste : il est visible de tous ceux qui lisent le dépôt, n'y mets rien de sensible. La liste blanche (lettres, chiffres, espaces et `,.;:'’()/&_-`) évite les marqueurs de modèle et les caractères de structure ; elle n'empêche pas une consigne écrite en clair, la garantie est que le profil n'écrit rien (table du hook) et que l'auteur du texte est l'utilisateur. Le domaine n'est jamais écrit dans un frontmatter.
+- `compliance-reviewer` est un modèle qui relit des documents : ses constats sont des alertes à faire confirmer, pas un avis juridique. Le plugin ne porte aucune liste d'exigences par domaine.
+- `devops-engineer` et `traceability-checker` se recouvrent jusqu'à #110 : la traçabilité issue, changement, PR et ADR reste à `traceability-checker`, `devops-engineer` lit la CI, les PR et les releases. Sans le module `github`, `devops-engineer` se réduit à l'historique local. Le shell du hook refuse les guillemets, les tubes, `$`, `*` et `%` : les commandes des modèles n'en contiennent pas (un test les vérifie contre le hook), ce qui exclut `--jq`, `--search` et `--format`.
+- Retirer `regulatedDomain` alors que `compliance-reviewer` est hérité du manifeste échoue : passer aussi `profiles` sans ce profil.
