@@ -1,0 +1,8 @@
+{
+  "description": "Hook SessionStart (matcher compact) qui rappelle, après une compaction, la branche et l'avancement des changements OpenSpec lus sur le disque (opt-in)",
+  "requires": ["claude"],
+  "default": false,
+  "files": [
+    {"path": ".claude/hooks/compact-recall.mjs"}
+  ]
+}

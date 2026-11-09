@@ -71,3 +71,16 @@ See `.claude/agents/`. "Read-only" agents are read-only through a hook that does
 they run as teammates (agent teams): in a team, only the repository's allow/ask rules protect.
 @@end
 @@end
+@@module:agent-profiles
+
+## Arbitration
+In the ladder, "you" means the main agent (`project-lead`). Each agent's write rights are applied by `.claude/hooks/profile-guard.mjs` (details in `docs/workflow.md`).
+
+| Level | Situation | Who decides |
+|---|---|---|
+| 1 | The rule exists: accepted ADR, spec in force, `CLAUDE.md` convention | you, by applying it |
+| 2 | Profiles disagree, but a rule allows a conclusion | you, citing the source |
+| 3 | Disagreement with no applicable rule, moderate risk | you, decision logged; when in doubt, the user; counter-opinion from `second-opinion` if it exists |
+| 4 | Structural decision (stack, scope, security) or irreversible | the user, after an ADR if needed and the counter-opinion of `second-opinion` if it exists |
+| 5 | Any externally visible write | the user, always |
+@@end

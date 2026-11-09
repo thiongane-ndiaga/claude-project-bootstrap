@@ -266,7 +266,10 @@ function buildSettings() {
   };
   if (config.mainAgent === "project-lead") settings.agent = "project-lead";
   if (active.has("agent-profiles")) settings.hooks.PreToolUse = [{ matcher: "Write|Edit|MultiEdit|NotebookEdit|Bash|PowerShell|Agent|Task|Skill", hooks: [{ type: "command", command: "node", args: ["${CLAUDE_PROJECT_DIR}/.claude/hooks/profile-guard.mjs"] }] }];
-  if (active.has("cli-local")) settings.hooks.SessionStart = [{ hooks: [{ type: "command", command: "node", args: ["${CLAUDE_PROJECT_DIR}/.claude/hooks/session-path.mjs"] }] }];
+  const sessionStart = [];
+  if (active.has("cli-local")) sessionStart.push({ hooks: [{ type: "command", command: "node", args: ["${CLAUDE_PROJECT_DIR}/.claude/hooks/session-path.mjs"] }] });
+  if (active.has("compact-recall")) sessionStart.push({ matcher: "compact", hooks: [{ type: "command", command: "node", args: ["${CLAUDE_PROJECT_DIR}/.claude/hooks/compact-recall.mjs"] }] });
+  if (sessionStart.length) settings.hooks.SessionStart = sessionStart;
   return JSON.stringify(settings, null, 2) + "\n";
 }
 

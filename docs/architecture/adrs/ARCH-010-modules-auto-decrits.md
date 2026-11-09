@@ -46,7 +46,7 @@ Un module du plugin (claude, openspec, github, release…) est décrit à quatre
 
 ### Negative
 
-- Ce qui reste codé hors du dossier d'un module : les permissions de `.claude/settings.json` par module (`buildSettings`), les étapes de `state.mjs`, les contrôles de `audit.mjs`, les migrations et les blocs `@@module` des fichiers transverses.
+- Ce qui reste codé hors du dossier d'un module : les permissions et les hooks de `.claude/settings.json` par module (`buildSettings`), les étapes de `state.mjs`, les contrôles de `audit.mjs`, les migrations et les blocs `@@module` des fichiers transverses.
 - Les réponses aux `questions` d'un module ne sont pas consommées par un schéma de configuration : elles guident le skill, sans paramètre de génération propre au module.
 
 ### Risks

@@ -71,3 +71,16 @@ Voir `.claude/agents/`. Les agents « lecture seule » le sont par un hook qui n
 ils tournent en teammates (agent teams) : en équipe, seules les règles allow/ask du dépôt protègent.
 @@end
 @@end
+@@module:agent-profiles
+
+## Arbitrage
+Dans l'échelle, « toi » désigne l'agent principal (`project-lead`). Les droits d'écriture de chaque agent sont appliqués par `.claude/hooks/profile-guard.mjs` (détail dans `docs/workflow.md`).
+
+| Niveau | Situation | Qui tranche |
+|---|---|---|
+| 1 | La règle existe : ADR accepté, spec en vigueur, convention de `CLAUDE.md` | toi, en l'appliquant |
+| 2 | Désaccord entre profils, mais une règle permet de conclure | toi, en citant la source |
+| 3 | Désaccord sans règle applicable, risque modéré | toi, décision consignée ; en cas de doute, l'utilisateur ; contre-avis de `second-opinion` s'il existe |
+| 4 | Décision structurante (stack, périmètre, sécurité) ou irréversible | l'utilisateur, après un ADR si nécessaire et le contre-avis de `second-opinion` s'il existe |
+| 5 | Toute écriture visible à l'extérieur | l'utilisateur, toujours |
+@@end

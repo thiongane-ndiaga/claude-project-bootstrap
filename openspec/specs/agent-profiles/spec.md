@@ -189,7 +189,7 @@ La table SHALL contenir les agents que les profils lancent, avec leurs bornes, p
 - **THEN** il contient les sections de délégation, de brief borné et d'échelle à cinq niveaux, et la règle de relecture
 
 ### Requirement: Garde-fous de project-lead
-`project-lead.md` SHALL exiger l'accord de l'utilisateur pour toute écriture visible à l'extérieur (niveau 5 de l'échelle) et porter lui-même l'échelle d'arbitrage et la répartition des rôles, pour qu'ils survivent à la compaction ; et `project-lead` MUST NOT figurer dans la table `PROFILES` du hook : l'agent principal reste sous le contrôle de l'utilisateur et ses garde-fous sont des consignes de son prompt.
+`project-lead.md` SHALL exiger l'accord de l'utilisateur pour toute écriture visible à l'extérieur (niveau 5 de l'échelle) et porter l'échelle d'arbitrage et la répartition des rôles ; `project-lead` MUST NOT figurer dans la table `PROFILES` du hook : l'agent principal reste sous le contrôle de l'utilisateur et ses garde-fous sont des consignes de son prompt.
 
 #### Scenario: Pas de bornage de l'agent principal
 - **WHEN** la table du hook est lue
