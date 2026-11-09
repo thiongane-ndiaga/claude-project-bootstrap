@@ -2,7 +2,7 @@
   "description": "ADR exécutables avec Archgate, rangés dans docs/architecture/adrs/",
   "default": true,
   "files": [
-    {"path": ".claude/agents/architecture-explorer.md", "when": ["claude"]},
+    {"path": ".claude/agents/architecture-explorer.md", "when": ["claude", "legacy-agents"]},
     {"path": ".archgate/config.json", "merge": "json"},
     {"path": ".archgate/lint/README.md"},
     {"path": "docs/architecture/adrs/ARCH-003-emplacement-et-format-des-adr.md"},

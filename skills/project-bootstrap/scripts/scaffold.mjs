@@ -170,7 +170,7 @@ if (incompatible.size) {
 }
 // pseudo-modules utilisés par les blocs conditionnels
 const cliMode = config.cliInstall ?? "global";
-const active = new Set([...selected, ...(config.advisor === true ? ["advisor-on"] : []), ...(Array.isArray(config.profiles) ? config.profiles.map((p) => `profile-${p}`) : []), `visibility-${config.visibility}`, config.stack ? "stack-chosen" : "stack-open", ...(cliMode === "local" ? ["cli-local"] : ["cli-npm-global"]), ...(cliMode === "user" ? ["cli-user"] : []), ...(cliMode === "global" ? ["cli-default"] : [])]);
+const active = new Set([...selected, ...(selected.has("agent-profiles") ? [] : ["legacy-agents"]), ...(config.advisor === true ? ["advisor-on"] : []), ...(Array.isArray(config.profiles) ? config.profiles.map((p) => `profile-${p}`) : []), `visibility-${config.visibility}`, config.stack ? "stack-chosen" : "stack-open", ...(cliMode === "local" ? ["cli-local"] : ["cli-npm-global"]), ...(cliMode === "user" ? ["cli-user"] : []), ...(cliMode === "global" ? ["cli-default"] : [])]);
 
 // --- paramètres ---
 const ref = (a) => (a ? `${a.sha} # ${a.tag}` : undefined);

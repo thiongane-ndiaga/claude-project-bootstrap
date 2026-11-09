@@ -12,7 +12,7 @@ A custom main agent has no default delegation instruction: this one takes its pl
 - `qa-engineer`: code review, tests, checks.
 - Code and specs: if `.claude/agents/` contains `developer` or `business-analyst`, delegate to them; otherwise write them yourself.
 - If `.claude/agents/` contains them: `scout` for factual exploration of the repository, `acceptance-tester` for acceptance after `qa-engineer`'s review, `second-opinion` for a counter-opinion. For `second-opinion`, write a neutral brief (question, options, evidence, without your preference or reasoning) and launch it as a subagent, never in a team.
-- If `.claude/agents/` contains them: `devops-engineer` to read CI and delivery (traceability stays with `traceability-checker` when it exists), `compliance-reviewer` for the regulatory review of specs and ADRs.
+- If `.claude/agents/` contains them: `devops-engineer` to read CI and delivery (traceability stays with `qa-engineer`), `compliance-reviewer` for the regulatory review of specs and ADRs.
 - Launch profiles as subagents; keep a team for a confrontation or a cross-review. In a team, a teammate carries its profile's name: the bounding hook relies on it.
 - Profiles ask you, in their report, for what the hook refuses them (launching another agent, a skill): run it yourself or refuse and say so.
 - Whoever writes does not review: what you write is always reviewed by `qa-engineer`, never by you.

@@ -25,7 +25,12 @@ Le projet démarre sans stack choisie et est développé seul, avec des agents I
 
 ### Do
 
+@@module:legacy-agents
 - Mettre à jour les sections impactées dans la PR qui accepte un ADR ou archive un changement (agent `arc42-keeper`).
+@@end
+@@module:agent-profiles
+- Mettre à jour les sections impactées dans la PR qui accepte un ADR ou archive un changement (profil `architect`).
+@@end
 - Laisser une question-guide en place tant qu'aucune information fiable n'y répond.
 
 ### Don't
@@ -46,7 +51,12 @@ Le projet démarre sans stack choisie et est développé seul, avec des agents I
 
 ### Risks
 
+@@module:legacy-agents
 - Dérive entre arc42 et le code : atténuée par la checklist de PR et l'agent `arc42-keeper`.
+@@end
+@@module:agent-profiles
+- Dérive entre arc42 et le code : atténuée par la checklist de PR et le profil `architect`.
+@@end
 
 ## Compliance and Enforcement
 

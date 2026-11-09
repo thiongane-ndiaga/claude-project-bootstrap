@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Migrations hors fichiers d'un projet bootstrappé (réglages côté forge, etc.), dans migrations/.
+// Migrations d'un projet bootstrappé (réglages côté forge, fichiers retirés, etc.), dans migrations/.
 // Usage : node migrate.mjs --target <dépôt> [--repo propriétaire/nom] [--apply]
 // Sans --apply : simulation, rien n'est modifié. Avec --apply : exécute les actions et consigne la migration
 // dans .bootstrap/manifest.json. Chaque migration vérifie l'état réel avant de proposer quoi que ce soit.
@@ -24,6 +24,11 @@ export async function runMigrations({ target, repo, apply = false, gh, dir = def
   for (const name of names) {
     const m = await import(pathToFileURL(path.join(dir, name)).href);
     if (done.has(m.id) || !m.modules.every((x) => modules.has(x))) continue;
+    // une migration qui appelle gh déclare needsForge : seule elle exige le dépôt GitHub
+    if (m.needsForge && !repo) {
+      results.push({ id: m.id, title: m.title, actions: [], notes: ["Ignorée : dépôt GitHub introuvable, passe --repo propriétaire/nom"], applied: false });
+      continue;
+    }
     // plan renvoie un tableau d'actions, ou { actions, notes } (notes : informations à présenter, jamais exécutées)
     const planned = await m.plan({ gh, repo, target, manifest });
     const actions = Array.isArray(planned) ? planned : (planned.actions ?? []);
@@ -65,10 +70,6 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   }
   const target = path.resolve(args.target);
   const repo = typeof args.repo === "string" ? args.repo : repoOf(target);
-  if (!repo) {
-    console.error("Dépôt GitHub introuvable : passe --repo propriétaire/nom");
-    process.exit(1);
-  }
   try {
     const results = await runMigrations({ target, repo, apply: args.apply === true, gh: realGh });
     console.log(JSON.stringify({ target, repo, apply: args.apply === true, migrations: results }, null, 2));

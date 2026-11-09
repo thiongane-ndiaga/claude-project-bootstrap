@@ -6,7 +6,7 @@ Définir le contenu du `docs/workflow.md` généré au-delà de l'ordre des éta
 ## Requirements
 
 ### Requirement: Qui fait quoi
-Avec le module `agent-profiles`, le `docs/workflow.md` généré SHALL contenir une section « Qui fait quoi » listant chaque agent généré dans `.claude/agents/`, une ligne par agent, avec son rôle dans les étapes et ses droits d'écriture. Un agent généré sans ligne, ou une ligne d'un agent non généré, MUST NOT exister. Sans `agent-profiles`, les agents fixes générés par `claude` ne sont pas documentés.
+Avec le module `agent-profiles`, le `docs/workflow.md` généré SHALL contenir une section « Qui fait quoi » listant chaque agent généré dans `.claude/agents/`, une ligne par agent, avec son rôle dans les étapes et ses droits d'écriture. Un agent généré sans ligne, ou une ligne d'un agent non généré, MUST NOT exister.
 
 #### Scenario: Profil optionnel choisi
 - **WHEN** `profiles` contient `scout`
@@ -23,6 +23,10 @@ Avec le module `agent-profiles`, le `docs/workflow.md` généré SHALL contenir 
 #### Scenario: Agents fixes absents
 - **WHEN** `agent-profiles` est sélectionné sans `openspec`, `github`, `arc42` ni `archgate`
 - **THEN** la table ne contient aucune ligne de `spec-reviewer`, `traceability-checker`, `arc42-keeper` ni `architecture-explorer`
+
+#### Scenario: Agents historiques absents de la table
+- **WHEN** `agent-profiles` est sélectionné avec tous les modules
+- **THEN** la table ne contient aucune ligne de `spec-reviewer`, `traceability-checker`, `arc42-keeper` ni `architecture-explorer`, qui ne sont pas générés
 
 ### Requirement: Échelle d'arbitrage et journal des décisions
 Avec `agent-profiles`, le document SHALL contenir l'échelle d'arbitrage à cinq niveaux, ses lignes reprises mot pour mot de `project-lead`, et le journal des décisions : un ADR pour le structurant (mention omise sans le module `archgate`), le message de livraison pour le courant. Les deux langues MUST respecter cette égalité avec le `project-lead` de leur langue.

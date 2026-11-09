@@ -60,7 +60,7 @@ export function plan({ gh, repo, target, manifest }) {
 }
 ```
 
-`scripts/migrate.mjs` simule par défaut ; `--apply` exécute les actions et consigne l'identifiant dans le manifeste. Toute action visible hors de la machine demande l'accord de l'utilisateur, comme dans le reste du skill.
+`scripts/migrate.mjs` simule par défaut ; le dépôt GitHub (`--repo`) n'est exigé que par les migrations qui appellent `gh` (`needsForge`) : sans lui elles sont ignorées avec une note, et les migrations de fichiers restent proposées ; `--apply` exécute les actions et consigne l'identifiant dans le manifeste. Toute action visible hors de la machine demande l'accord de l'utilisateur, comme dans le reste du skill.
 
 ## Pas encore géré
 - Zones gérées délimitées par des marqueurs dans `CLAUDE.md`, `docs/workflow.md` et `ci.yml`.

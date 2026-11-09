@@ -66,6 +66,7 @@ export function combinations(modulesCatalog) {
     { name: "full", modules: names, single: null },
     { name: "full-en", modules: names, config: { ...ENGLISH, profiles: ["acceptance-tester", "business-analyst", "compliance-reviewer", "developer", "devops-engineer", "product-owner", "scout", "second-opinion"], regulatedDomain: "GDPR, payment (EU)" }, single: null },
     { name: "full-public", modules: names, config: { visibility: "public" }, single: null },
+    { name: "full-legacy", modules: names.filter((x) => x !== "agent-profiles" && x !== "advisor"), single: null },
   ];
 }
 
@@ -165,7 +166,7 @@ const combos = combinations(catalog.modules);
 const covered = new Set(combos.filter((c) => c.single).map((c) => c.single));
 const uncovered = Object.keys(catalog.modules).filter((m) => m !== "core" && !covered.has(m));
 check("matrice : chaque module du catalogue a sa combinaison", uncovered.length === 0, `modules sans combinaison : ${uncovered.join(", ")}`);
-check("matrice : core seul, un module par combinaison, défaut, défaut avec stack, modes user et local, anglais, agent principal, profils optionnels, advisor activé, complet, complet en public", combos.length === Object.keys(catalog.modules).length - 1 + 12 && combos.some((c) => c.name === "core" && c.modules.length === 0) && ["default", "default-stack", "default-cli-user", "default-cli-local", "default-en", "agent-profiles-main", "agent-profiles-optional", "advisor-on", "full", "full-public", "full-en"].every((n) => combos.some((c) => c.name === n)));
+check("matrice : core seul, un module par combinaison, défaut, défaut avec stack, modes user et local, anglais, agent principal, profils optionnels, advisor activé, complet, complet en public, complet sans agent-profiles", combos.length === Object.keys(catalog.modules).length - 1 + 13 && combos.some((c) => c.name === "core" && c.modules.length === 0) && ["default", "default-stack", "default-cli-user", "default-cli-local", "default-en", "agent-profiles-main", "agent-profiles-optional", "advisor-on", "full", "full-public", "full-en"].every((n) => combos.some((c) => c.name === n)));
 {
   // instantané orphelin : module retiré ou renommé ; la mise à jour supprime les orphelins
   const orphans = existsSync(SNAPSHOTS) ? readdirSync(SNAPSHOTS).filter((f) => f.endsWith(".json") && !combos.some((c) => `${c.name}.json` === f)) : [];

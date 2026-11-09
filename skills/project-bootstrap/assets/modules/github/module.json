@@ -2,7 +2,7 @@
   "description": "Formulaires d'issues, template de PR, labels, CI (ci.yml), dépôt GitHub",
   "default": true,
   "files": [
-    {"path": ".claude/agents/traceability-checker.md", "when": ["claude"]},
+    {"path": ".claude/agents/traceability-checker.md", "when": ["claude", "legacy-agents"]},
     {"path": ".github/ISSUE_TEMPLATE/config.yml"},
     {"path": ".github/ISSUE_TEMPLATE/feature.yml"},
     {"path": ".github/ISSUE_TEMPLATE/bug.yml"},

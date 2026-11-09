@@ -25,7 +25,12 @@ The project starts without a chosen stack and is developed alone, with AI agents
 
 ### Do
 
+@@module:legacy-agents
 - Update the impacted sections in the PR that accepts an ADR or archives a change (`arc42-keeper` agent).
+@@end
+@@module:agent-profiles
+- Update the impacted sections in the PR that accepts an ADR or archives a change (`architect` profile).
+@@end
 - Leave a guiding question in place as long as no reliable information answers it.
 
 ### Don't
@@ -46,7 +51,12 @@ The project starts without a chosen stack and is developed alone, with AI agents
 
 ### Risks
 
+@@module:legacy-agents
 - Drift between arc42 and the code: mitigated by the PR checklist and the `arc42-keeper` agent.
+@@end
+@@module:agent-profiles
+- Drift between arc42 and the code: mitigated by the PR checklist and the `architect` profile.
+@@end
 
 ## Compliance and Enforcement
 

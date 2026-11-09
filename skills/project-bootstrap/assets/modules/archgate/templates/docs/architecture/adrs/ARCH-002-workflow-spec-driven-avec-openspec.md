@@ -39,7 +39,12 @@ Le code sera largement écrit par des agents Claude Code. Sans description préa
 
 ### Positive
 
+@@module:legacy-agents
 - Comportement attendu explicite avant l'exécution, revu par `spec-reviewer`.
+@@end
+@@module:agent-profiles
+- Comportement attendu explicite avant l'exécution, revu par `qa-engineer`.
+@@end
 - Specs vivantes qui décrivent l'état réel du système.
 
 ### Negative
@@ -49,7 +54,12 @@ Le code sera largement écrit par des agents Claude Code. Sans description préa
 
 ### Risks
 
+@@module:legacy-agents
 - Dérive entre l'issue et la spec (par exemple un nom de capability différent de celui annoncé dans l'issue) : atténuée par `spec-reviewer` et `traceability-checker`.
+@@end
+@@module:agent-profiles
+- Dérive entre l'issue et la spec (par exemple un nom de capability différent de celui annoncé dans l'issue) : atténuée par `qa-engineer`.
+@@end
 
 ## Compliance and Enforcement
 
