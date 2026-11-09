@@ -51,7 +51,7 @@
   "docs/architecture/arc42/10-exigences-de-qualite.md": "fa484a5dff8a8ec4b73630376a8cf50bd4a96de365429ae683ca621722780c87",
   "docs/architecture/arc42/11-risques-et-dette-technique.md": "881b3fb55998e5c575dfdda25a71cecf4e764066a3291f64d9f8eb6b00f54041",
   "docs/architecture/arc42/12-glossaire.md": "83d031c21025254f642f9b4affb6687e4f9d7e3143051354aade49cf29834dab",
-  "docs/workflow.md": "a11e3edae58884b83380ca104169cc12ee82d6f4d9095c32b643df881c597be7",
+  "docs/workflow.md": "2c3a0457557dc90b3c5f43f58c74e721871ac22d11788ad8836fe8efbaab15f5",
   "release-please-config.json": "c4a900e93d479b4264ac754c5925c6a699cb08272b864af8d0bc0986f27a8e27",
   "scripts/check-pr-title.mjs": "6bd4d1a35fc2ad9c483c7ae09361b8061d8c3681e4c744528e219f9f2f61c401",
   "scripts/sync-labels.mjs": "fec29054527bad66276014e15548ce0913ee9e923d14a30881f2b4a3d73e33b6"
