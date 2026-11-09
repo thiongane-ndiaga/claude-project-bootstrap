@@ -120,7 +120,7 @@ Chaque profil SHALL contenir la règle « qui écrit ne relit pas » : `architec
 - **THEN** chacun contient la règle correspondante
 
 ### Requirement: Réutilisation d'Archgate et d'OpenSpec
-Les profils SHALL citer, selon les modules actifs, ce qu'ils réutilisent : le skill `archgate:adr-author` pour `architect`, `archgate review-context --base --run-checks` et le skill `archgate:reviewer` pour `qa-engineer`. Ils lancent eux-mêmes les skills de leur table et demandent le reste à l'agent principal. Ils MUST NOT citer le skill `onboard` ni les agents `architecture-explorer`, `arc42-keeper`, `spec-reviewer` et `traceability-checker`. Une référence à un module absent MUST NOT apparaître.
+Les profils SHALL citer, selon les modules actifs, ce qu'ils réutilisent : le skill `archgate:adr-author` pour `architect`, `archgate review-context --base --run-checks` et le skill `archgate:reviewer` pour `qa-engineer`. Ils lancent les skills de leur table et demandent le reste à l'agent principal. Ils MUST NOT citer le skill `onboard` ni les agents `architecture-explorer`, `arc42-keeper`, `spec-reviewer` et `traceability-checker`. Une référence à un module absent MUST NOT apparaître.
 
 #### Scenario: Module Archgate absent
 - **WHEN** un projet est généré avec `agent-profiles` mais sans `archgate`, `openspec`, `github` ni `arc42`
