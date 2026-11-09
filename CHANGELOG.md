@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.14](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.13...v0.1.14) (2026-11-09)
+
+
+### Features
+
+* **skill:** compaction persistence with arbitration ladder in CLAUDE.md and compact-recall module ([#39](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/39)) ([#135](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/135)) ([48bcb60](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/48bcb60421bc7de0c5ac02d52fb3aa8ddd59da4d))
+* **skill:** who-does-what, arbitration ladder and rule double-encoding table in workflow.md ([#132](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/132)) ([94d813b](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/94d813b47d36960d0e938b4dd8726484d59efbb4))
+
 ## [0.1.13](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.12...v0.1.13) (2026-11-03)
 
 
