@@ -25,14 +25,14 @@ Les profils de `agent-profiles` (ARCH-011) sont bornés par un hook unique qui l
 
 1. **La liste des agents et des skills lançables vit dans la table `PROFILES` du hook** (champs `agents` et `skills`), pas dans `Agent(<types>)`. Liste vide ou absente : tout est refusé. Le hook couvre les outils `Agent`, `Task` (ancien nom) et `Skill`.
 2. **Un profil ne lance que des sous-agents sans nom** : un appel avec `name` ou `team_name` est refusé, car un agent nommé est un teammate. Un `subagent_type` absent ou vide vaut `general-purpose` et est refusé.
-3. **Aucun profil ne lance d'agent** (ARCH-016) : les listes `agents` sont vides. Le mécanisme reste pour un agent qu'un projet ajoute à la table avec ses propres bornes (sans dépendre de son hook de frontmatter, inactif pour un teammate), sans `agents` ni `skills`.
+3. **Aucun profil ne lance d'agent** (ARCH-016) : les listes `agents` sont vides. Le mécanisme reste pour un agent qu'un projet ajoute à la table avec ses propres bornes (sans dépendre de son hook de frontmatter, inactif pour un teammate), sans `agents` ni `skills`. Les profils lancent des skills : celles de leur ligne du tableau.
 4. **`archgate:reviewer` reste lancé par l'agent principal** ; `archgate:adr-author` est permis à `architect`, qui s'en sert pour cadrer l'ADR et le crée avec `archgate adr create`.
 5. **Tableau des droits** (source : la table du hook) :
 
 | Profil ou agent | Écriture | Shell en plus de la lecture seule | Agents lançables | Skills |
 |---|---|---|---|---|
-| `architect` | `docs/architecture/` | `archgate adr create --title "…" --domain …`, `archgate adr domain list` | aucun | `archgate:adr-author` |
-| `qa-engineer` | `tests/`, `test/` | `node .claude/hooks/quality-gate.mjs`, `node .bootstrap/run-checks.mjs`, `archgate review-context` (options `--staged`, `--run-checks`, `--verbose`, `--strict`, `--base [réf]`, `--domain <d>`) | `spec-reviewer` | aucune | lecture seule | aucun | aucun |
+| `architect` | `docs/architecture/` | `archgate adr create --title "…" --domain …`, `archgate adr domain list` | aucun | `archgate:adr-author`, `adr-options-comparison`, `arc42-update` |
+| `qa-engineer` | `tests/`, `test/` | `node .claude/hooks/quality-gate.mjs`, `node .bootstrap/run-checks.mjs`, `archgate review-context` (options `--staged`, `--run-checks`, `--verbose`, `--strict`, `--base [réf]`, `--domain <d>`) | aucun | `spec-review`, `pr-readiness-review` |
 
 ## Do's and Don'ts
 

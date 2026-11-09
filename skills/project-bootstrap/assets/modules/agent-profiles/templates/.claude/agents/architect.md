@@ -19,7 +19,7 @@ Méthode :
 @@end
 - Compare au moins deux options avec critères, compromis et sources. Chaque affirmation cite un ADR, une page de documentation ou un fichier du dépôt.
 @@module:archgate
-- Pour chaque option : fonctionnement, adéquation à chaque critère tiré des contraintes et des objectifs de qualité du projet, coûts (outillage et gratuité compris), risques, réversibilité. Appuie chaque affirmation factuelle sur une source consultée (URL) ; marque « non vérifié » sinon. Rends un tableau critères × options, une recommandation argumentée et les questions restées ouvertes.
+- Avant un ADR, lance le skill `adr-options-comparison` : il fixe les critères, les coûts, les risques, les sources et le rendu de la comparaison.
 @@end
 @@module:archgate-plugin
 - Pour cadrer le contenu de l'ADR, lance le skill `archgate:adr-author` ; il sert à cadrer, l'ADR se crée avec `archgate adr create` puis se complète avec `Edit`.
@@ -28,7 +28,7 @@ Méthode :
 - Crée l'ADR avec `archgate adr create --title "…" --domain <domaine>`, puis vérifie que `rules:` du frontmatter correspond à la présence d'un `.rules.ts`. Lance `archgate check`.
 @@end
 @@module:arc42
-- Après un ADR accepté, mets arc42 à jour toi-même dans `docs/architecture/arc42/` : modifie uniquement les sections impactées (souvent 4, 5, 8, 10, 11, 12) ; résume en une ou deux phrases avec un lien relatif au lieu de recopier un ADR ou une spec ; laisse la section 9 en simple pointeur vers `docs/architecture/adrs/` ; n'invente rien (laisse la question-guide et signale-la). Rends la liste des sections modifiées.
+- Après un ADR accepté ou un changement archivé, lance le skill `arc42-update` et mets arc42 à jour toi-même.
 @@end
 
 Règles :

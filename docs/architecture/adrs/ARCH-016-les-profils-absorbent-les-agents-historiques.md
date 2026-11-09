@@ -14,52 +14,61 @@ Accepté.
 
 ## Context
 
-Les modules `archgate`, `arc42`, `openspec` et `github` génèrent quatre agents définis par une tâche : `architecture-explorer`, `arc42-keeper`, `spec-reviewer`, `traceability-checker`. Le module `agent-profiles` (ARCH-011 à ARCH-014) définit des agents par rôle. Les profils `architect` et `qa-engineer` lançaient les quatre agents (ARCH-012) : deux familles d'agents coexistaient dans le même projet. L'utilisateur veut que les agents d'un projet soient les profils, et que les compétences des anciens agents leur soient intégrées.
+Les modules `archgate`, `arc42`, `openspec` et `github` génèrent quatre agents définis par une tâche : `architecture-explorer`, `arc42-keeper`, `spec-reviewer`, `traceability-checker`. Le module `agent-profiles` (ARCH-011 à ARCH-014) définit des agents par rôle. Deux familles d'agents ne doivent pas coexister dans un projet. Les compétences des anciens agents sont nécessaires à un bon workflow (comparer des options avant un ADR, tenir arc42 à jour, relire une spec, contrôler une PR avant le merge) : elles ne doivent dépendre d'aucun profil optionnel, et ne doivent pas alourdir le prompt d'un profil par défaut au point de lui faire cumuler les rôles.
 
 ## Decision
 
-1. **Avec `agent-profiles`, les quatre agents ne sont pas générés.** Leurs méthodes passent dans les prompts : l'exploration d'options et la mise à jour d'arc42 dans `architect` (qui écrit déjà dans `docs/architecture/`), la revue de spec et le contrôle de traçabilité dans `qa-engineer`.
-2. **Sans `agent-profiles`, rien ne change.** Un pseudo-module `legacy-agents`, actif quand `agent-profiles` est absent, conditionne les fichiers des quatre agents et le hook `restrict-path.mjs` qui ne sert qu'à `arc42-keeper`.
-3. **La traçabilité va à `qa-engineer`** et non à `devops-engineer` : un devoir par défaut ne peut pas reposer sur un profil optionnel. `devops-engineer` garde la lecture de la CI et des releases.
-4. **La table `PROFILES` perd les entrées des quatre agents** ; `architect` et `qa-engineer` n'ont plus d'agent lançable.
-5. **Une migration retire les fichiers absorbés** d'un projet déjà généré avec `agent-profiles`, seulement s'ils sont égaux à leur copie de `.bootstrap/base` ; un fichier modifié ou sans copie est conservé et signalé.
-6. **Amende ARCH-011 (§6) et ARCH-012** : les profils ne lancent plus d'agent ; les tableaux de droits en tiennent compte.
-7. **Les textes générés** qui nomment ces agents (`workflow.md`, ADR et modèles d'ADR) nomment le profil quand `agent-profiles` est actif, l'agent sinon.
+1. **Avec `agent-profiles`, les quatre agents ne sont pas générés.** Leurs méthodes sont quatre skills de projet, générées sous `.claude/skills/<nom>/SKILL.md` et nommées `<objet>-<action>` :
+   - `adr-options-comparison` (module `archgate`) : comparer les options d'une décision d'architecture avant l'ADR ;
+   - `arc42-update` (module `arc42`) : mettre à jour arc42 après un ADR accepté ou un changement archivé ;
+   - `spec-review` (module `openspec`) : relire un changement OpenSpec avant `/opsx:apply` ;
+   - `pr-readiness-review` (module `github`) : contrôler avant le merge la chaîne issue, changement, branche, PR, ADR, le modèle de PR et la CI.
+2. **`architect` lance les deux premières, `qa-engineer` les deux autres**, dans son contexte et avec ses droits ; le corps du profil dit quand. Aucune skill n'utilise `context: fork` (agent hors de la table du hook).
+3. **Aucun devoir ne dépend d'un profil optionnel** : `architect`, `qa-engineer`, `developer` et `project-lead` sont toujours générés.
+4. **Sans `agent-profiles`, rien ne change.** Un pseudo-module `legacy-agents`, actif quand `agent-profiles` est absent, conditionne les fichiers des quatre agents et le hook `restrict-path.mjs` qui ne sert qu'à `arc42-keeper`.
+5. **La table `PROFILES` n'a plus d'entrée pour les quatre agents** ; ses listes `agents` sont vides, les listes `skills` de `architect` et `qa-engineer` nomment leurs skills ; `qa-engineer` reçoit l'outil `Skill`.
+6. **Une migration retire les fichiers des quatre agents** d'un projet existant, seulement s'ils sont égaux à leur copie de `.bootstrap/base` ; sinon ils sont conservés et signalés. Les skills arrivent par `--update`.
+7. **Amende ARCH-011 (§6) et ARCH-012** : les profils ne lancent plus d'agent ; les tableaux de droits listent les skills.
+8. **Les textes générés** qui nomment ces agents (`workflow.md`, ADR et modèles d'ADR) nomment la skill et le profil quand `agent-profiles` est actif, l'agent sinon.
 
 ## Do's and Don'ts
 
 ### Do
 
 - Conditionner par `legacy-agents` tout fichier ou texte propre à un agent historique.
-- Garder la méthode des anciens agents dans le profil qui les absorbe, avec la même exigence de preuves.
+- Nommer une skill `<objet>-<action>` et la conditionner par le module dont elle dépend.
+- Garder la même exigence de preuves dans la skill que dans l'ancien agent.
 
 ### Don't
 
 - Ne pas supprimer un fichier modifié par le projet.
-- Ne pas confier un devoir par défaut à un profil optionnel.
+- Ne pas confier un devoir du workflow à un profil optionnel.
+- Ne pas ajouter à une skill de profil un lancement d'agent ni `context: fork`.
 
 ## Consequences
 
 ### Positive
 
 - Une seule famille d'agents par projet, bornée par le hook unique.
+- Les prompts des profils restent courts : la méthode vit dans la skill.
 - Les projets sans `agent-profiles` ne changent pas.
 
 ### Negative
 
 - L'exploration en équipe, un explorateur par option, n'existe plus : un seul `architect` compare les options.
 - La revue de spec n'a plus de contexte séparé : `qa-engineer` la fait dans le sien.
+- Une skill est une consigne chargée dans le contexte du profil : rien n'oblige le profil à la lancer.
 
 ### Risks
 
-- Les prompts de `architect` et de `qa-engineer` s'allongent.
+- Le champ `skills` du frontmatter n'est pas appliqué aux teammates : la consigne de lancer la skill est dans le corps du profil.
 - Un fichier modifié par le projet reste en place avec son hook de frontmatter et n'est plus borné par la table.
 
 ## Compliance and Enforcement
 
-Tests de génération (absence des quatre fichiers avec `agent-profiles`, présence sans), de la migration (fichier intact retiré, fichier modifié conservé) et de la table du hook.
+Tests de génération (absence des quatre fichiers et présence des quatre skills avec `agent-profiles`, présence des agents sans), de la migration (fichier intact retiré, fichier modifié conservé) et de la table du hook (skills permises, agents refusés).
 
 ## References
 
-- Issue #110 ; changement OpenSpec `110-absorb-legacy-agents`
-- ARCH-010 (modules auto-décrits), ARCH-011, ARCH-012, ARCH-014
+- Issues #110 et #138 ; changements OpenSpec `110-absorb-legacy-agents` et `138-default-profiles-skills`
+- ARCH-010 (modules auto-décrits), ARCH-011, ARCH-012, ARCH-013, ARCH-014

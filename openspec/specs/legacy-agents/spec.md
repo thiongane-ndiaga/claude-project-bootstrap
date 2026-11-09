@@ -1,7 +1,7 @@
 # legacy-agents Specification
 
 ## Purpose
-Garder une seule famille d'agents par projet : avec agent-profiles, les agents historiques ne sont plus générés, leurs méthodes sont dans les profils et une migration retire les fichiers des projets existants.
+Garder une seule famille d'agents par projet : avec agent-profiles, les agents historiques ne sont plus générés, leurs méthodes sont des skills lancées par les profils et une migration retire les fichiers des projets existants.
 
 ## Requirements
 
@@ -17,26 +17,26 @@ Le catalogue SHALL connaître un pseudo-module `legacy-agents`, actif quand `age
 - **THEN** les agents de leurs modules et `restrict-path.mjs` sont générés comme avant
 
 ### Requirement: Méthodes absorbées par architect
-Avec `agent-profiles`, `architect` SHALL porter la méthode de comparaison d'options (critères, tableau critères × options, source par affirmation, « non vérifié » sinon) sous le module `archgate`, et les règles de mise à jour d'arc42 sous le module `arc42`. Il MUST NOT citer `architecture-explorer` ni `arc42-keeper`.
+Avec `agent-profiles`, la méthode de comparaison d'options et les règles de mise à jour d'arc42 SHALL vivre dans les skills `adr-options-comparison` (module `archgate`) et `arc42-update` (module `arc42`), que `architect` cite. `architect` MUST NOT citer `architecture-explorer` ni `arc42-keeper`.
 
 #### Scenario: Profil architect
 - **WHEN** `architect` est généré avec `archgate` et `arc42`
-- **THEN** il contient la méthode de comparaison et les règles arc42, et aucun des deux anciens noms
+- **THEN** il cite les skills `adr-options-comparison` et `arc42-update` et aucun des deux anciens noms
 
 #### Scenario: Module arc42 absent
 - **WHEN** `architect` est généré sans `arc42`
-- **THEN** il ne mentionne pas arc42
+- **THEN** il ne mentionne ni arc42 ni `arc42-update`
 
 ### Requirement: Méthodes absorbées par qa-engineer
-Avec `agent-profiles`, `qa-engineer` SHALL porter la méthode de revue de spec sous le module `openspec` et le contrôle de traçabilité sous le module `github`, avec les mentions d'ADR, d'arc42 et de Dependabot conditionnées à leurs modules. Il MUST NOT citer `spec-reviewer` ni `traceability-checker`.
+Avec `agent-profiles`, la revue de spec et le contrôle de la PR avant le merge SHALL vivre dans les skills `spec-review` (module `openspec`) et `pr-readiness-review` (module `github`), que `qa-engineer` cite ; les mentions d'ADR, d'arc42 et de Dependabot SHALL être conditionnées à leurs modules. `qa-engineer` MUST NOT citer `spec-reviewer` ni `traceability-checker`.
 
 #### Scenario: Profil qa-engineer
 - **WHEN** `qa-engineer` est généré avec `openspec` et `github`
-- **THEN** il contient la revue de spec et le contrôle de traçabilité, et aucun des deux anciens noms
+- **THEN** il cite les skills `spec-review` et `pr-readiness-review` et aucun des deux anciens noms
 
 #### Scenario: Exception Dependabot
-- **WHEN** `qa-engineer` est généré avec `dependabot`
-- **THEN** il indique que les PR de Dependabot n'ont ni branche `<type>/<issue>-<slug>` ni `Closes #N`
+- **WHEN** `pr-readiness-review` est généré avec `dependabot`
+- **THEN** elle indique que les PR de Dependabot n'ont ni branche `<type>/<issue>-<slug>` ni `Closes #N`
 
 ### Requirement: Textes générés selon les agents présents
 Les fichiers générés qui nomment un agent historique (`docs/workflow.md`, ARCH-001 et ARCH-002 du module `archgate`, `project-lead`, `devops-engineer`) SHALL le nommer quand `legacy-agents` est actif et nommer le profil porteur (`architect`, `qa-engineer`) quand `agent-profiles` est actif.
@@ -87,8 +87,8 @@ Avec `agent-profiles`, aucun fichier généré, `.claude/settings.json` compris,
 - **THEN** aucun fichier généré ne contient ces noms
 
 ### Requirement: Outils de architect et qa-engineer
-`architect` et `qa-engineer` MUST NOT déclarer l'outil `Agent` dans leur frontmatter et MUST NOT contenir de phrase les autorisant à lancer des agents ; `architect` garde `Skill` pour `archgate:adr-author`.
+`architect` et `qa-engineer` MUST NOT déclarer l'outil `Agent` dans leur frontmatter et MUST NOT contenir de phrase les autorisant à lancer des agents ; ils SHALL déclarer `Skill` pour leurs skills.
 
 #### Scenario: Frontmatter
 - **WHEN** `architect` et `qa-engineer` sont générés, en français et en anglais
-- **THEN** leur liste `tools` ne contient pas `Agent`
+- **THEN** leur liste `tools` contient `Skill` et ne contient pas `Agent`
