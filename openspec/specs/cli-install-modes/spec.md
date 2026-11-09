@@ -99,7 +99,7 @@ Le skill SHALL poser la question du mode à la phase 0 avec un défaut document�
 - **THEN** le skill le crée avant de pousser, et `pitfalls.md` décrit l'échec de `npm ci` sans lockfile
 
 ### Requirement: Hook de session du mode local
-En mode `local` avec le module `claude`, le générateur SHALL créer `.claude/hooks/session-path.mjs` et le déclarer, sans `matcher`, comme hook `SessionStart` de type `command` dans `.claude/settings.json`. Ce hook SHALL ajouter à `CLAUDE_ENV_FILE` une ligne Bash qui place le `node_modules/.bin` de la racine du projet, calculé depuis l'emplacement du script, devant le `PATH`. En modes `global` et `user`, ni le fichier ni la déclaration MUST NOT être générés.
+En mode `local` avec le module `claude`, le générateur SHALL créer `.claude/hooks/session-path.mjs` et le déclarer, sans `matcher`, comme première entrée `SessionStart` de type `command` de `.claude/settings.json`. Ce hook SHALL ajouter à `CLAUDE_ENV_FILE` une ligne Bash qui place le `node_modules/.bin` de la racine du projet, calculé depuis l'emplacement du script, devant le `PATH`. En modes `global` et `user`, ni le fichier ni sa déclaration MUST NOT être générés.
 
 #### Scenario: Mode local avec le module claude
 - **WHEN** un projet est généré en mode `local` avec le module `claude`
@@ -107,11 +107,11 @@ En mode `local` avec le module `claude`, le générateur SHALL créer `.claude/h
 
 #### Scenario: Modes global et user
 - **WHEN** un projet est généré en mode `global` ou `user`
-- **THEN** `session-path.mjs` n'existe pas et le `settings.json` généré ne déclare aucun `SessionStart`
+- **THEN** `session-path.mjs` n'existe pas et le `settings.json` généré ne déclare aucun `SessionStart` qui l'appelle
 
 #### Scenario: Mise à jour d'un projet local existant
 - **WHEN** `--update` est lancé sur un projet en mode `local` qui n'a pas le hook
-- **THEN** `session-path.mjs` est créé et `settings.json` ne contient qu'un seul `SessionStart`, ses autres réglages étant conservés
+- **THEN** `session-path.mjs` est créé et `settings.json` ne contient qu'un seul `SessionStart` qui l'appelle, ses autres réglages étant conservés
 
 ### Requirement: Forme de la ligne écrite par le hook
 La ligne écrite SHALL avoir la forme `export PATH='<dossier>':"$PATH"`, terminée par un saut de ligne, une seule par exécution, ajoutée sans écraser le contenu existant du fichier. Une apostrophe du dossier SHALL être écrite `'\''`. Sous Windows, le dossier SHALL être exprimé en syntaxe Git Bash (`C:\a` devient `/c/a`) ; ailleurs il reste inchangé.

@@ -32,7 +32,7 @@
   ".github/pull_request_template.md": "039c254b792246a18f29008fde32d43f014dd58f40033f7e32d92751769c1925",
   ".github/workflows/ci.yml": "a6d8f9f29273401434c66fd9a07bfee6c795522a82e9879c7141641ddd8fef06",
   ".gitignore": "e9e571edd71a732e006a483cd4aeffcb511bd60a1e77ee4031e0cd215c3314af",
-  "CLAUDE.md": "140a40fef290539e669ea451051e861a6aa2768a3ecb2010259c3a64dc57ab3a",
+  "CLAUDE.md": "ffb58fd24e28522b72b083774b2d9cebeae1b8e56f2bc31c31f0c0b3090d465c",
   "docs/architecture/adrs/ARCH-002-workflow-spec-driven-avec-openspec.md": "e73fb0dfd7b7197dcc1d28b618cd76b97dc058118ff69b46164293e14f67ee49",
   "docs/architecture/adrs/ARCH-003-emplacement-et-format-des-adr.md": "8c29d2f24d5e701dd795c5ad88826b99625e0097b5c49dd7114dc29ac81ad32d",
   "docs/architecture/adrs/ARCH-003-emplacement-et-format-des-adr.rules.ts": "8b27b675ab5f10c5964038a986200194e5e405913f92a04353c54c6aebbea041",

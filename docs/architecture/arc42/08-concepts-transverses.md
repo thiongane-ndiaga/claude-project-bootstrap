@@ -75,4 +75,14 @@ Voir [ARCH-015](../adrs/ARCH-015-le-plugin-n-ecrit-pas-de-reglage-payant-ou-expe
 
 Source : changement OpenSpec `38-workflow-who-does-what` (issue #38) ; pas d'ADR.
 
+## Persistance après compaction
+
+- Le `CLAUDE.md` racine est relu depuis le disque après une compaction ; les règles à frontmatter `paths:` et les `CLAUDE.md` de sous-dossier ne le sont pas. Le plugin n'en génère aucun, ce qu'un test fige sur la sélection complète ; les fichiers créés par les CLI d'outillage sont hors de ce contrôle.
+- Le corps d'un skill est tronqué à 5 000 jetons, début conservé. Dans le `SKILL.md` du plugin, les étapes critiques sont en tête, ce que vérifie un test de position.
+- La survie du corps de l'agent principal n'étant pas établie, l'échelle d'arbitrage existe en trois copies comparées par un test : `project-lead.md`, `CLAUDE.md` et `docs/workflow.md`.
+- Le hook `compact-recall` (module optionnel) ne lit que le disque et git : branche courante et tâches faites par changement OpenSpec en cours ; il ne bloque jamais la session.
+- Non vérifié : une compaction réelle, et le déclenchement de `SessionStart` pour un teammate (#114).
+
+Source : changement OpenSpec `39-compaction-persistence` (issue #39). Voir [ARCH-013](../adrs/ARCH-013-chef-de-projet-comme-agent-principal-active-par-mainagent.md) (règles critiques doublées) et [ARCH-010](../adrs/ARCH-010-modules-auto-decrits.md) (permissions et hooks de `settings.json` par module).
+
 _Le reste de la section reste à rédiger._

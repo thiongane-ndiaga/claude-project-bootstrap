@@ -468,7 +468,7 @@ for (const c of cases) {
 
   // catalogue réel
   const names = Object.keys(manifest.modules);
-  check("catalogue réel : 14 modules dont core, chacun avec une description", names.length === 14 && names[0] === "core" && names.every((n) => manifest.modules[n].description.length > 10));
+  check("catalogue réel : 15 modules dont core, chacun avec une description", names.length === 15 && names[0] === "core" && names.every((n) => manifest.modules[n].description.length > 10));
   check("catalogue réel : fichiers triés par chemin, propriétaire en tête de la condition de génération", manifest.files.every((f, i, a) => i === 0 || a[i - 1].path < f.path) && manifest.files.every((f) => f.when[0] === f.module));
   check("catalogue réel : langues disponibles fournies par core (en)", manifest.languages.join() === "en");
   const adrOwner = (rel) => manifest.files.find((f) => f.path === rel);
@@ -538,11 +538,11 @@ for (const c of cases) {
   // --list-modules et --catalog
   const list = spawnSync(process.execPath, [scaffold, "--list-modules"], { encoding: "utf8" });
   const listed = JSON.parse(list.stdout);
-  check("--list-modules : sans --target, JSON des 14 modules avec leurs champs et les langues", list.status === 0 && listed.modules.length === 14 && listed.modules.find((m) => m.name === "release").requires.join() === "github" && listed.modules.find((m) => m.name === "dependabot").default === false && listed.languages.join() === "fr,en", list.stderr);
+  check("--list-modules : sans --target, JSON des 15 modules avec leurs champs et les langues", list.status === 0 && listed.modules.length === 15 && listed.modules.find((m) => m.name === "release").requires.join() === "github" && listed.modules.find((m) => m.name === "dependabot").default === false && listed.languages.join() === "fr,en", list.stderr);
   const table = spawnSync(process.execPath, [scaffold, "--list-modules", "--format", "table"], { encoding: "utf8" });
   const apQuestions = listed.modules.find((m) => m.name === "agent-profiles")?.questions ?? [];
   check("--list-modules : agent-profiles déclare les questions de phase 0 sur mainAgent et sur profiles (défaut non / aucun), listées aussi dans le tableau", apQuestions.length === 3 && /regulatedDomain/.test(apQuestions[2]) && /Défaut : non/.test(apQuestions[2]) && /mainAgent/.test(apQuestions[0]) && /Défaut : non/.test(apQuestions[0]) && /profiles/.test(apQuestions[1]) && /Défaut : aucun/.test(apQuestions[1]) && /project-lead/.test(table.stdout.split("\n").find((l) => l.startsWith("| `agent-profiles`")) ?? ""));
-  check("--list-modules --format table : tableau markdown avec les questions de phase 0", table.status === 0 && /^\| Module \| Apporte \| Requiert \| Incompatible avec \| Par défaut \| Questions de phase 0 \|/.test(table.stdout) && table.stdout.split("\n").filter((l) => l.startsWith("| `")).length === 14);
+  check("--list-modules --format table : tableau markdown avec les questions de phase 0", table.status === 0 && /^\| Module \| Apporte \| Requiert \| Incompatible avec \| Par défaut \| Questions de phase 0 \|/.test(table.stdout) && table.stdout.split("\n").filter((l) => l.startsWith("| `")).length === 15);
   const badCatalog = spawnSync(process.execPath, [scaffold, "--list-modules", "--catalog", path.join(mkdtempSync(path.join(tmpdir(), "pb-vide-")), "rien")], { encoding: "utf8" });
   check("--catalog invalide : code 1 et message", badCatalog.status === 1 && /Catalogue introuvable/.test(badCatalog.stderr));
   const brokenDir = copy();
@@ -2191,6 +2191,47 @@ const d = mkdtempSync(path.join(tmpdir(), "pb-sonde-")); writeFileSync(path.join
   }
   const coreOnly = txt(gen([]), "docs/workflow.md");
   check("workflow.md : core seul, pas de table de double encodage", section(coreOnly, "Double encodage des règles") === null);
+}
+
+// persistance après compaction : échelle dans CLAUDE.md, aucune règle à paths, module compact-recall, SKILL.md (#39)
+{
+  const gen = (modules, extra = {}) => run({ ...base, visibility: "private", modules, ...extra });
+  const txt = (r, rel) => readFileSync(path.join(r.out, ...rel.split("/")), "utf8");
+  const settingsOf = (r) => JSON.parse(txt(r, ".claude/settings.json"));
+  const ladder = (t) => t.split("\n").filter((l) => /^\| [1-5] \|/.test(l));
+  const full = ["claude", "github", "release", "openspec", "archgate", "arc42", "githooks", "agent-profiles", "compact-recall"];
+  const ALL = ["product-owner", "developer", "business-analyst", "acceptance-tester", "scout", "second-opinion", "devops-engineer", "compliance-reviewer"];
+
+  const all = gen(full, { profiles: ALL, regulatedDomain: "RGPD" });
+  const files = walk(all.out).map((f) => path.relative(all.out, f).split(path.sep).join("/"));
+  const rulesWithPaths = files.filter((f) => /^\.claude\/rules\//.test(f) && /^paths:/m.test(readFileSync(path.join(all.out, ...f.split("/")), "utf8")));
+  check("compaction : aucune règle à paths: ni CLAUDE.md de sous-dossier dans les fichiers générés", all.res.status === 0 && rulesWithPaths.length === 0 && files.filter((f) => /(^|\/)CLAUDE\.md$/.test(f)).join() === "CLAUDE.md", `${rulesWithPaths} ${files.filter((f) => /CLAUDE\.md$/.test(f))}`);
+
+  for (const lang of ["fr", "en"]) {
+    const r = gen(full, { docLanguage: lang });
+    const md = txt(r, "CLAUDE.md");
+    check(`compaction (${lang}) : échelle de CLAUDE.md égale à celle de project-lead, hors de ## Règles`, ladder(md).length === 5 && ladder(md).join("\n") === ladder(txt(r, ".claude/agents/project-lead.md")).join("\n") && !/## (Règles|Rules)[\s\S]*\| 1 \|/.test(md.split(/^## (?:Arbitrage|Arbitration)$/m)[0]) && /profile-guard\.mjs/.test(md.split(/^## (?:Arbitrage|Arbitration)$/m)[1] ?? ""));
+    check(`compaction (${lang}) : la règle gh d'écriture reste dans ## Règles`, /gh` (commands that write|qui écrivent)/.test((md.split(/^## (?:Règles|Rules)$/m)[1] ?? "").split(/^## /m)[0]));
+    const noProf = txt(gen(["claude", "github", "openspec"], { docLanguage: lang }), "CLAUDE.md");
+    check(`compaction (${lang}) : sans agent-profiles, pas d'échelle dans CLAUDE.md`, ladder(noProf).length === 0 && !/^## (Arbitrage|Arbitration)$/m.test(noProf));
+  }
+
+  // module compact-recall
+  const hookDecl = (r) => (settingsOf(r).hooks?.SessionStart ?? []).map((e) => `${e.matcher ?? ""}|${e.hooks.map((h) => h.args.join(" ")).join()}`);
+  const on = gen(["claude", "compact-recall"]);
+  check("compact-recall : hook généré et SessionStart à matcher compact déclaré", on.res.status === 0 && existsSync(path.join(on.out, ".claude/hooks/compact-recall.mjs")) && hookDecl(on).join() === "compact|${CLAUDE_PROJECT_DIR}/.claude/hooks/compact-recall.mjs", hookDecl(on).join());
+  const onLocal = gen(["claude", "openspec", "compact-recall"], { cliInstall: "local" });
+  check("compact-recall : mode local, session-path.mjs reste la première entrée SessionStart", hookDecl(onLocal).length === 2 && /session-path\.mjs$/.test(hookDecl(onLocal)[0]) && /^compact\|.*compact-recall\.mjs$/.test(hookDecl(onLocal)[1]), hookDecl(onLocal).join());
+  const off = gen(["claude"]);
+  check("compact-recall : module absent, ni fichier ni déclaration", !existsSync(path.join(off.out, ".claude/hooks/compact-recall.mjs")) && !/compact/.test(txt(off, ".claude/settings.json")));
+  const offGlobal = gen(["claude", "openspec"], { cliInstall: "global" });
+  check("compact-recall : mode global sans le module, aucun SessionStart", !("SessionStart" in (settingsOf(offGlobal).hooks ?? {})));
+  const onEn = gen(["claude", "compact-recall"], { docLanguage: "en" });
+  check("compact-recall (en) : hook en anglais", /Context compacted/.test(txt(onEn, ".claude/hooks/compact-recall.mjs")) && /Context compacted|reread/.test(txt(onEn, ".claude/hooks/compact-recall.mjs")));
+
+  // SKILL.md du plugin : la compaction ne garde que le début d'un skill
+  const skill = readFileSync(path.join(root, "skills", "project-bootstrap", "SKILL.md"), "utf8");
+  check("SKILL.md : [STOP] avant 3 000 caractères, reprise avant 12 000, accord pour les actions GitHub avant 15 000", skill.indexOf("[STOP]") > -1 && skill.indexOf("[STOP]") < 3000 && skill.indexOf("## Reprise et journal des effets") > -1 && skill.indexOf("## Reprise et journal des effets") < 12000 && skill.indexOf("Demande l'accord avant chaque action globale ou GitHub") > -1 && skill.indexOf("Demande l'accord avant chaque action globale ou GitHub") < 15000, `${skill.indexOf("[STOP]")} ${skill.indexOf("## Reprise")} ${skill.indexOf("Demande l'accord")}`);
 }
 
 console.log(failed ? `\n${failed} échec(s)` : "\nTous les tests passent");

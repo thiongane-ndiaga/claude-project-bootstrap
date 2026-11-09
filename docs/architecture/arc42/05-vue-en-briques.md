@@ -64,4 +64,12 @@ Voir [ARCH-009](../adrs/ARCH-009-etat-de-reprise-et-journal-des-effets.md).
 
 Voir [ARCH-011](../adrs/ARCH-011-profils-d-agents-bornes-par-un-hook-unique.md), [ARCH-013](../adrs/ARCH-013-chef-de-projet-comme-agent-principal-active-par-mainagent.md) et [ARCH-014](../adrs/ARCH-014-profils-optionnels-choisis-par-la-cle-profiles.md).
 
+## Briques liées à la persistance après compaction
+
+- Module `compact-recall` (`requires: claude`, `default: false`) : sans clé de configuration ni question de phase 0. Il apporte un seul fichier, `skills/project-bootstrap/assets/modules/compact-recall/templates{,.en}/.claude/hooks/compact-recall.mjs`.
+- `skills/project-bootstrap/scripts/scaffold.mjs` : `buildSettings` déclare, quand le module est actif, un hook `SessionStart` à matcher `compact`, placé après l'entrée du mode local (`session-path.mjs`).
+- `skills/project-bootstrap/assets/modules/compact-recall/tests/compact-recall.test.mjs` : exécute le hook ; `tests/matrix.test.mjs` vérifie la déclaration dans `settings.json`.
+
+Voir [ARCH-013](../adrs/ARCH-013-chef-de-projet-comme-agent-principal-active-par-mainagent.md) et [ARCH-010](../adrs/ARCH-010-modules-auto-decrits.md).
+
 _Le reste de la section reste à rédiger._
