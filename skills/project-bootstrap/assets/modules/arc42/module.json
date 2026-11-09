@@ -2,8 +2,8 @@
   "description": "Squelette arc42 (12 sections, questions-guides) dans docs/architecture/arc42/",
   "default": true,
   "files": [
-    {"path": ".claude/hooks/restrict-path.mjs", "when": ["claude"]},
-    {"path": ".claude/agents/arc42-keeper.md", "when": ["claude"]},
+    {"path": ".claude/hooks/restrict-path.mjs", "when": ["claude", "legacy-agents"]},
+    {"path": ".claude/agents/arc42-keeper.md", "when": ["claude", "legacy-agents"]},
     {"path": "docs/architecture/arc42/01-introduction-et-objectifs.md"},
     {"path": "docs/architecture/arc42/02-contraintes.md"},
     {"path": "docs/architecture/arc42/03-contexte-et-perimetre.md"},

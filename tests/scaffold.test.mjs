@@ -95,7 +95,7 @@ for (const c of cases) {
   const files = walk(out);
   const leftovers = files.filter((f) => /@@module|@@end|\{\{[A-Z0-9_]+\}\}/.test(readFileSync(f, "utf8")));
   check(`${c.name} : aucun marqueur ni paramètre restant`, leftovers.length === 0, leftovers.join(", "));
-  const active = new Set(["core", ...c.modules]);
+  const active = new Set(["core", ...c.modules, ...(c.modules.includes("agent-profiles") ? [] : ["legacy-agents"])]);
   const expected = manifest.files.filter((f) => f.when.every((m) => active.has(m))).length + (active.has("claude") ? 1 : 0);
   check(`${c.name} : ${expected} fichiers`, report.created.length === expected, `${report.created.length} créés`);
   if (active.has("claude")) {
@@ -473,7 +473,7 @@ for (const c of cases) {
   check("catalogue réel : langues disponibles fournies par core (en)", manifest.languages.join() === "en");
   const adrOwner = (rel) => manifest.files.find((f) => f.path === rel);
   check("propriété : ADR d'outillage dans archgate avec le module concerné en when, formulaire d'ADR dans github", ["ARCH-001-documentation-d-architecture-arc42-et-adr.md", "ARCH-002-workflow-spec-driven-avec-openspec.md", "ARCH-004-github-comme-forge-avec-actions-et-releases.md", "ARCH-005-conventions-de-branches-commits-et-versionnement.md"].every((n) => adrOwner(`docs/architecture/adrs/${n}`)?.module === "archgate") && adrOwner(".github/ISSUE_TEMPLATE/architecture-decision.yml").module === "github" && adrOwner(".github/ISSUE_TEMPLATE/architecture-decision.yml").when.join() === "github,archgate");
-  check("condition de génération : openspec + claude pour spec-reviewer", adrOwner(".claude/agents/spec-reviewer.md").when.join() === "openspec,claude");
+  check("condition de génération : openspec + claude, sans agent-profiles, pour spec-reviewer", adrOwner(".claude/agents/spec-reviewer.md").when.join() === "openspec,claude,legacy-agents");
 
   // refus du chargeur : chaque cause nomme le fichier fautif
   refused("descripteur illisible", (d) => writeFileSync(path.join(d, "github", "module.json"), "{ pas du json"), /github[/\\]module\.json.*illisible/);
@@ -1692,9 +1692,9 @@ for (const dirName of ["templates", "templates.en"]) {
     const text = txt(r, `.claude/agents/${name}.md`);
     check(`agent-profiles : ${name} sans hooks de frontmatter, nom du fichier = name`, !/^hooks:/m.test(front(text)) && new RegExp(`^name: ${name}$`, "m").test(front(text)));
   }
-  check("agent-profiles : architect a Agent et Skill, qa-engineer a Agent sans Skill (bornés par la table du hook)", tools(txt(r, ".claude/agents/architect.md")).includes("Agent") && tools(txt(r, ".claude/agents/architect.md")).includes("Skill") && tools(txt(r, ".claude/agents/qa-engineer.md")).includes("Agent") && !tools(txt(r, ".claude/agents/qa-engineer.md")).includes("Skill"));
+  check("agent-profiles : architect a Skill sans Agent, qa-engineer n'a ni Agent ni Skill (ils ne lancent plus d'agent)", tools(txt(r, ".claude/agents/architect.md")).includes("Skill") && !tools(txt(r, ".claude/agents/architect.md")).includes("Agent") && !tools(txt(r, ".claude/agents/qa-engineer.md")).includes("Agent") && !tools(txt(r, ".claude/agents/qa-engineer.md")).includes("Skill"));
   const guardText = txt(r, ".claude/hooks/profile-guard.mjs");
-  check("agent-profiles : la table du hook liste les agents et skills des profils, identique en anglais", /agents: \["architecture-explorer", "arc42-keeper"\]/.test(guardText) && /skills: \["archgate:adr-author"\]/.test(guardText) && /agents: \["spec-reviewer"\]/.test(guardText) && /skills: \[\]/.test(guardText) && /agents: \["architecture-explorer", "arc42-keeper"\]/.test(txt(gen(full, { docLanguage: "en" }), ".claude/hooks/profile-guard.mjs")));
+  check("agent-profiles : la table du hook ne liste plus d'agent lançable, seulement le skill de architect, identique en anglais", !/agents: \["[^\]]/.test(guardText) && /skills: \["archgate:adr-author"\]/.test(guardText) && !/agents: \["[^\]]/.test(txt(gen(full, { docLanguage: "en" }), ".claude/hooks/profile-guard.mjs")));
   check("agent-profiles : architect et qa-engineer disposent de Write et Edit (bornés par le hook)", ["architect", "qa-engineer"].every((n) => ["Write", "Edit"].every((t) => tools(txt(r, `.claude/agents/${n}.md`)).includes(t))));
   const settings = JSON.parse(txt(r, ".claude/settings.json"));
   const pre = settings.hooks?.PreToolUse ?? [];
@@ -1702,14 +1702,14 @@ for (const dirName of ["templates", "templates.en"]) {
   check("agent-profiles : read-only-bash.mjs présent (le hook y délègue)", existsSync(path.join(r.out, ".claude/hooks/read-only-bash.mjs")));
   const q = txt(r, ".claude/agents/qa-engineer.md");
   const a = txt(r, ".claude/agents/architect.md");
-  check("agent-profiles : références Archgate, OpenSpec, GitHub et arc42 présentes avec leurs modules", /archgate review-context --base --run-checks/.test(q) && /spec-reviewer/.test(q) && /gh pr diff/.test(q) && /architecture-explorer/.test(a) && /arc42-keeper/.test(a));
+  check("agent-profiles : références Archgate, OpenSpec, GitHub et arc42 présentes avec leurs modules, sans les anciens agents", /archgate review-context --base --run-checks/.test(q) && /Revue de spec/.test(q) && /openspec show/.test(q) && /Contrôle de traçabilité/.test(q) && /gh pr diff/.test(q) && /tableau critères × options/.test(a) && /arc42 à jour toi-même/.test(a) && !/architecture-explorer|arc42-keeper|spec-reviewer|traceability-checker/.test(q + a));
   check("agent-profiles : le skill onboard n'est cité nulle part", !/onboard/.test(q + a));
   check("agent-profiles : la règle « qui écrit ne relit pas » figure dans les deux profils, en français et en anglais", /Qui écrit ne relit pas/.test(q) && /Qui écrit ne relit pas/.test(a) && /Whoever writes does not review/.test(txt(gen(full, { docLanguage: "en" }), ".claude/agents/qa-engineer.md")) && /Whoever writes does not review/.test(txt(gen(full, { docLanguage: "en" }), ".claude/agents/architect.md")));
 
   const bare = gen(["claude", "agent-profiles"]);
   const bq = txt(bare, ".claude/agents/qa-engineer.md");
   const ba = txt(bare, ".claude/agents/architect.md");
-  check("agent-profiles : sans archgate, openspec, github ni arc42, aucune référence à ces modules", !/archgate|openspec|spec-reviewer|gh pr|arc42|architecture-explorer/i.test(bq + ba), bq + ba);
+  check("agent-profiles : sans archgate, openspec, github ni arc42, aucune référence à ces modules", !/archgate|openspec|gh pr|arc42|critères × options|traçabilité/i.test(bq + ba), bq + ba);
 
   const without = gen(["claude", "github"]);
   check("agent-profiles : absent, ni profils, ni hook, ni déclaration", !existsSync(path.join(without.out, ".claude/agents/architect.md")) && !existsSync(path.join(without.out, ".claude/hooks/profile-guard.mjs")) && !JSON.parse(txt(without, ".claude/settings.json")).hooks.PreToolUse);
@@ -1968,8 +1968,12 @@ const d = mkdtempSync(path.join(tmpdir(), "pb-sonde-")); writeFileSync(path.join
     const files = g.res.status === 0 ? readdirSync(agentsDir).filter((f) => f.endsWith(".md")) : [];
     const problems = files.flatMap((f) => validateAgent(f, readFileSync(path.join(agentsDir, f), "utf8")));
     check(`frontmatter agents (${tag}) : tous les agents générés sont conformes (${files.length} fichiers)`, g.res.status === 0 && files.length >= 10 && problems.length === 0, g.res.stderr + problems.join("; "));
-    const wrong = Object.entries(TABLE).filter(([n, v]) => { const t = readFileSync(path.join(agentsDir, `${n}.md`), "utf8"); return [field(t, "model"), field(t, "effort"), field(t, "maxTurns")].join() !== v.join(); }).map(([n]) => n);
-    check(`frontmatter agents (${tag}) : valeurs de départ de la table pour les neuf agents`, g.res.status === 0 && wrong.length === 0, wrong.join(", "));
+    const wrong = Object.entries(TABLE).filter(([n]) => existsSync(path.join(agentsDir, `${n}.md`))).filter(([n, v]) => { const t = readFileSync(path.join(agentsDir, `${n}.md`), "utf8"); return [field(t, "model"), field(t, "effort"), field(t, "maxTurns")].join() !== v.join(); }).map(([n]) => n);
+    check(`frontmatter agents (${tag}) : valeurs de départ de la table pour les agents générés avec agent-profiles`, g.res.status === 0 && wrong.length === 0, wrong.join(", "));
+    const legacy = run({ ...base, visibility: "private", modules: allModules.filter((m) => m !== "agent-profiles" && m !== "advisor"), ...lang });
+    const legacyDir = path.join(legacy.out, ".claude", "agents");
+    const legacyWrong = ["spec-reviewer", "architecture-explorer", "arc42-keeper", "traceability-checker"].filter((n) => { const t = readFileSync(path.join(legacyDir, `${n}.md`), "utf8"); return [field(t, "model"), field(t, "effort"), field(t, "maxTurns")].join() !== TABLE[n].join(); });
+    check(`frontmatter agents (${tag}) : valeurs de départ des quatre agents historiques sans agent-profiles`, legacy.res.status === 0 && legacyWrong.length === 0, legacyWrong.join(", "));
     const lead = readFileSync(path.join(agentsDir, "project-lead.md"), "utf8");
     check(`frontmatter agents (${tag}) : project-lead sans model, effort ni maxTurns`, !/^(model|effort|maxTurns):/m.test(lead));
     const ignored = run({ ...base, visibility: "private", modules: allModules, profiles: PROFILES, ...DOMAIN, ...lang, ...withKeys });
@@ -2126,7 +2130,7 @@ const d = mkdtempSync(path.join(tmpdir(), "pb-sonde-")); writeFileSync(path.join
 
   // project-lead
   const lead = txt(both, ".claude/agents/project-lead.md");
-  check("project-lead : délègue à devops-engineer et compliance-reviewer s'ils existent, traçabilité gardée par traceability-checker", /`devops-engineer` pour lire la CI et la livraison/.test(lead) && /`compliance-reviewer` pour la relecture réglementaire/.test(lead) && /reste à `traceability-checker`/.test(lead));
+  check("project-lead : délègue à devops-engineer et compliance-reviewer s'ils existent, traçabilité gardée par qa-engineer", /`devops-engineer` pour lire la CI et la livraison/.test(lead) && /`compliance-reviewer` pour la relecture réglementaire/.test(lead) && /reste à `qa-engineer`/.test(lead));
   const leadEn = txt(gen(mods, { profiles: ["devops-engineer", "compliance-reviewer"], regulatedDomain: DOM, docLanguage: "en" }), ".claude/agents/project-lead.md");
   check("project-lead (en) : même délégation", /`devops-engineer` to read CI and delivery/.test(leadEn) && /`compliance-reviewer` for the regulatory review/.test(leadEn));
 
@@ -2232,6 +2236,99 @@ const d = mkdtempSync(path.join(tmpdir(), "pb-sonde-")); writeFileSync(path.join
   // SKILL.md du plugin : la compaction ne garde que le début d'un skill
   const skill = readFileSync(path.join(root, "skills", "project-bootstrap", "SKILL.md"), "utf8");
   check("SKILL.md : [STOP] avant 3 000 caractères, reprise avant 12 000, accord pour les actions GitHub avant 15 000", skill.indexOf("[STOP]") > -1 && skill.indexOf("[STOP]") < 3000 && skill.indexOf("## Reprise et journal des effets") > -1 && skill.indexOf("## Reprise et journal des effets") < 12000 && skill.indexOf("Demande l'accord avant chaque action globale ou GitHub") > -1 && skill.indexOf("Demande l'accord avant chaque action globale ou GitHub") < 15000, `${skill.indexOf("[STOP]")} ${skill.indexOf("## Reprise")} ${skill.indexOf("Demande l'accord")}`);
+}
+
+// les profils absorbent les agents historiques (#110, ARCH-016)
+{
+  const gen = (modules, extra = {}) => run({ ...base, visibility: "private", modules, ...extra });
+  const txt = (r, rel) => readFileSync(path.join(r.out, ...rel.split("/")), "utf8");
+  const OLD = [".claude/agents/architecture-explorer.md", ".claude/agents/arc42-keeper.md", ".claude/agents/spec-reviewer.md", ".claude/agents/traceability-checker.md", ".claude/hooks/restrict-path.mjs"];
+  const mods = ["claude", "github", "release", "openspec", "archgate", "arc42", "githooks", "dependabot"];
+  const ALL = ["product-owner", "developer", "business-analyst", "acceptance-tester", "scout", "second-opinion", "devops-engineer", "compliance-reviewer"];
+
+  for (const lang of ["fr", "en"]) {
+    const withProf = gen([...mods, "agent-profiles"], { profiles: ALL, regulatedDomain: "RGPD", docLanguage: lang });
+    const files = walk(withProf.out).map((f) => path.relative(withProf.out, f).split(path.sep).join("/"));
+    check(`absorption (${lang}) : avec agent-profiles, les cinq fichiers historiques ne sont pas générés`, withProf.res.status === 0 && OLD.every((f) => !files.includes(f)), OLD.filter((f) => files.includes(f)).join());
+    const orphans = files.filter((f) => !f.startsWith(".bootstrap/") && /architecture-explorer|arc42-keeper|spec-reviewer|traceability-checker|restrict-path/.test(readFileSync(path.join(withProf.out, ...f.split("/")), "utf8")));
+    check(`absorption (${lang}) : aucun nom orphelin dans les fichiers générés (settings.json compris)`, orphans.length === 0, orphans.join());
+    const noProf = gen(mods, { docLanguage: lang });
+    const noFiles = walk(noProf.out).map((f) => path.relative(noProf.out, f).split(path.sep).join("/"));
+    check(`absorption (${lang}) : sans agent-profiles, les cinq fichiers sont générés comme avant`, noProf.res.status === 0 && OLD.every((f) => noFiles.includes(f)));
+    const wf = txt(noProf, "docs/workflow.md");
+    check(`absorption (${lang}) : sans agent-profiles, workflow.md et les ADR nomment les agents`, /architecture-explorer/.test(wf) && /spec-reviewer/.test(wf) && /traceability-checker/.test(wf) && /arc42-keeper/.test(wf) && /arc42-keeper|spec-reviewer/.test(txt(noProf, "docs/architecture/adrs/ARCH-002-workflow-spec-driven-avec-openspec.md")));
+    const wfP = txt(withProf, "docs/workflow.md");
+    check(`absorption (${lang}) : avec agent-profiles, workflow.md et les ADR nomment les profils`, /`qa-engineer`/.test(wfP) && /`architect`/.test(wfP) && /`qa-engineer`/.test(txt(withProf, "docs/architecture/adrs/ARCH-002-workflow-spec-driven-avec-openspec.md")) && /`architect`/.test(txt(withProf, "docs/architecture/adrs/ARCH-001-documentation-d-architecture-arc42-et-adr.md")));
+    const qa = txt(withProf, ".claude/agents/qa-engineer.md");
+    check(`absorption (${lang}) : qa-engineer porte la revue de spec, la traçabilité et l'exception Dependabot`, /openspec show/.test(qa) && /dependabot\//.test(qa) && /git branch --show-current/.test(qa) && /gh pr checks/.test(qa));
+    check(`absorption (${lang}) : devops-engineer renvoie la traçabilité à qa-engineer`, /`qa-engineer`/.test(txt(withProf, ".claude/agents/devops-engineer.md")) && /`qa-engineer`/.test(txt(withProf, ".claude/agents/project-lead.md")));
+  }
+
+  // les commandes citées dans qa-engineer et architect sont acceptées par le hook en lecture seule
+  const readOnly = path.join(root, "skills", "project-bootstrap", "assets", "modules", "claude", "templates", ".claude", "hooks", "read-only-bash.mjs");
+  const refused = [];
+  for (const tpl of ["templates", "templates.en"]) {
+    for (const n of ["qa-engineer"]) {
+      const text = readFileSync(path.join(root, "skills", "project-bootstrap", "assets", "modules", "agent-profiles", tpl, ".claude", "agents", `${n}.md`), "utf8");
+      for (const m of text.matchAll(/`((?:gh|git|openspec|archgate) [^`]*)`/g)) {
+        const cmd = m[1].replace(/<[^>]+>/g, "1");
+        if (/^archgate review-context|^archgate check|^node /.test(cmd)) continue;
+        const r = spawnSync(process.execPath, [readOnly], { input: JSON.stringify({ tool_name: "Bash", tool_input: { command: cmd } }), encoding: "utf8" });
+        if (r.status !== 0) refused.push(`${tpl}/${n} : ${cmd}`);
+      }
+    }
+  }
+  check("absorption : les commandes de qa-engineer sont acceptées par read-only-bash.mjs", refused.length === 0, refused.join(" ; "));
+
+  // migration 0003
+  const legacyProject = (alsoUpdate) => {
+    const r = gen(mods);
+    const mp = path.join(r.out, ".bootstrap", "manifest.json");
+    const manifest = JSON.parse(readFileSync(mp, "utf8"));
+    manifest.modules = [...manifest.modules, "agent-profiles"];
+    if (alsoUpdate) for (const f of OLD) delete manifest.files[f];
+    writeFileSync(mp, JSON.stringify(manifest, null, 2) + "\n");
+    return r.out;
+  };
+  const exists = (out, rel) => existsSync(path.join(out, ...rel.split("/")));
+  const migrate = (out, apply) => runMigrations({ target: out, apply });
+  const ours = (list) => list.filter((m) => m.id === "0003-absorb-legacy-agents")[0];
+
+  let out = legacyProject(false);
+  let res = ours(await migrate(out, false));
+  check("migration 0003 : simulation, cinq actions et rien de modifié", res.actions.length === 5 && OLD.every((f) => exists(out, f)) && res.applied === false);
+  res = ours(await migrate(out, true));
+  const after = JSON.parse(readFileSync(path.join(out, ".bootstrap", "manifest.json"), "utf8"));
+  check("migration 0003 : fichiers intacts, copies de base et entrées du manifeste retirés, migration consignée", res.applied && OLD.every((f) => !exists(out, f) && !exists(out, `.bootstrap/base/${f}.base`) && after.files[f] === undefined) && after.migrations.includes("0003-absorb-legacy-agents"));
+  check("migration 0003 : idempotente, rien à faire au second passage", ours(await migrate(out, true)) === undefined);
+
+  out = legacyProject(true);
+  res = ours(await migrate(out, true));
+  check("migration 0003 : après scaffold --update (entrées du manifeste déjà retirées), les fichiers intacts sont retirés d'après leur copie de base", res.applied && OLD.every((f) => !exists(out, f)));
+
+  out = legacyProject(false);
+  writeFileSync(path.join(out, ".claude/agents/spec-reviewer.md"), txt({ out }, ".claude/agents/spec-reviewer.md") + "\nconsigne du projet\n");
+  rmSync(path.join(out, ".bootstrap/base/.claude/agents/traceability-checker.md.base"));
+  res = ours(await migrate(out, true));
+  check("migration 0003 : fichier modifié ou sans copie de base conservé avec une note, les autres retirés", res.applied && exists(out, ".claude/agents/spec-reviewer.md") && exists(out, ".claude/agents/traceability-checker.md") && !exists(out, ".claude/agents/arc42-keeper.md") && res.notes.length === 2 && res.notes.some((n) => /spec-reviewer.*modifié/.test(n)) && res.notes.some((n) => /traceability-checker.*copie de base/.test(n)), JSON.stringify(res.notes));
+
+  out = legacyProject(false);
+  for (const f of OLD) writeFileSync(path.join(out, ...f.split("/")), txt({ out }, f) + "\nlocal\n");
+  res = ours(await migrate(out, true));
+  check("migration 0003 : tout modifié, notes seules, non consignée", res.applied === false && res.actions.length === 0 && res.notes.length === 5 && !JSON.parse(readFileSync(path.join(out, ".bootstrap", "manifest.json"), "utf8")).migrations?.includes("0003-absorb-legacy-agents"));
+
+  out = legacyProject(false);
+  writeFileSync(path.join(out, ".claude/agents/autre.md"), "---\nname: autre\n---\nutilise restrict-path.mjs\n");
+  res = ours(await migrate(out, true));
+  check("migration 0003 : restrict-path.mjs conservé quand un autre fichier de .claude le cite", exists(out, ".claude/hooks/restrict-path.mjs") && !exists(out, ".claude/agents/arc42-keeper.md") && res.notes.some((n) => /restrict-path.*autre\.md/.test(n)), JSON.stringify(res.notes));
+
+  const without = gen(mods);
+  check("migration 0003 : non proposée sans agent-profiles", ours(await migrate(without.out, false)) === undefined);
+
+  // projet sans dépôt GitHub : la migration de fichiers ne demande pas de dépôt (migrate.mjs en ligne de commande)
+  out = legacyProject(false);
+  const cli = spawnSync(process.execPath, [path.join(root, "skills", "project-bootstrap", "scripts", "migrate.mjs"), "--target", out], { encoding: "utf8" });
+  check("migrate.mjs : sans remote GitHub, les migrations de forge sont ignorées avec une note et la migration 0003 est proposée", cli.status === 0 && /0003-absorb-legacy-agents/.test(cli.stdout) && /dépôt GitHub introuvable/.test(cli.stdout), cli.stderr + cli.stdout.slice(0, 300));
 }
 
 console.log(failed ? `\n${failed} échec(s)` : "\nTous les tests passent");

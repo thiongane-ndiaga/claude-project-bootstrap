@@ -106,7 +106,7 @@ Le hook SHALL appliquer la table à un teammate dont le nom est celui d'un profi
 - **THEN** les mêmes refus et autorisations s'appliquent qu'à un sous-agent `qa-engineer`
 
 ### Requirement: Valeurs de départ des agents sonnet et haiku
-Les valeurs SHALL être, dans l'ordre `model`, `effort`, `maxTurns` : `developer` sonnet, high, 60 ; `business-analyst` sonnet, high, 40 ; `product-owner` sonnet, medium, 20 ; `acceptance-tester` sonnet, medium, 25 ; `devops-engineer` sonnet, medium, 25 ; `arc42-keeper` sonnet, medium, 30 ; `traceability-checker` sonnet, medium, 25 ; `scout` haiku, medium, 20.
+Les valeurs SHALL être, dans l'ordre `model`, `effort`, `maxTurns` : `developer` sonnet, high, 60 ; `business-analyst` sonnet, high, 40 ; `product-owner` sonnet, medium, 20 ; `acceptance-tester` sonnet, medium, 25 ; `devops-engineer` sonnet, medium, 25 ; `scout` haiku, medium, 20 ; et, sans `agent-profiles`, `arc42-keeper` sonnet, medium, 30 et `traceability-checker` sonnet, medium, 25.
 
 #### Scenario: Table des valeurs sonnet et haiku
 - **WHEN** les agents sont générés
@@ -120,11 +120,11 @@ Chaque profil SHALL contenir la règle « qui écrit ne relit pas » : `architec
 - **THEN** chacun contient la règle correspondante
 
 ### Requirement: Réutilisation d'Archgate et d'OpenSpec
-Les profils SHALL citer, selon les modules actifs, ce qu'ils réutilisent : `architecture-explorer`, `arc42-keeper` et le skill `archgate:adr-author` pour `architect`, `archgate review-context --base --run-checks`, `spec-reviewer` et le skill `archgate:reviewer` pour `qa-engineer`. Ils lancent eux-mêmes les agents et skills de leur table et demandent le reste à l'agent principal. Ils MUST NOT citer le skill `onboard`. Une référence à un module absent MUST NOT apparaître dans le profil généré.
+Les profils SHALL citer, selon les modules actifs, ce qu'ils réutilisent : le skill `archgate:adr-author` pour `architect`, `archgate review-context --base --run-checks` et le skill `archgate:reviewer` pour `qa-engineer`. Ils lancent les skills de leur table et demandent le reste à l'agent principal. Ils MUST NOT citer le skill `onboard` ni les agents `architecture-explorer`, `arc42-keeper`, `spec-reviewer` et `traceability-checker`. Une référence à un module absent MUST NOT apparaître.
 
 #### Scenario: Module Archgate absent
 - **WHEN** un projet est généré avec `agent-profiles` mais sans `archgate`, `openspec`, `github` ni `arc42`
-- **THEN** les profils ne mentionnent aucun de ces modules ni leurs agents ou skills
+- **THEN** les profils ne mentionnent aucun de ces modules ni leurs skills
 
 ### Requirement: Outils et frontmatter des profils
 Chaque profil borné (`architect`, `qa-engineer` et les profils optionnels) SHALL déclarer sa liste `tools` dans son frontmatter et MUST NOT déclarer de `hooks`. `architect` SHALL disposer de `Agent` et `Skill`, `qa-engineer` de `Agent` sans `Skill`, `business-analyst` de `Skill`, les autres profils optionnels ni de `Agent` ni de `Skill`. `project-lead`, agent principal, MUST NOT déclarer de `tools` ni de `hooks`.
@@ -134,10 +134,10 @@ Chaque profil borné (`architect`, `qa-engineer` et les profils optionnels) SHAL
 - **THEN** aucun frontmatter ne contient `hooks`, `architect` a `Agent` et `Skill`, `qa-engineer` a `Agent` sans `Skill`, `project-lead` n'a pas de ligne `tools` et aucun profil optionnel n'a `Agent`
 
 ### Requirement: Bornage des agents lançables
-Pour les outils `Agent` et `Task`, `profile-guard.mjs` SHALL refuser (code 2) un profil de la table dont le `subagent_type` n'est pas dans sa liste `agents`, dont l'appel porte un `name` ou un `team_name`, ou dont la liste est vide ou absente. `architect` peut lancer `architecture-explorer` et `arc42-keeper`, `qa-engineer` seulement `spec-reviewer`. Un `subagent_type` absent, vide ou nul vaut `general-purpose` et MUST être refusé.
+Pour les outils `Agent` et `Task`, `profile-guard.mjs` SHALL refuser (code 2) un profil de la table dont le `subagent_type` n'est pas dans sa liste `agents`, dont l'appel porte un `name` ou un `team_name`, ou dont la liste est vide ou absente. Aucun profil ne lance d'agent. Un `subagent_type` absent, vide ou nul vaut `general-purpose` et MUST être refusé.
 
 #### Scenario: Agent permis
-- **WHEN** `architect` lance `arc42-keeper` ou `qa-engineer` lance `spec-reviewer`, y compris par l'outil `Task`
+- **WHEN** un agent de la table dont la liste `agents` contient `x` lance `x`, y compris par l'outil `Task`
 - **THEN** le hook se termine avec le code 0
 
 #### Scenario: Agent non permis
@@ -145,7 +145,11 @@ Pour les outils `Agent` et `Task`, `profile-guard.mjs` SHALL refuser (code 2) un
 - **THEN** le hook se termine avec le code 2 et nomme l'agent refusé
 
 #### Scenario: Agent nommé ou d'équipe
-- **WHEN** un profil lance `arc42-keeper` avec un `name` ou un `team_name`
+- **WHEN** un profil lance un agent avec un `name` ou un `team_name`
+- **THEN** le hook se termine avec le code 2
+
+#### Scenario: Architect et qa-engineer
+- **WHEN** `architect` ou `qa-engineer` lance un agent, y compris par l'outil `Task`
 - **THEN** le hook se termine avec le code 2
 
 #### Scenario: Liste absente
@@ -161,17 +165,6 @@ Pour l'outil `Skill`, `profile-guard.mjs` SHALL refuser (code 2) un profil de la
 
 #### Scenario: Skill non permis
 - **WHEN** `qa-engineer` lance `archgate:reviewer` ou `architect` lance `archgate:onboard`
-- **THEN** le hook se termine avec le code 2
-
-### Requirement: Bornes propres des agents lançables
-La table SHALL contenir les agents que les profils lancent, avec leurs bornes, pour qu'elles ne dépendent pas de leur hook de frontmatter, inactif pour un teammate : `arc42-keeper` n'écrit que dans `docs/architecture/arc42/`, `spec-reviewer` et `architecture-explorer` n'écrivent nulle part, et le shell de `spec-reviewer` est en lecture seule. Ces agents MUST NOT pouvoir lancer d'agent ni de skill.
-
-#### Scenario: Écriture d'un agent lançable
-- **WHEN** `arc42-keeper` écrit dans `docs/architecture/arc42/05.md` puis dans `src/x.js`
-- **THEN** la première écriture est permise et la seconde refusée
-
-#### Scenario: Agent lançable sans écriture
-- **WHEN** `spec-reviewer` écrit un fichier ou lance `rm -rf x`
 - **THEN** le hook se termine avec le code 2
 
 ### Requirement: Outils des profils en lecture seule
@@ -416,15 +409,19 @@ La consigne de `project-lead` SHALL déléguer la recette à `acceptance-tester`
 Chaque agent généré qui déclare une liste `tools` SHALL déclarer `model`, `effort` et `maxTurns`. `project-lead`, agent principal, MUST NOT déclarer ces champs : il suit la session.
 
 #### Scenario: Valeurs déclarées
-- **WHEN** tous les modules et les profils optionnels sont générés
-- **THEN** chaque agent à liste `tools` (les profils, `arc42-keeper`, `spec-reviewer`, `architecture-explorer` et `traceability-checker`) déclare `model`, `effort` et `maxTurns`
+- **WHEN** tous les modules et les profils optionnels sont générés avec `agent-profiles`
+- **THEN** chaque agent à liste `tools` déclare `model`, `effort` et `maxTurns`
+
+#### Scenario: Agents historiques sans agent-profiles
+- **WHEN** tous les modules sont générés sans `agent-profiles`
+- **THEN** `arc42-keeper`, `spec-reviewer`, `architecture-explorer` et `traceability-checker` déclarent `model`, `effort` et `maxTurns`
 
 #### Scenario: Agent principal
 - **WHEN** `project-lead` est généré
 - **THEN** son frontmatter ne contient ni `model`, ni `effort`, ni `maxTurns`
 
 ### Requirement: Valeurs de départ par agent
-Les valeurs SHALL être, dans l'ordre `model`, `effort`, `maxTurns` : `architect` opus, high, 40 ; `qa-engineer` opus, high, 40 ; `spec-reviewer` opus, high, 30 ; `architecture-explorer` opus, high, 40 ; `second-opinion` opus, high, 30 ; `compliance-reviewer` opus, high, 30. Les agents sonnet et haiku ont leur exigence propre. Les valeurs SHALL être identiques en français et en anglais.
+Les valeurs SHALL être, dans l'ordre `model`, `effort`, `maxTurns` : `architect` opus, high, 40 ; `qa-engineer` opus, high, 40 ; `second-opinion` opus, high, 30 ; `compliance-reviewer` opus, high, 30. Les agents sonnet et haiku ont leur exigence propre. Les valeurs SHALL être identiques en français et en anglais.
 
 #### Scenario: Table des valeurs
 - **WHEN** les agents sont générés avec `docLanguage: "fr"`
@@ -583,7 +580,7 @@ Quand `regulatedDomain` est présente sans `compliance-reviewer` dans `profiles`
 - **THEN** son modèle ne mentionne ni `openspec` ni `archgate` et cite les documents du dépôt
 
 ### Requirement: Profil devops-engineer
-`devops-engineer` SHALL lire l'état de la CI, des PR et des releases, et rendre des constats avec preuves ; la traçabilité issue, changement, PR et ADR reste à `traceability-checker` tant que celui-ci existe. Il MUST NOT écrire de fichier ni publier : les écritures passent par `project-lead`. La table du hook lui refuse l'écriture et limite son shell à la lecture.
+`devops-engineer` SHALL lire l'état de la CI, des PR et des releases, et rendre des constats avec preuves ; la traçabilité issue, changement, PR et ADR reste à `qa-engineer`. Il MUST NOT écrire de fichier ni publier : les écritures passent par `project-lead`. La table du hook lui refuse l'écriture et limite son shell à la lecture.
 
 #### Scenario: Lecture seule
 - **WHEN** `agent_type` vaut `devops-engineer`, écrit un fichier ou lance `rm x`
@@ -601,7 +598,7 @@ Quand `regulatedDomain` est présente sans `compliance-reviewer` dans `profiles`
 - **THEN** le hook se termine avec le code 2
 
 ### Requirement: Délégation de project-lead aux profils du lot 2b
-La consigne de `project-lead` SHALL déléguer la lecture de la CI et de la livraison à `devops-engineer` et la relecture réglementaire à `compliance-reviewer`, seulement si ces profils existent dans `.claude/agents/`, et garder la traçabilité à `traceability-checker` quand il existe.
+La consigne de `project-lead` SHALL déléguer la lecture de la CI et de la livraison à `devops-engineer` et la relecture réglementaire à `compliance-reviewer`, seulement si ces profils existent dans `.claude/agents/`, et garder la traçabilité à `qa-engineer`.
 
 #### Scenario: Consigne de délégation
 - **WHEN** `project-lead` est généré

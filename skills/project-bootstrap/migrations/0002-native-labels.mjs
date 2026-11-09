@@ -5,6 +5,7 @@
 export const id = "0002-native-labels";
 export const title = "Remplacer les labels type:* par les labels natifs de la forge";
 export const modules = ["github"];
+export const needsForge = true;
 
 // color / description : valeurs de repli quand l'ancien label n'en a pas ; pour un natif, celles de GitHub.
 const MAPPING = [

@@ -2,7 +2,7 @@
 // Tests du hook profile-guard.mjs (ARCH-011) : table des profils, écritures, shell, sous-agent et teammate.
 // Lancé par tests/modules.test.mjs ou seul : node profile-guard.test.mjs
 import { spawnSync } from "node:child_process";
-import { cpSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -81,8 +81,14 @@ check("qa-engineer : archgate review-context --domain exige un domaine", shell("
 // agents et skills lançables
 const launch = (agent, input) => run({ agent_type: agent, tool_name: "Agent", tool_input: input });
 const skill = (agent, name) => run({ agent_type: agent, tool_name: "Skill", tool_input: { skill: name } });
-check("architect : architecture-explorer et arc42-keeper permis", launch("architect", { subagent_type: "architecture-explorer", prompt: "x" }).code === 0 && launch("architect", { subagent_type: "arc42-keeper", prompt: "x", run_in_background: true }).code === 0);
-check("qa-engineer : spec-reviewer permis", launch("qa-engineer", { subagent_type: "spec-reviewer", prompt: "x" }).code === 0);
+check("architect et qa-engineer ne lancent aucun agent, anciens agents compris", ["architect", "qa-engineer"].every((n) => ["architecture-explorer", "arc42-keeper", "spec-reviewer", "general-purpose"].every((a) => launch(n, { subagent_type: a, prompt: "x" }).code === 2)));
+// mécanisme conservé : un agent de la liste `agents` d'une entrée de la table est permis (copie du hook avec une liste renseignée)
+{
+  const copy = path.join(project, ".claude", "hooks", "profile-guard-liste.mjs");
+  writeFileSync(copy, readFileSync(guard, "utf8").replace("agents: [],", 'agents: ["outil-x"],'));
+  const viaCopy = (input) => spawnSync(process.execPath, [copy], { input: JSON.stringify({ cwd: project, agent_type: "architect", tool_name: "Agent", tool_input: input }), encoding: "utf8", env: { ...process.env, CLAUDE_PROJECT_DIR: project } }).status;
+  check("agent de la liste permis, autre agent et agent nommé refusés", viaCopy({ subagent_type: "outil-x", prompt: "x" }) === 0 && viaCopy({ subagent_type: "outil-y" }) === 2 && viaCopy({ subagent_type: "outil-x", name: "n" }) === 2);
+}
 const gp = launch("architect", { subagent_type: "general-purpose", prompt: "x" });
 check("general-purpose refusé, agent nommé dans le message", gp.code === 2 && /general-purpose/.test(gp.err), gp.err);
 check("appel sans subagent_type (vaut general-purpose) refusé", launch("architect", { prompt: "x" }).code === 2 && launch("qa-engineer", {}).code === 2);
@@ -93,15 +99,13 @@ check("architect : archgate:adr-author permis", skill("architect", "archgate:adr
 check("skills non permis refusés (reviewer, onboard, sans nom, autre profil)", skill("architect", "archgate:onboard").code === 2 && skill("qa-engineer", "archgate:reviewer").code === 2 && skill("qa-engineer", "archgate:adr-author").code === 2 && run({ agent_type: "architect", tool_name: "Skill", tool_input: {} }).code === 2);
 check("agent principal et autres agents peuvent lancer agents et skills", run({ tool_name: "Agent", tool_input: { subagent_type: "general-purpose" } }).code === 0 && launch("writer", { subagent_type: "general-purpose" }).code === 0 && skill("writer", "x").code === 0);
 
-check("Task, ancien nom de l'outil Agent, est borné comme Agent", run({ agent_type: "architect", tool_name: "Task", tool_input: { subagent_type: "general-purpose" } }).code === 2 && run({ agent_type: "architect", tool_name: "Task", tool_input: { subagent_type: "arc42-keeper" } }).code === 0);
+check("Task, ancien nom de l'outil Agent, est borné comme Agent", run({ agent_type: "architect", tool_name: "Task", tool_input: { subagent_type: "general-purpose" } }).code === 2 && run({ agent_type: "architect", tool_name: "Task", tool_input: { subagent_type: "arc42-keeper" } }).code === 2);
 check("team_name seul refusé ; un profil ne lance ni un autre profil ni lui-même", launch("architect", { subagent_type: "arc42-keeper", team_name: "t" }).code === 2 && launch("architect", { subagent_type: "qa-engineer" }).code === 2 && launch("architect", { subagent_type: "architect" }).code === 2 && launch("qa-engineer", { subagent_type: "architect" }).code === 2);
 check("agent de plugin préfixé et casse différente refusés", launch("architect", { subagent_type: "archgate:developer" }).code === 2 && launch("architect", { subagent_type: "Arc42-Keeper" }).code === 2 && launch("architect", { subagent_type: "" }).code === 2 && launch("architect", { subagent_type: null }).code === 2);
 
-// agents lançables : leurs bornes viennent de la table, pas de leur hook de frontmatter (inactif pour un teammate)
-check("liste agents ou skills absente : tout refusé (arc42-keeper, spec-reviewer, architecture-explorer ne lancent rien)", ["arc42-keeper", "spec-reviewer", "architecture-explorer"].every((a) => launch(a, { subagent_type: "general-purpose" }).code === 2 && launch(a, { subagent_type: "spec-reviewer" }).code === 2 && skill(a, "archgate:adr-author").code === 2));
-check("arc42-keeper n'écrit que dans docs/architecture/arc42/", write("arc42-keeper", "docs/architecture/arc42/05.md").code === 0 && write("arc42-keeper", "docs/architecture/adrs/x.md").code === 2 && write("arc42-keeper", "src/x.js").code === 2);
-check("spec-reviewer et architecture-explorer n'écrivent nulle part", write("spec-reviewer", "docs/x.md").code === 2 && write("architecture-explorer", "docs/architecture/x.md").code === 2);
-check("spec-reviewer : shell en lecture seule", shell("spec-reviewer", "openspec validate x --strict").code === 0 && shell("spec-reviewer", "git status").code === 0 && shell("spec-reviewer", "rm -rf x").code === 2 && shell("spec-reviewer", "cat x").code === 2);
+// la table ne contient plus les agents historiques (leurs méthodes sont dans architect et qa-engineer)
+check("la table ne cite aucun agent historique", !/arc42-keeper|spec-reviewer|architecture-explorer|traceability-checker/.test(readFileSync(guard, "utf8")));
+check("un agent absent de la table n'est pas borné (ancien agent resté dans un projet)", write("arc42-keeper", "src/x.js").code === 0 && launch("spec-reviewer", { subagent_type: "general-purpose" }).code === 0);
 
 // profils optionnels : product-owner, developer, business-analyst
 check("product-owner : n'écrit nulle part, shell en lecture seule", write("product-owner", "docs/x.md").code === 2 && write("product-owner", "src/x.js").code === 2 && shell("product-owner", "git log --oneline").code === 0 && shell("product-owner", "gh issue view 3").code === 0 && shell("product-owner", "rm x").code === 2 && shell("product-owner", "cat x").code === 2);

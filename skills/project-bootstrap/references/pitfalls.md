@@ -133,13 +133,13 @@ Constatés lors de la mise en place de référence (Claude Code 2.1.31x, OpenSpe
 ## Profils devops-engineer et compliance-reviewer (#34, lot 2b)
 - `regulatedDomain` est écrit dans le corps de `compliance-reviewer` et dans le manifeste : il est visible de tous ceux qui lisent le dépôt, n'y mets rien de sensible. La liste blanche (lettres, chiffres, espaces et `,.;:'’()/&_-`) évite les marqueurs de modèle et les caractères de structure ; elle n'empêche pas une consigne écrite en clair, la garantie est que le profil n'écrit rien (table du hook) et que l'auteur du texte est l'utilisateur. Le domaine n'est jamais écrit dans un frontmatter.
 - `compliance-reviewer` est un modèle qui relit des documents : ses constats sont des alertes à faire confirmer, pas un avis juridique. Le plugin ne porte aucune liste d'exigences par domaine.
-- `devops-engineer` et `traceability-checker` se recouvrent jusqu'à #110 : la traçabilité issue, changement, PR et ADR reste à `traceability-checker`, `devops-engineer` lit la CI, les PR et les releases. Sans le module `github`, `devops-engineer` se réduit à l'historique local. Le shell du hook refuse les guillemets, les tubes, `$`, `*` et `%` : les commandes des modèles n'en contiennent pas (un test les vérifie contre le hook), ce qui exclut `--jq`, `--search` et `--format`.
+- `devops-engineer` lit la CI, les PR et les releases ; la traçabilité issue, changement, PR et ADR est à `qa-engineer` (ARCH-016). Sans le module `github`, `devops-engineer` se réduit à l'historique local. Le shell du hook refuse les guillemets, les tubes, `$`, `*` et `%` : les commandes des modèles n'en contiennent pas (un test les vérifie contre le hook), ce qui exclut `--jq`, `--search` et `--format`.
 - Retirer `regulatedDomain` alors que `compliance-reviewer` est hérité du manifeste échoue : passer aussi `profiles` sans ce profil.
 
 ## Document de workflow (#38)
 - `docs/workflow.md` contient une table « Double encodage » : une ligne par puce de `## Règles` du `CLAUDE.md` généré, avec son garde-fou ou « consigne seulement ». Ajouter une règle à `CLAUDE.md` sans sa ligne fait échouer le test ; ajouter un garde-fou à une règle « consigne seulement » oblige à corriger la ligne. Le test vérifie que les fichiers cités existent, pas qu'ils protègent.
 - La table « Qui fait quoi » reprend à la main les droits de la table `PROFILES` de `profile-guard.mjs` : la modifier avec elle.
-- Sans `agent-profiles`, les agents fixes (`spec-reviewer`, `traceability-checker`, `arc42-keeper`, `architecture-explorer`) ne sont décrits nulle part dans `workflow.md`.
+- Les agents historiques (`spec-reviewer`, `traceability-checker`, `arc42-keeper`, `architecture-explorer`) n'existent que sans `agent-profiles` et ne sont décrits nulle part dans `workflow.md` (ARCH-016).
 - `docs/workflow.md` de ce dépôt n'est pas régénéré par ce changement : il n'a pas le module `agent-profiles` et se met à jour avec `--update` lors d'une adoption.
 
 ## Équipes d'agents, advisor et cache (#40, documentation lue le 2026-11-09)
@@ -159,3 +159,10 @@ Compléments aux puces des sections « Claude Code » (`skills`, teammate lancé
 - Le module `compact-recall` s'appuie sur le matcher `compact` de `SessionStart` (https://code.claude.com/docs/en/hooks.md) et sur la sortie standard ajoutée au contexte (https://code.claude.com/docs/en/hooks-guide.md). Le hook ne lit que le disque et git : les CLI `openspec` et `archgate session-context` ne sont pas appelées, leur `PATH` n'étant pas garanti dans un hook (mode `local`).
 - Non vérifié : une compaction réelle sur un projet généré, et l'exécution de `SessionStart` pour un teammate ou un subagent (la documentation ne la mentionne pas ; `claude --debug-file` permet de l'observer, #114). L'issue #39 reste ouverte pour cette vérification.
 - Retirer `compact-recall` ne retire ni `.claude/hooks/compact-recall.mjs` ni l'entrée `compact` de `.claude/settings.json` : la fusion ne supprime jamais rien (ARCH-006). Les enlever à la main.
+
+## Les profils absorbent les agents historiques (#110, ARCH-016)
+- Avec `agent-profiles`, `architecture-explorer`, `arc42-keeper`, `spec-reviewer`, `traceability-checker` et `restrict-path.mjs` ne sont pas générés ; leurs méthodes sont dans `architect` (options, arc42) et `qa-engineer` (revue de spec, traçabilité). Sans `agent-profiles`, rien ne change (pseudo-module `legacy-agents`).
+- Pertes assumées : plus d'exploration en équipe avec un explorateur par option, et la revue de spec se fait dans le contexte de `qa-engineer`, sans agent à contexte séparé.
+- La migration `0003` retire les fichiers d'un projet existant en les comparant à leur copie `.bootstrap/base/<chemin>.base` : `scaffold.mjs --update` retire d'abord leurs entrées du manifeste (`retired`), le manifeste ne sert donc plus de référence. Un fichier modifié, conservé, adopté ou fusionné (sans copie de base) reste en place avec une note ; il n'est plus dans la table du hook, donc plus borné.
+- `migrate.mjs` ne demande plus de dépôt GitHub : les migrations qui appellent `gh` (`needsForge`) sont ignorées avec une note quand il manque, celles de fichiers restent proposées. L'audit ne lance les migrations qu'avec `--forge` : rejouer `migrate.mjs` après une mise à jour.
+- `qa-engineer` cumule tests, revue de spec et traçabilité (`maxTurns` 40) : surveiller sa lisibilité et ses tours à l'usage.

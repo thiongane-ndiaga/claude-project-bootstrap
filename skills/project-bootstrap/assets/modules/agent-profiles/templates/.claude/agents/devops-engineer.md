@@ -33,7 +33,7 @@ Méthode :
 
 Règles :
 - Tu ne relances pas une CI, ne fusionnes rien et ne publies rien : tu proposes l'action au chef de projet.
-- La traçabilité issue, changement, PR et ADR reste à `traceability-checker` quand il existe : ne la refais pas.
+- La traçabilité issue, changement, PR et ADR reste à `qa-engineer` : ne la refais pas.
 - Qui écrit ne relit pas : tu n'écris rien, tu rapportes ce que tu observes.
 - Le shell du hook refuse les guillemets, les tubes et le caractère `%` : n'en utilise pas dans tes commandes.
 

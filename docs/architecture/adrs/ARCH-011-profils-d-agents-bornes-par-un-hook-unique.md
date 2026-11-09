@@ -28,7 +28,7 @@ Le module `agent-profiles` génère des profils d'agents (`.claude/agents/*.md`)
 3. **Convention de nommage** : un teammate porte le nom de son profil (`qa-engineer`). Un teammate nommé autrement n'est pas borné.
 4. **Lecture seule du shell** : le hook délègue à `read-only-bash.mjs` (module `claude`) ; les commandes supplémentaires d'un profil sont des motifs ancrés sur la commande entière, sans séparateur ni redirection. Le titre d'un ADR se limite aux lettres, chiffres et à la ponctuation simple, car PowerShell évalue les parenthèses et traite les guillemets typographiques comme des guillemets doubles.
 5. **Pas de hook de frontmatter** dans les profils générés : il ne protégerait pas les teammates.
-6. **Coexistence** : les agents existants (`architecture-explorer`, `arc42-keeper`, `spec-reviewer`, `traceability-checker`) ne changent pas ; leur absorption fait l'objet d'une autre décision.
+6. **Pas de coexistence** : avec ce module, les agents historiques (`architecture-explorer`, `arc42-keeper`, `spec-reviewer`, `traceability-checker`) ne sont pas générés ; leurs méthodes sont dans les profils (ARCH-016).
 
 ## Do's and Don'ts
 

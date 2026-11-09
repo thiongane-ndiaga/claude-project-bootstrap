@@ -3,6 +3,7 @@
 export const id = "0001-actions-pr-permission";
 export const title = "Autoriser les GitHub Actions à créer des PR (release-please)";
 export const modules = ["release"];
+export const needsForge = true;
 
 // gh(args) exécute la commande gh et renvoie sa sortie standard ; repo = « propriétaire/nom ».
 // Renvoie la liste des actions à mener ; vide si le réglage est déjà bon (la migration est idempotente).

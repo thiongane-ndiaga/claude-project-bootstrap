@@ -25,17 +25,14 @@ Les profils de `agent-profiles` (ARCH-011) sont bornés par un hook unique qui l
 
 1. **La liste des agents et des skills lançables vit dans la table `PROFILES` du hook** (champs `agents` et `skills`), pas dans `Agent(<types>)`. Liste vide ou absente : tout est refusé. Le hook couvre les outils `Agent`, `Task` (ancien nom) et `Skill`.
 2. **Un profil ne lance que des sous-agents sans nom** : un appel avec `name` ou `team_name` est refusé, car un agent nommé est un teammate. Un `subagent_type` absent ou vide vaut `general-purpose` et est refusé.
-3. **Les agents lançables sont dans la table avec leurs propres bornes**, sans dépendre de leur hook de frontmatter (inactif pour un teammate), et sans `agents` ni `skills` : ils ne lancent rien.
+3. **Aucun profil ne lance d'agent** (ARCH-016) : les listes `agents` sont vides. Le mécanisme reste pour un agent qu'un projet ajoute à la table avec ses propres bornes (sans dépendre de son hook de frontmatter, inactif pour un teammate), sans `agents` ni `skills`.
 4. **`archgate:reviewer` reste lancé par l'agent principal** ; `archgate:adr-author` est permis à `architect`, qui s'en sert pour cadrer l'ADR et le crée avec `archgate adr create`.
 5. **Tableau des droits** (source : la table du hook) :
 
 | Profil ou agent | Écriture | Shell en plus de la lecture seule | Agents lançables | Skills |
 |---|---|---|---|---|
-| `architect` | `docs/architecture/` | `archgate adr create --title "…" --domain …`, `archgate adr domain list` | `architecture-explorer`, `arc42-keeper` | `archgate:adr-author` |
-| `qa-engineer` | `tests/`, `test/` | `node .claude/hooks/quality-gate.mjs`, `node .bootstrap/run-checks.mjs`, `archgate review-context` (options `--staged`, `--run-checks`, `--verbose`, `--strict`, `--base [réf]`, `--domain <d>`) | `spec-reviewer` | aucun |
-| `arc42-keeper` | `docs/architecture/arc42/` | aucun | aucun | aucun |
-| `spec-reviewer` | aucune | lecture seule | aucun | aucun |
-| `architecture-explorer` | aucune | aucun | aucun | aucun |
+| `architect` | `docs/architecture/` | `archgate adr create --title "…" --domain …`, `archgate adr domain list` | aucun | `archgate:adr-author` |
+| `qa-engineer` | `tests/`, `test/` | `node .claude/hooks/quality-gate.mjs`, `node .bootstrap/run-checks.mjs`, `archgate review-context` (options `--staged`, `--run-checks`, `--verbose`, `--strict`, `--base [réf]`, `--domain <d>`) | `spec-reviewer` | aucune | lecture seule | aucun | aucun |
 
 ## Do's and Don'ts
 
@@ -53,17 +50,16 @@ Les profils de `agent-profiles` (ARCH-011) sont bornés par un hook unique qui l
 
 ### Positive
 
-- `architect` et `qa-engineer` lancent seuls leurs agents d'appui sans élargir leurs droits, en sous-agent et en équipe.
+- Les droits de `architect` et de `qa-engineer` ne dépendent d'aucun agent d'appui.
 - Les droits de chaque profil tiennent dans un tableau que `project-lead` peut citer.
 
 ### Negative
 
-- Une entrée de table par agent lançable, à tenir à jour avec les modèles d'agents.
-- Les droits d'écriture de `arc42-keeper` et la lecture seule de `spec-reviewer` existent à deux endroits (frontmatter et table).
+- Une entrée de table par agent lançable qu'un projet ajoute, à tenir à jour avec son modèle d'agent.
 
 ### Risks
 
-- Un agent utilisateur ou de plugin de même nom que `spec-reviewer` est borné par la table, quel que soit son fichier.
+- Un ancien agent resté dans un projet (fichier modifié, migration `0003`) n'est plus dans la table et n'est pas borné par le hook.
 - Que le hook se déclenche sur l'outil `Agent` d'un teammate n'a pas été constaté en session d'équipe (il l'est pour les autres outils, #32) ; un essai d'équipe reste à faire.
 - Les droits d'`openspec` et d'`archgate` au-delà du tableau (par exemple `archgate adr domain add`, demandé par `archgate:adr-author`) restent à l'agent principal.
 

@@ -30,12 +30,22 @@ Chaque couche a un rôle :
   Elle arrive dans le Project en *Todo* (auto-add) ; la carte passe en *In Progress* à la création de la branche, en *In Review* à l'ouverture de la PR.
 @@end
 @@module:archgate
+@@module:legacy-agents
 - **ADR si requis** : issue de type décision, ou changement qui introduit ou remplace une technologie ou une dépendance, une contrainte transverse, un format de données, une interface externe, ou qui contredit un ADR. Exploration (agent `architecture-explorer`, éventuellement en équipe), puis `archgate adr create --title "…" --domain <domaine>`. Statut « Proposé » dans le corps, PR dédiée ; « Accepté » au merge.
+@@end
+@@module:agent-profiles
+- **ADR si requis** : issue de type décision, ou changement qui introduit ou remplace une technologie ou une dépendance, une contrainte transverse, un format de données, une interface externe, ou qui contredit un ADR. Exploration (profil `architect`), puis `archgate adr create --title "…" --domain <domaine>`. Statut « Proposé » dans le corps, PR dédiée ; « Accepté » au merge.
+@@end
 @@end
 - **Branche** `<type>/<N>-<slug>` (ex. `feat/12-password-reset`).
 @@module:openspec
 - **Exploration** (facultative) `/opsx:explore`, avant un changement : un dialogue pour réfléchir, comparer et lever les ambiguïtés, avec lecture du dépôt mais sans code. Elle ne décide rien et débouche sur une issue, un ADR ou `/opsx:propose`. Inutile quand l'issue est claire et le changement petit.
+@@module:legacy-agents
 - **Changement OpenSpec** `/opsx:propose`, id `<N>-<slug>` → `openspec/changes/<N>-<slug>/`. `proposal.md` commence par `Issue: #N` et `ADR: …`. Revue par l'agent `spec-reviewer`.
+@@end
+@@module:agent-profiles
+- **Changement OpenSpec** `/opsx:propose`, id `<N>-<slug>` → `openspec/changes/<N>-<slug>/`. `proposal.md` commence par `Issue: #N` et `ADR: …`. Revue par le profil `qa-engineer`.
+@@end
 - **Changement sans comportement** (documentation, outillage) : `skip_specs: true` dans le `.openspec.yaml` du changement ; aucun delta de spec n'est alors attendu ni créé.
 - **Révision** `/opsx:update` : après une revue ou une surprise, révise les artefacts de planification (proposition, specs, conception, tâches) et les garde cohérents entre eux, jamais le code.
 - **Exécution** `/opsx:apply` ; commits atomiques en Conventional Commits (anglais).
@@ -43,14 +53,24 @@ Chaque couche a un rôle :
 - **Archivage** `/opsx:archive` **dans la PR, avant le merge** : les specs vivantes (`openspec/specs/`) sont à jour au moment du merge.
 @@end
 @@module:github
+@@module:legacy-agents
 - **PR** : titre Conventional Commit, corps avec `Closes #N`. Agent `traceability-checker` avant de demander le merge.
+@@end
+@@module:agent-profiles
+- **PR** : titre Conventional Commit, corps avec `Closes #N`. Profil `qa-engineer` (contrôle de traçabilité) avant de demander le merge.
+@@end
 - **Squash merge** : le titre de PR devient le commit sur `main` ; l'issue se ferme.
 @@module:dependabot
 - **PR de Dependabot** (`ci(deps): …`, branche `dependabot/…`) : seule exception à la branche `<type>/<issue>-<slug>` et à `Closes #N`. Relire le diff (SHA et commentaire de version), vérifier la CI, puis squash merge.
 @@end
 @@end
 @@module:arc42
+@@module:legacy-agents
 - **arc42** : la PR met à jour les sections impactées (agent `arc42-keeper`) ; la section 9 ne fait que pointer vers les ADR.
+@@end
+@@module:agent-profiles
+- **arc42** : la PR met à jour les sections impactées (profil `architect`) ; la section 9 ne fait que pointer vers les ADR.
+@@end
 @@end
 @@module:release
 - **Release** : release-please tient à jour une PR « chore(main): release X.Y.Z » (`CHANGELOG.md`, `.release-please-manifest.json`). La merger crée le tag `vX.Y.Z` et la GitHub Release. Le déploiement est hors périmètre (futur ADR).
@@ -65,7 +85,7 @@ Chaque agent généré dans `.claude/agents/` a une ligne. Les droits d'écritur
 |---|---|---|
 | `project-lead` | chef de projet (agent principal avec `mainAgent`) : brief, délégation, arbitrage, journal des décisions | partout (non borné) |
 | `architect` | décisions d'architecture, ADR, arc42 | `docs/architecture/` |
-| `qa-engineer` | relecture, tests, contrôles ; lance la relecture de spec | `tests/`, `test/` |
+| `qa-engineer` | relecture du code et des specs, contrôle de traçabilité, tests, contrôles | `tests/`, `test/` |
 @@module:profile-product-owner
 | `product-owner` | besoin, priorités, critères d'acceptation | rien (lecture seule) |
 @@end
@@ -89,20 +109,6 @@ Chaque agent généré dans `.claude/agents/` a une ligne. Les droits d'écritur
 @@end
 @@module:profile-compliance-reviewer
 | `compliance-reviewer` | relecture réglementaire des specs et des ADR | rien (lecture seule) |
-@@end
-@@module:claude
-@@module:openspec
-| `spec-reviewer` | relecture critique du changement avant `/opsx:apply` | rien (lecture seule) |
-@@end
-@@module:github
-| `traceability-checker` | chaîne issue, changement, PR, ADR et CI avant le merge | rien (lecture seule) |
-@@end
-@@module:arc42
-| `arc42-keeper` | mise à jour d'arc42 après un ADR ou un archivage | `docs/architecture/arc42/` |
-@@end
-@@module:archgate
-| `architecture-explorer` | options et compromis avant un ADR | rien (lecture seule) |
-@@end
 @@end
 
 ## Échelle d'arbitrage

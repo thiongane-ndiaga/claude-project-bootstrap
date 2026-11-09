@@ -15,14 +15,14 @@ import { fileURLToPath } from "node:url";
 const PROFILES = {
   architect: {
     write: ["docs/architecture/"],
-    agents: ["architecture-explorer", "arc42-keeper"],
+    agents: [],
     skills: ["archgate:adr-author"],
     // title: letters, digits, spaces and simple punctuation only (no quote, parenthesis or substitution: PowerShell evaluates parentheses)
     shell: [/^archgate adr create --title "[\p{L}\p{N} ,.:'’_-]+" --domain [a-z0-9-]+$/u, /^archgate adr domain list$/],
   },
   "qa-engineer": {
     write: ["tests/", "test/"],
-    agents: ["spec-reviewer"],
+    agents: [],
     skills: [],
     shell: [
       /^node \.claude[\\/]hooks[\\/]quality-gate\.mjs$/,
@@ -47,11 +47,6 @@ const PROFILES = {
     agents: [],
     skills: ["openspec-propose", "openspec-update-change", "opsx:propose", "opsx:update"],
   },
-  // Agents the profiles may launch: their bounds are repeated here so they do not depend on their frontmatter hook (inactive for a teammate).
-  // Without agents or skills lists, they launch nothing.
-  "arc42-keeper": { write: ["docs/architecture/arc42/"], shell: [] },
-  "spec-reviewer": { write: [], shell: [] },
-  "architecture-explorer": { write: [], shell: [] },
 };
 
 // Real path: the longest existing ancestor is resolved (links, junctions, 8.3 short names, real case), then the rest of the path.

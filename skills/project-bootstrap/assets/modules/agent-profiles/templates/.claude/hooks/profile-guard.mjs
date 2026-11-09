@@ -15,14 +15,14 @@ import { fileURLToPath } from "node:url";
 const PROFILES = {
   architect: {
     write: ["docs/architecture/"],
-    agents: ["architecture-explorer", "arc42-keeper"],
+    agents: [],
     skills: ["archgate:adr-author"],
     // titre : lettres, chiffres, espace et ponctuation simple seulement (ni guillemet, ni parenthèse, ni substitution : PowerShell évalue les parenthèses)
     shell: [/^archgate adr create --title "[\p{L}\p{N} ,.:'’_-]+" --domain [a-z0-9-]+$/u, /^archgate adr domain list$/],
   },
   "qa-engineer": {
     write: ["tests/", "test/"],
-    agents: ["spec-reviewer"],
+    agents: [],
     skills: [],
     shell: [
       /^node \.claude[\\/]hooks[\\/]quality-gate\.mjs$/,
@@ -47,11 +47,6 @@ const PROFILES = {
     agents: [],
     skills: ["openspec-propose", "openspec-update-change", "opsx:propose", "opsx:update"],
   },
-  // Agents que les profils peuvent lancer : leurs bornes sont reprises ici pour ne pas dépendre de leur hook de frontmatter (inactif pour un teammate).
-  // Sans liste agents ni skills, ils ne lancent rien.
-  "arc42-keeper": { write: ["docs/architecture/arc42/"], shell: [] },
-  "spec-reviewer": { write: [], shell: [] },
-  "architecture-explorer": { write: [], shell: [] },
 };
 
 // Chemin réel : l'ancêtre existant le plus long est résolu (liens, jonctions, noms courts 8.3, casse réelle), puis le reste du chemin.

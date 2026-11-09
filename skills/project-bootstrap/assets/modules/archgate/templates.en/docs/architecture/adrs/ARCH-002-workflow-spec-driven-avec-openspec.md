@@ -39,7 +39,12 @@ The code will largely be written by Claude Code agents. Without a prior descript
 
 ### Positive
 
+@@module:legacy-agents
 - Expected behavior is explicit before execution, reviewed by `spec-reviewer`.
+@@end
+@@module:agent-profiles
+- Expected behavior is explicit before execution, reviewed by `qa-engineer`.
+@@end
 - Living specs that describe the real state of the system.
 
 ### Negative
@@ -49,7 +54,12 @@ The code will largely be written by Claude Code agents. Without a prior descript
 
 ### Risks
 
+@@module:legacy-agents
 - Drift between the issue and the spec (for example a capability name different from the one announced in the issue): mitigated by `spec-reviewer` and `traceability-checker`.
+@@end
+@@module:agent-profiles
+- Drift between the issue and the spec (for example a capability name different from the one announced in the issue): mitigated by `qa-engineer`.
+@@end
 
 ## Compliance and Enforcement
 
