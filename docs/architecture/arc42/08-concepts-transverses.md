@@ -67,4 +67,12 @@ Le plugin n'écrit pas dans un projet généré un réglage payant ou expérimen
 
 Voir [ARCH-015](../adrs/ARCH-015-le-plugin-n-ecrit-pas-de-reglage-payant-ou-experimental.md).
 
+## Double encodage des règles
+
+- Le `docs/workflow.md` généré (modèles `skills/project-bootstrap/assets/modules/core/templates{,.en}/docs/workflow.md`) porte une table « Double encodage des règles » : une ligne par puce de `## Règles` du `CLAUDE.md` généré, par règle de `project-lead` et par garde-fou de profil, avec son garde-fou (hook, permission de `.claude/settings.json`, CI, règle Archgate) ou « consigne seulement ».
+- Un test (`tests/scaffold.test.mjs`) exige qu'une règle de `CLAUDE.md` ait sa ligne et que les fichiers cités existent. Il ne vérifie pas l'effet du garde-fou : une ligne dit où il est censé se trouver, pas qu'il bloque.
+- Le même document décrit « Qui fait quoi » (une ligne par agent généré, droits repris à la main de la table `PROFILES` de `profile-guard.mjs`, donc à tenir alignés avec elle), l'échelle d'arbitrage (copie testée de celle de `project-lead`) et le journal des décisions.
+
+Source : changement OpenSpec `38-workflow-who-does-what` (issue #38) ; pas d'ADR.
+
 _Le reste de la section reste à rédiger._

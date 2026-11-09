@@ -2135,5 +2135,63 @@ const d = mkdtempSync(path.join(tmpdir(), "pb-sonde-")); writeFileSync(path.join
   check("compliance-reviewer (en) : domaine dans le corps, ne remplace pas un juriste", /Domain declared when the project was set up: GDPR, payment\./.test(txt(en, ".claude/agents/compliance-reviewer.md")) && /do not replace a lawyer/.test(txt(en, ".claude/agents/compliance-reviewer.md")));
 }
 
+// docs/workflow.md : qui fait quoi, échelle d'arbitrage, double encodage, commandes OpenSpec (#38)
+{
+  const gen = (modules, extra = {}) => run({ ...base, visibility: "private", modules, ...extra });
+  const txt = (r, rel) => readFileSync(path.join(r.out, ...rel.split("/")), "utf8");
+  const section = (t, titles) => {
+    const m = new RegExp(`^## (?:${titles})\\r?\\n([\\s\\S]*?)(?=^## |(?![\\s\\S]))`, "m").exec(t);
+    return m ? m[1] : null;
+  };
+  const rows = (s) => (s ?? "").split("\n").filter((l) => l.startsWith("| ") && !/^\| (Agent|Règle|Rule) /.test(l));
+  const cells = (l) => l.slice(1, -1).split("|").map((c) => c.trim());
+  const ALL = ["product-owner", "developer", "business-analyst", "acceptance-tester", "scout", "second-opinion", "devops-engineer", "compliance-reviewer"];
+  const full = ["claude", "github", "release", "openspec", "archgate", "arc42", "githooks", "agent-profiles"];
+  const configs = [
+    ["tous les profils", full, { profiles: ALL, regulatedDomain: "RGPD" }],
+    ["aucun profil", full, {}],
+    ["agent-profiles seul", ["claude", "agent-profiles"], {}],
+  ];
+  for (const lang of ["fr", "en"]) {
+    const T = lang === "fr"
+      ? { who: "Qui fait quoi", scale: "Échelle d'arbitrage", dbl: "Double encodage des règles", rules: "Règles", only: "consigne seulement" }
+      : { who: "Who does what", scale: "Arbitration ladder", dbl: "Double encoding of the rules", rules: "Rules", only: "instruction only" };
+    for (const [label, mods, extra] of configs) {
+      const r = gen(mods, { ...extra, docLanguage: lang });
+      const wf = txt(r, "docs/workflow.md");
+      const names = rows(section(wf, T.who)).map((l) => /^`([\w-]+)`$/.exec(cells(l)[0])?.[1]).sort();
+      const files = readdirSync(path.join(r.out, ".claude", "agents")).map((f) => f.replace(/\.md$/, "")).sort();
+      check(`workflow.md (${lang}, ${label}) : un agent généré = une ligne de la table`, r.res.status === 0 && names.join() === files.join(), `${names} / ${files}`);
+      const lead = txt(r, ".claude/agents/project-lead.md");
+      const ladder = (t) => t.split("\n").filter((l) => /^\| [1-5] \|/.test(l));
+      check(`workflow.md (${lang}, ${label}) : échelle d'arbitrage identique à project-lead`, ladder(wf).length === 5 && ladder(wf).join("\n") === ladder(lead).join("\n"));
+      check(`workflow.md (${lang}, ${label}) : journal des décisions`, section(wf, lang === "fr" ? "Journal des décisions" : "Decision log") !== null && /ADR/.test(section(wf, lang === "fr" ? "Journal des décisions" : "Decision log")) === mods.includes("archgate"));
+      const dbl = section(wf, T.dbl);
+      check(`workflow.md (${lang}, ${label}) : table de double encodage, garde-fou existant ou « ${T.only} »`, dbl !== null && rows(dbl).length > 0 && rows(dbl).every((l) => {
+        const guard = cells(l)[1];
+        const refs = [...guard.matchAll(/`([^`\s]+)`/g)].map((m) => m[1]).filter((p) => /\/|\.\w+$/.test(p));
+        return refs.every((p) => existsSync(path.join(r.out, ...p.split("/")))) && (refs.length > 0 || guard.includes(T.only));
+      }), rows(dbl).join("\n"));
+      const claudeMd = section(txt(r, "CLAUDE.md"), T.rules) ?? "";
+      const table = rows(dbl).map((l) => cells(l)[0]).join("\n");
+      const missing = claudeMd.split("\n").filter((l) => l.startsWith("- ")).filter((l) => !table.includes(l.slice(2, 32)));
+      check(`workflow.md (${lang}, ${label}) : chaque règle de CLAUDE.md a sa ligne`, missing.length === 0, missing.join(" ; "));
+      check(`workflow.md (${lang}, ${label}) : commandes OpenSpec documentées`, /\/opsx:(explore|update|sync)|skip_specs/.test(wf) === mods.includes("openspec") && (!mods.includes("openspec") || (/\/opsx:explore/.test(wf) && /\/opsx:update/.test(wf) && /\/opsx:sync/.test(wf) && /skip_specs: true/.test(wf))));
+    }
+    const noOpen = txt(gen(["claude", "github"], { docLanguage: lang }), "docs/workflow.md");
+    check(`workflow.md (${lang}) : sans openspec, ni explore, ni update, ni sync, ni skip_specs`, !/\/opsx:(explore|update|sync)|skip_specs/.test(noOpen));
+    const arch = gen(["claude", "archgate"], { docLanguage: lang });
+    const rulesD = rows(section(txt(arch, "docs/workflow.md"), T.dbl)).map(cells).find((c) => c[0].includes("rules.d.ts"));
+    check(`workflow.md (${lang}) : archgate sans agent-profiles : rules.d.ts en « ${T.only} » sans fichier cité`, rulesD && rulesD[1].includes(T.only) && !/`/.test(rulesD[1]));
+    const scoutOnly = gen(full, { profiles: ["scout"], docLanguage: lang });
+    const scoutRows = rows(section(txt(scoutOnly, "docs/workflow.md"), T.who)).map((l) => cells(l)[0]);
+    check(`workflow.md (${lang}) : seul le profil choisi a sa ligne`, scoutRows.includes("`scout`") && !scoutRows.includes("`developer`"));
+    const noProf = txt(gen(["claude", "github", "openspec"], { docLanguage: lang }), "docs/workflow.md");
+    check(`workflow.md (${lang}) : sans agent-profiles, ni qui fait quoi, ni échelle, ni journal`, section(noProf, T.who) === null && section(noProf, T.scale) === null);
+  }
+  const coreOnly = txt(gen([]), "docs/workflow.md");
+  check("workflow.md : core seul, pas de table de double encodage", section(coreOnly, "Double encodage des règles") === null);
+}
+
 console.log(failed ? `\n${failed} échec(s)` : "\nTous les tests passent");
 process.exit(failed ? 1 : 0);

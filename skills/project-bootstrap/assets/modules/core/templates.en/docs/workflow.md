@@ -34,8 +34,12 @@ Each layer has a role:
 @@end
 - **Branch** `<type>/<N>-<slug>` (e.g. `feat/12-password-reset`).
 @@module:openspec
+- **Exploration** (optional) `/opsx:explore`, before a change: a dialogue to think, compare and clear up ambiguities, reading the repository but writing no code. It decides nothing and leads to an issue, an ADR or `/opsx:propose`. Needless when the issue is clear and the change small.
 - **OpenSpec change** `/opsx:propose`, id `<N>-<slug>` → `openspec/changes/<N>-<slug>/`. `proposal.md` starts with `Issue: #N` and `ADR: …`. Review by the `spec-reviewer` agent.
+- **Change without behavior** (documentation, tooling): `skip_specs: true` in the change's `.openspec.yaml`; no spec delta is then expected or created.
+- **Revision** `/opsx:update`: after a review or a surprise, revises the planning artifacts (proposal, specs, design, tasks) and keeps them consistent with each other, never the code.
 - **Execution** `/opsx:apply`; atomic commits in Conventional Commits (English).
+- **Synchronization** `/opsx:sync`: carries a change's spec deltas over to the specs in force without archiving it; `/opsx:archive` does it too when archiving.
 - **Archiving** `/opsx:archive` **in the PR, before the merge**: the living specs (`openspec/specs/`) are up to date at merge time.
 @@end
 @@module:github
@@ -50,6 +54,75 @@ Each layer has a role:
 @@end
 @@module:release
 - **Release**: release-please keeps a "chore(main): release X.Y.Z" PR up to date (`CHANGELOG.md`, `.release-please-manifest.json`). Merging it creates the `vX.Y.Z` tag and the GitHub Release. Deployment is out of scope (future ADR).
+@@end
+
+@@module:agent-profiles
+## Who does what
+
+Every agent generated in `.claude/agents/` has a row. Write rights are those of the hook `.claude/hooks/profile-guard.mjs` (`PROFILES` table): an agent missing from the table, the main agent included, is not bounded.
+
+| Agent | Role in the steps | Writes to |
+|---|---|---|
+| `project-lead` | project lead (main agent with `mainAgent`): brief, delegation, arbitration, decision log | anywhere (not bounded) |
+| `architect` | architecture decisions, ADRs, arc42 | `docs/architecture/` |
+| `qa-engineer` | review, tests, checks; launches the spec review | `tests/`, `test/` |
+@@module:profile-product-owner
+| `product-owner` | need, priorities, acceptance criteria | nothing (read-only) |
+@@end
+@@module:profile-developer
+| `developer` | code and commits | everything except the governance folders (`.archgate/`, `.bootstrap/`, `.claude/`, `.git/`, `.githooks/`, `.github/`, `docs/architecture/`, `openspec/specs/`, archives, `docs/workflow.md`) |
+@@end
+@@module:profile-business-analyst
+| `business-analyst` | OpenSpec change (`/opsx:propose`, `/opsx:update`) | `openspec/changes/` |
+@@end
+@@module:profile-acceptance-tester
+| `acceptance-tester` | acceptance after `qa-engineer`'s review | nothing (read-only) |
+@@end
+@@module:profile-scout
+| `scout` | factual exploration of the repository | nothing (read-only) |
+@@end
+@@module:profile-second-opinion
+| `second-opinion` | counter-opinion on a neutral brief | nothing (read-only) |
+@@end
+@@module:profile-devops-engineer
+| `devops-engineer` | state of the CI, PRs and releases | nothing (read-only) |
+@@end
+@@module:profile-compliance-reviewer
+| `compliance-reviewer` | regulatory review of specs and ADRs | nothing (read-only) |
+@@end
+@@module:claude
+@@module:openspec
+| `spec-reviewer` | critical review of the change before `/opsx:apply` | nothing (read-only) |
+@@end
+@@module:github
+| `traceability-checker` | issue, change, PR, ADR and CI chain before the merge | nothing (read-only) |
+@@end
+@@module:arc42
+| `arc42-keeper` | arc42 update after an ADR or an archiving | `docs/architecture/arc42/` |
+@@end
+@@module:archgate
+| `architecture-explorer` | options and trade-offs before an ADR | nothing (read-only) |
+@@end
+@@end
+
+## Arbitration ladder
+
+| Level | Situation | Who decides |
+|---|---|---|
+| 1 | The rule exists: accepted ADR, spec in force, `CLAUDE.md` convention | you, by applying it |
+| 2 | Profiles disagree, but a rule allows a conclusion | you, citing the source |
+| 3 | Disagreement with no applicable rule, moderate risk | you, decision logged; when in doubt, the user; counter-opinion from `second-opinion` if it exists |
+| 4 | Structural decision (stack, scope, security) or irreversible | the user, after an ADR if needed and the counter-opinion of `second-opinion` if it exists |
+| 5 | Any externally visible write | the user, always |
+
+"You" is the project lead. The source of truth is what is written in the repository, not the exchanges; at most two rounds of confrontation before arbitrating; one line of arbitration trace in the delivery (PR or commit).
+
+## Decision log
+
+@@module:archgate
+A structural decision is recorded in an ADR.
+@@end
+A current decision is recorded in the delivery message (PR or commit).
 @@end
 
 ## Traceability conventions
@@ -109,6 +182,39 @@ Commands specific to the stack are declared **in a single place**, `.bootstrap/c
 Claude Code uses `gh` for reading without asking; `gh issue create`, `gh pr create`, `gh pr merge`, `gh release create` always ask for approval.
 @@end
 
+@@module:openspec|archgate|claude|github
+## Double encoding of the rules
+
+A rule written in `CLAUDE.md` is only an instruction as long as nothing prevents the violation. Each rule is listed here with its safeguard (hook, permission, CI, Archgate rule) or the mention "instruction only". Every new `CLAUDE.md` rule gets its row. The checks and their strength (`TaskCompleted` event, `pre-push`, CI) are in the "Checks" table.
+
+| Rule | Safeguard |
+|---|---|
+@@module:openspec
+| Any behavior change goes through an OpenSpec change. | instruction only |
+| Never edit `.claude/skills/openspec-*` or `.claude/commands/opsx/` (regenerated by `openspec update`). | instruction only for the main agent |
+@@end
+@@module:archgate
+| Never edit `rules.d.ts` (regenerated by Archgate). | instruction only for the main agent |
+| ADR: `archgate adr create --title "…" --domain <domain>`, then check that `rules:` in the frontmatter matches the presence of a `.rules.ts`. | rule of ADR ARCH-003 (`docs/architecture/adrs/ARCH-003-emplacement-et-format-des-adr.rules.ts`), run by `archgate check` |
+@@end
+@@module:claude
+| Before declaring a task done: `node .claude/hooks/quality-gate.mjs`. | `.claude/hooks/quality-gate.mjs`, run by the `TaskCompleted` event (agent teams only) |
+@@module:github
+| `gh` commands that write (issue/pr/release create, merge) always ask the user for approval. | `.claude/settings.json`: these commands are absent from `allow`, so they are asked (not in bypass mode, nor against an `allow` set by the user) |
+@@end
+@@end
+@@module:github
+| A PR title is a Conventional Commit. | `scripts/check-pr-title.mjs`, run by `.github/workflows/ci.yml` |
+@@end
+@@module:agent-profiles
+| A profile writes only within its scope; `developer` never under `.claude/`, `docs/architecture/` (`rules.d.ts` included) or `openspec/specs/`, `architect` writes in `docs/architecture/`. | `.claude/hooks/profile-guard.mjs` |
+@@module:github
+| A profile without a free shell runs no writing `gh` command. | `.claude/hooks/read-only-bash.mjs`, called by `.claude/hooks/profile-guard.mjs` (except `developer`, whose shell is not bounded) |
+@@end
+| Whoever writes does not review: what the project lead writes is reviewed by `qa-engineer`. | instruction only |
+@@end
+
+@@end
 ## New workstation (native Windows or Linux)
 
 @@module:openspec|archgate|archgate-plugin|agent-teams|advisor-on

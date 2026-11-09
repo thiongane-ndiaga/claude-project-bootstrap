@@ -1,0 +1,26 @@
+## Contexte
+
+Le modèle `core/templates/docs/workflow.md` est assemblé par blocs `@@module:` (ET par imbrication, OU par `a|b`) ; les profils optionnels sont des pseudo-modules `profile-<nom>`. Les règles vivent dans le `CLAUDE.md` généré, leurs garde-fous dans `.claude/settings.json` (construit par `buildSettings`, donc avec `claude`), les hooks, la CI et les règles Archgate.
+
+## Décisions
+
+- **D1. Contenu dans le modèle existant.** Pas de nouveau fichier ni de clé : tout est dans `docs/workflow.md`, en français et en anglais (la parité des marqueurs est déjà testée).
+- **D2. « Qui fait quoi » suit les agents générés.** Une ligne par agent : `project-lead`, `architect`, `qa-engineer`, les profils par `profile-<nom>`, et les agents fixes `spec-reviewer` (`openspec`), `traceability-checker` (`github`), `arc42-keeper` (`arc42`), `architecture-explorer` (`archgate`), chacun imbriqué sous `claude`. Colonnes : agent, rôle, écrit dans. Le rôle de `spec-reviewer` est la relecture de la spec, lancée par `qa-engineer` (ou `project-lead`). Sans `agent-profiles`, les agents fixes ne sont pas documentés (hors périmètre). Les droits d'écriture reprennent la table `PROFILES` ; la dérive est un risque, couvert par la revue. Tests, avec trois configurations en français et en anglais : tous les profils (avec `regulatedDomain` et `openspec`), aucun profil, `agent-profiles` sans `openspec`, `github`, `arc42` ni `archgate` ; les noms de la table égalent les fichiers de `.claude/agents/`.
+- **D3. Échelle copiée mot pour mot.** Les cinq lignes de `project-lead` (texte fixe, y compris « contre-avis de `second-opinion` s'il existe »), sans condition. Un test les compare dans chaque langue. `project-lead` n'est pas modifié.
+- **D4. Journal des décisions.** Un paragraphe : ADR pour le structurant (avec `archgate`), message de livraison (PR ou commit) pour le courant.
+- **D5. Double encodage honnête.** Périmètre : chaque puce de `## Règles` du `CLAUDE.md` généré, la règle « qui écrit ne relit pas » de `project-lead`, et les garde-fous de profil. Cellules du garde-fou :
+  - `.claude/skills/openspec-*`, `.claude/commands/opsx/`, `rules.d.ts` : « consigne seulement pour l'agent principal ». Une ligne distincte sous `agent-profiles` cite `.claude/hooks/profile-guard.mjs` pour le périmètre des profils (`developer` exclu de `.claude/`, `docs/architecture/` et `openspec/specs/` ; `architect` écrit dans `docs/architecture/`, donc peut écrire `rules.d.ts`).
+  - ADR et `rules:` : règle ARCH-003, `docs/architecture/adrs/ARCH-003-emplacement-et-format-des-adr.rules.ts`, qui n'agit que par `archgate check` (lancé par `.claude/hooks/quality-gate.mjs` et par `.github/workflows/ci.yml`).
+  - Changement de comportement par OpenSpec : consigne seulement.
+  - Quality gate avant « terminé » : `.claude/hooks/quality-gate.mjs` via l'événement `TaskCompleted` (agent teams seulement), `.githooks/pre-push` (activé par clone, contournable), CI (bloquante selon `{{CI_BLOCKING_NOTE}}`) ; la ligne renvoie au tableau « Contrôles ».
+  - Écritures `gh` : `.claude/settings.json` (sous `github` et `claude`) ne met pas ces commandes dans `allow`, donc elles sont demandées ; ce n'est pas une règle `ask`, et cela ne tient ni en mode bypass ni face à un `allow` de l'utilisateur. Une ligne distincte sous `agent-profiles` et `github` cite `.claude/hooks/read-only-bash.mjs`, appelé par `profile-guard.mjs`, qui les refuse aux profils sauf `developer` (shell non borné).
+  - Qui écrit ne relit pas : consigne seulement.
+  - La règle « ne jamais partager un clone entre Windows et WSL » n'est pas dans `CLAUDE.md` : hors table.
+- **D6. Test de la table.** Chaque ligne de la table : la dernière cellule contient « consigne seulement » ou au moins un chemin de fichier entre accents graves ; tous les chemins cités (contenant `/` ou une extension) existent dans le projet généré. Sens inverse : le début de chaque puce de `## Règles` figure dans la colonne « règle » de la table. La section est absente quand aucune ligne n'est active (sections et lignes conditionnées aux modules). Libellé anglais : « instruction only ».
+- **D7. Commandes OpenSpec.** Dans les étapes, sous `openspec` : `/opsx:explore` (avant un changement, en dialogue ; ne décide rien et ne code pas ; débouche sur une issue, un ADR ou `/opsx:propose`), `/opsx:update` (révise les artefacts de planification, jamais le code), `/opsx:sync` (reporte les deltas de specs vers les specs en vigueur sans archiver), `skip_specs: true` dans le `.openspec.yaml` du changement (aucun delta de spec, pour la documentation et l'outillage). La phrase `/opsx:*` du bloc `cli-local` de « Nouveau poste » n'est pas concernée par le scénario « Sans openspec » (qui vise les quatre mentions nommées).
+- **D8. Convention.** Toute nouvelle règle de `CLAUDE.md` doit recevoir sa ligne de table : un test la fait respecter, et `pitfalls.md` le consigne. Pas d'ADR : c'est une convention de documentation du plugin, vérifiée par un test, sans choix technologique ni contrainte transverse nouvelle.
+
+## Risques
+
+- La table dérive des gardes réels : le test vérifie l'existence des fichiers cités, pas leur effet ; une revue reste nécessaire quand une règle, un hook ou la table `PROFILES` change.
+- « consigne seulement » devient faux si un garde-fou est ajouté : à mettre à jour avec lui.

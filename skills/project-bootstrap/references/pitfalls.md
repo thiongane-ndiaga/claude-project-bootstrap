@@ -135,3 +135,9 @@ Constatés lors de la mise en place de référence (Claude Code 2.1.31x, OpenSpe
 - `compliance-reviewer` est un modèle qui relit des documents : ses constats sont des alertes à faire confirmer, pas un avis juridique. Le plugin ne porte aucune liste d'exigences par domaine.
 - `devops-engineer` et `traceability-checker` se recouvrent jusqu'à #110 : la traçabilité issue, changement, PR et ADR reste à `traceability-checker`, `devops-engineer` lit la CI, les PR et les releases. Sans le module `github`, `devops-engineer` se réduit à l'historique local. Le shell du hook refuse les guillemets, les tubes, `$`, `*` et `%` : les commandes des modèles n'en contiennent pas (un test les vérifie contre le hook), ce qui exclut `--jq`, `--search` et `--format`.
 - Retirer `regulatedDomain` alors que `compliance-reviewer` est hérité du manifeste échoue : passer aussi `profiles` sans ce profil.
+
+## Document de workflow (#38)
+- `docs/workflow.md` contient une table « Double encodage » : une ligne par puce de `## Règles` du `CLAUDE.md` généré, avec son garde-fou ou « consigne seulement ». Ajouter une règle à `CLAUDE.md` sans sa ligne fait échouer le test ; ajouter un garde-fou à une règle « consigne seulement » oblige à corriger la ligne. Le test vérifie que les fichiers cités existent, pas qu'ils protègent.
+- La table « Qui fait quoi » reprend à la main les droits de la table `PROFILES` de `profile-guard.mjs` : la modifier avec elle.
+- Sans `agent-profiles`, les agents fixes (`spec-reviewer`, `traceability-checker`, `arc42-keeper`, `architecture-explorer`) ne sont décrits nulle part dans `workflow.md`.
+- `docs/workflow.md` de ce dépôt n'est pas régénéré par ce changement : il n'a pas le module `agent-profiles` et se met à jour avec `--update` lors d'une adoption.

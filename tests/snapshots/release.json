@@ -14,7 +14,7 @@
   ".gitignore": "bbb7a6669f4e6557474827de0d4e0bb38586aea32f0a639aeb9f82a7cec7e717",
   ".release-please-manifest.json": "b9c66e0126774ab9fa34536f15972438356e7035724a2c0f0ca3b125967e6399",
   "CLAUDE.md": "5a9426db7637b5efb7e00b77b4c42cfc88fb92dc5cb54c674304855f64e8e068",
-  "docs/workflow.md": "7166941cc8a3a35ae25aff1be0fc58852a776b01e80ac58dcf9654792f2b11e1",
+  "docs/workflow.md": "b7f7410a0c296a5e476e71b6c7260609c58496e03bac0c962f99fb1007874f37",
   "release-please-config.json": "c4a900e93d479b4264ac754c5925c6a699cb08272b864af8d0bc0986f27a8e27",
   "scripts/check-pr-title.mjs": "6bd4d1a35fc2ad9c483c7ae09361b8061d8c3681e4c744528e219f9f2f61c401",
   "scripts/sync-labels.mjs": "fec29054527bad66276014e15548ce0913ee9e923d14a30881f2b4a3d73e33b6"
