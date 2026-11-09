@@ -1,7 +1,7 @@
 # workflow-document Specification
 
 ## Purpose
-TBD - created by archiving change 38-workflow-who-does-what. Update Purpose after archive.
+Définir le contenu du `docs/workflow.md` généré au-delà de l'ordre des étapes : qui fait quoi, échelle d'arbitrage, journal des décisions, table de double encodage des règles et commandes OpenSpec.
 
 ## Requirements
 
