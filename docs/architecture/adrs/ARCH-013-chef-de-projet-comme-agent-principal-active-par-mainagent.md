@@ -40,7 +40,7 @@ Le module `agent-profiles` (ARCH-011, ARCH-012) génère des profils bornés. Le
 ### Don't
 
 - Ne pas déclarer `conflicts` entre `agent-profiles` et `archgate-plugin`.
-- Ne pas compter sur le hook de bornage pour les outils MCP d'écriture ni pour les skills `context: fork` de `project-lead`.
+- Ne pas ajouter un outil MCP d'écriture à `mcpAllow` sans l'accord de l'utilisateur.
 - Ne pas recopier dans `project-lead` la validation ni la rédaction d'ADR d'Archgate : elles appartiennent aux profils.
 
 ## Consequences
@@ -52,7 +52,7 @@ Le module `agent-profiles` (ARCH-011, ARCH-012) génère des profils bornés. Le
 
 ### Negative
 
-- Le hook borne `project-lead` ; les outils MCP d'écriture et les skills `context: fork` y échappent, et la liste de commandes de pilotage peut refuser une commande utile, qu'il faut alors déléguer à `developer` ou demander à l'utilisateur.
+- Le hook borne `project-lead` ; un outil MCP d'écriture au nom de lecture et un skill `context: fork` introuvable y échappent, et la liste de commandes de pilotage peut refuser une commande utile, qu'il faut alors déléguer à `developer` ou demander à l'utilisateur.
 
 ### Risks
 

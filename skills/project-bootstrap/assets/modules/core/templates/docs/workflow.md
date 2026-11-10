@@ -223,6 +223,7 @@ Une règle écrite dans `CLAUDE.md` n'est une consigne que tant que rien ne l'em
 @@module:github
 | Un profil sans shell libre ne lance aucune commande `gh` d'écriture. | `.claude/hooks/read-only-bash.mjs`, appelé par `.claude/hooks/profile-guard.mjs` (sauf `developer`, au shell non borné, et `project-lead`, dont les commandes `gh issue` et `gh pr` d'écriture sont bornées par le hook) |
 @@end
+| Un profil n'appelle qu'un outil MCP de lecture (ou listé dans `mcpAllow`) et aucun skill à `context: fork`. | `.claude/hooks/profile-guard.mjs` (entrée `mcp__.*`) |
 | Qui écrit ne relit pas : ce qu'écrivent les autres profils est relu par `qa-engineer`. | consigne seulement |
 | `project-lead` ne produit ni code ni spec. | `.claude/agents/project-lead.md` (`disallowedTools`), `.claude/hooks/profile-guard.mjs` (écritures et shell) et consigne |
 @@end

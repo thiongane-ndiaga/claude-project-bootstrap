@@ -60,6 +60,20 @@ Dépôt d'essai généré avec les modules `claude`, `agent-profiles`, `agent-te
 | `project-lead` écrit-il par le shell depuis #141 ? | **Non.** `echo x > a.txt` est refusé (« Profil project-lead : Agent en lecture seule : commande refusée (caractère non autorisé) … Délègue cette commande à developer ou demande-la à l'utilisateur. »), `a.txt` est absent du disque |
 | Un agent lancé par un teammate porte-t-il son propre `agent_type` ? | **Non essayé**, pour la même raison |
 
+## Outils MCP et skills à contexte isolé (#143)
+
+Claude Code 2.1.322, `claude -p`, dépôt d'essai généré avec `agent-profiles` et `mainAgent`, hook-espion `PreToolUse` en plus du hook du plugin.
+
+| Question | Constat |
+|---|---|
+| Un hook au matcher `mcp__.*` se déclenche-t-il pour un outil MCP de l'agent principal ? | **Oui.** `agent_type: "project-lead"`, `tool_name: "mcp__plugin_github_github__issue_write"`. Le refus du hook (code 2) est restitué à Claude |
+| Le hook du plugin refuse-t-il un outil MCP d'écriture et permet-il un outil de lecture ? | **Oui.** `issue_write` est refusé (« Profil project-lead : outil MCP « mcp__plugin_github_github__issue_write » non classé en lecture : demande-le à l'utilisateur ou ajoute-le à mcpAllow de .claude/hooks/profile-guard.mjs ; pour GitHub, utilise gh issue ou gh pr ») ; `get_me` passe le hook (le refus constaté vient de la permission de l'outil, non accordée en `claude -p`) |
+| Un profil à liste `tools` reçoit-il des outils MCP ? | **Non** : `architect` n'a pas `add_issue_comment` ; seul `project-lead`, qui déclare `disallowedTools`, reçoit ceux de la session |
+| Quel `agent_type` portent les outils d'un skill `context: fork` ? | **`general-purpose`**, avec un `agent_id` : hors de la table, donc non bornés (constaté avant le correctif, skill de projet lancé par `project-lead`) |
+| Le hook refuse-t-il un skill de projet `context: fork` ? | **Oui**, avec ou sans `/` initial (« skill « forky » à contexte isolé (context: fork) refusé : ses outils échapperaient à la table ») ; un skill ordinaire est permis |
+| Le matcher à deux entrées déclenche-t-il le hook sur d'autres outils (`TodoWrite`, `Task*`) ? | **Non constaté** : ces outils n'existent pas dans la session d'essai |
+| `agent_type` des outils d'un skill `context: fork` avec `agent: developer` ou `agent: Explore` ? | **Non constaté** |
+
 ## Agent principal project-lead (#35)
 
 Claude Code 2.1.316, plugin Archgate 0.18.0 chargé par `--plugin-dir`, `claude -p`.

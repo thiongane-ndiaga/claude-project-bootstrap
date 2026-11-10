@@ -24,8 +24,13 @@ for (const [dir, file] of [["agent-profiles", "profile-guard.mjs"], ["claude", "
 }
 const guard = path.join(project, ".claude", "hooks", "profile-guard.mjs");
 
+// configuration utilisateur factice : le hook ne lit jamais la vraie (skills et plugins)
+const config = path.join(path.dirname(project), "config-utilisateur");
+mkdirSync(config, { recursive: true });
+const env = { ...process.env, CLAUDE_PROJECT_DIR: project, CLAUDE_CONFIG_DIR: config, HOME: path.dirname(config), USERPROFILE: path.dirname(config) };
+
 const run = (event) => {
-  const res = spawnSync(process.execPath, [guard], { input: JSON.stringify({ cwd: project, ...event }), encoding: "utf8", env: { ...process.env, CLAUDE_PROJECT_DIR: project } });
+  const res = spawnSync(process.execPath, [guard], { input: JSON.stringify({ cwd: project, ...event }), encoding: "utf8", env });
   return { code: res.status, err: res.stderr };
 };
 const write = (agent, file, tool = "Write") => run({ agent_type: agent, tool_name: tool, tool_input: { file_path: file } });
@@ -213,6 +218,81 @@ check("project-lead : nom absent, différent du type, ou second-opinion en teamm
 check("project-lead : l'outil Task est borné comme Agent", run({ agent_type: "project-lead", tool_name: "Task", tool_input: { subagent_type: "developer" } }).code === 0 && run({ agent_type: "project-lead", tool_name: "Task", tool_input: { subagent_type: "general-purpose" } }).code === 2);
 check("project-lead : skills non bornés, les autres profils restent bornés", skill("project-lead", "archgate:lessons-learned").code === 0 && skill("project-lead", "opsx:explore").code === 0 && skill("qa-engineer", "archgate:lessons-learned").code === 2 && skill("developer", "opsx:explore").code === 2);
 check("un profil sans namedAgents refuse toujours un agent nommé", launch("architect", { subagent_type: "architect", name: "architect" }).code === 2 && launch("developer", { subagent_type: "architect", name: "architect" }).code === 2);
+
+// outils MCP (#143) : classement par le nom, défaut fermé
+const mcp = (agent, tool) => run({ agent_type: agent, tool_name: tool, tool_input: {} });
+check("MCP : outils de lecture permis", ["mcp__plugin_github_github__get_file_contents", "mcp__plugin_github_github__issue_read", "mcp__plugin_github_github__list_issues", "mcp__plugin_github_github__search_code", "mcp__claude_ai_Claude_Docs__read", "mcp__plugin_github_github__pull_request_read", "mcp__x__get"].every((t) => mcp("project-lead", t).code === 0));
+check("MCP : outils d'écriture refusés", ["mcp__plugin_github_github__issue_write", "mcp__plugin_github_github__merge_pull_request", "mcp__plugin_github_github__create_pull_request", "mcp__claude-in-chrome__navigate", "mcp__claude-in-chrome__computer"].every((t) => mcp("project-lead", t).code === 2));
+check("MCP : préfixes et suffixes de lecture trompeurs refusés", ["mcp__plugin_github_github__mark_all_notifications_read", "mcp__docs__find_and_replace", "mcp__x__get_or_create_label", "mcp__sql__run_query", "mcp__sql__query", "mcp__x__getaway_x", "mcp__x__checkout_branch", "mcp__x__listen_x", "mcp__x__readwrite_x", "mcp__x__search_and_replace"].every((t) => mcp("project-lead", t).code === 2));
+check("MCP : nom mal formé ou serveur à double soulignement", ["mcp__x__", "mcp__x", "mcp__", "mcp__x__list__create_item", "mcp__x__Get_issue"].every((t) => mcp("project-lead", t).code === 2) && mcp("project-lead", "mcp__a__b__get_thing").code === 0);
+{
+  const refused = mcp("project-lead", "mcp__plugin_github_github__issue_write");
+  check("MCP : le refus nomme l'outil, mcpAllow, l'utilisateur et gh issue", /issue_write/.test(refused.err) && /mcpAllow/.test(refused.err) && /utilisateur/.test(refused.err) && /gh issue/.test(refused.err) && !/gh issue/.test(mcp("project-lead", "mcp__claude-in-chrome__navigate").err), refused.err);
+}
+check("MCP : tous les profils de la table sont bornés, les agents hors table ne le sont pas", ["architect", "qa-engineer", "developer", "business-analyst", "scout"].every((a) => mcp(a, "mcp__x__send_message").code === 2 && mcp(a, "mcp__x__get_thing").code === 0) && mcp("writer", "mcp__x__send_message").code === 0 && run({ tool_name: "mcp__x__send_message", tool_input: {} }).code === 0);
+{
+  const copy = path.join(project, ".claude", "hooks", "profile-guard-mcp.mjs");
+  writeFileSync(copy, readFileSync(guard, "utf8").replace("mcpAllow: [],", 'mcpAllow: ["mcp__serveur__publish"],'));
+  const viaCopy = (agent, tool) => spawnSync(process.execPath, [copy], { input: JSON.stringify({ cwd: project, agent_type: agent, tool_name: tool, tool_input: {} }), encoding: "utf8", env }).status;
+  check("mcpAllow : l'outil listé est permis à l'entrée qui le porte seulement", viaCopy("project-lead", "mcp__serveur__publish") === 0 && viaCopy("project-lead", "mcp__serveur__delete") === 2 && viaCopy("architect", "mcp__serveur__publish") === 2);
+}
+
+// skills à contexte isolé (#143)
+const header = (lines, eol = "\n", bom = "") => bom + ["---", ...lines, "---", "", "Corps."].join(eol) + eol;
+const putSkill = (file, text) => {
+  mkdirSync(path.dirname(file), { recursive: true });
+  writeFileSync(file, text);
+};
+putSkill(path.join(project, ".claude", "skills", "forky", "SKILL.md"), header(["name: forky", "context: fork"]));
+putSkill(path.join(project, ".claude", "skills", "calme", "SKILL.md"), header(["name: calme", "description: x"]));
+putSkill(path.join(project, ".claude", "skills", "guillemets", "SKILL.md"), header(["name: guillemets", 'context: "fork"']));
+putSkill(path.join(project, ".claude", "skills", "commentaire", "SKILL.md"), header(["name: commentaire", "context: fork   # contexte isolé"]));
+putSkill(path.join(project, ".claude", "skills", "crlf", "SKILL.md"), header(["name: crlf", "context: fork"], "\r\n"));
+putSkill(path.join(project, ".claude", "skills", "bom", "SKILL.md"), header(["name: bom", "context: fork"], "\n", "﻿"));
+putSkill(path.join(project, ".claude", "skills", "autre-contexte", "SKILL.md"), header(["name: autre-contexte", "context: inline"]));
+putSkill(path.join(project, ".claude", "commands", "opsx", "isole.md"), header(["description: x", "context: fork"]));
+putSkill(path.join(project, ".claude", "commands", "commande-isolee.md"), header(["description: x", "context: fork"]));
+putSkill(path.join(config, "skills", "utilisateur", "SKILL.md"), header(["name: utilisateur", "context: fork"]));
+putSkill(path.join(config, "commands", "cmd-utilisateur.md"), header(["description: x", "context: fork"]));
+{
+  const installed = path.join(config, "plugins", "cache", "marche", "p", "1.0.0");
+  putSkill(path.join(installed, "skills", "forky", "SKILL.md"), header(["name: forky", "context: fork"]));
+  putSkill(path.join(installed, "skills", "calme", "SKILL.md"), header(["name: calme"]));
+  putSkill(path.join(installed, "commands", "cmd.md"), header(["description: x", "context: fork"]));
+  writeFileSync(path.join(config, "plugins", "installed_plugins.json"), JSON.stringify({ version: 2, plugins: { "p@marche": [{ installPath: installed }], "q@marche": [{ installPath: path.join(config, "plugins", "cache", "marche", "q", "2.0.0") }] } }));
+  putSkill(path.join(config, "plugins", "cache", "marche", "q", "2.0.0", "skills", "isole", "SKILL.md"), header(["name: isole", "context: fork"]));
+  // plugin absent du registre, présent dans le cache : repli sur le cache
+  putSkill(path.join(config, "plugins", "cache", "marche", "r", "0.1.0", "commands", "cache.md"), header(["description: x", "context: fork"]));
+}
+const refusedSkill = skill("project-lead", "forky");
+check("skills isolés : skill de projet refusé, message nommant le skill", refusedSkill.code === 2 && /forky/.test(refusedSkill.err) && /context: fork/.test(refusedSkill.err), refusedSkill.err);
+check("skills isolés : variantes d'écriture de l'en-tête refusées (guillemets, commentaire, CRLF, BOM)", ["guillemets", "commentaire", "crlf", "bom"].every((n) => skill("project-lead", n).code === 2));
+check("skills isolés : nom avec / initial ou blancs évalué comme le nom nu", skill("project-lead", "/forky").code === 2 && skill("project-lead", " forky ").code === 2 && skill("project-lead", "/calme").code === 0);
+check("skills isolés : commandes de projet et d'utilisateur, skill d'utilisateur", skill("project-lead", "commande-isolee").code === 2 && skill("project-lead", "opsx:isole").code === 2 && skill("project-lead", "utilisateur").code === 2 && skill("project-lead", "cmd-utilisateur").code === 2);
+check("skills isolés : plugin du registre (skill et commande), plugin du cache seul", skill("project-lead", "p:forky").code === 2 && skill("project-lead", "p:cmd").code === 2 && skill("project-lead", "q:isole").code === 2 && skill("project-lead", "r:cache").code === 2);
+check("skills non isolés, introuvables ou context autre : permis", ["calme", "autre-contexte", "introuvable", "p:calme", "p:introuvable", "inconnu:x", "opsx:explore"].every((n) => skill("project-lead", n).code === 0));
+check("skills isolés : nom piégé refusé", ["../x", "..", "", "   ", "a/b", "a:b:c", ":x", "x:", "a b", "a;b", ".."].every((n) => skill("project-lead", n).code === 2));
+check("skills isolés : un profil à liste est contrôlé aussi, ses skills ordinaires passent", (() => {
+  putSkill(path.join(project, ".claude", "skills", "spec-review", "SKILL.md"), header(["name: spec-review", "context: fork"]));
+  const refused = skill("qa-engineer", "spec-review").code === 2;
+  rmSync(path.join(project, ".claude", "skills", "spec-review"), { recursive: true });
+  return refused && skill("qa-engineer", "spec-review").code === 0 && skill("qa-engineer", "forky").code === 2;
+})());
+check("skills isolés : agent hors de la table non borné", skill("writer", "forky").code === 0);
+check("skills isolés : registre des plugins illisible, racine inconnue : refus", (() => {
+  const registry = path.join(config, "plugins", "installed_plugins.json");
+  const saved = readFileSync(registry, "utf8");
+  writeFileSync(registry, "{pas du json");
+  const broken = skill("project-lead", "p:calme").code === 2;
+  writeFileSync(registry, saved);
+  const noRoot = spawnSync(process.execPath, [guard], { input: JSON.stringify({ agent_type: "project-lead", tool_name: "Skill", tool_input: { skill: "calme" } }), encoding: "utf8", env: { ...env, CLAUDE_PROJECT_DIR: "" } }).status === 2;
+  return broken && noRoot;
+})());
+check("skills isolés : fichier de skill présent mais illisible : refus", (() => {
+  const dir = path.join(project, ".claude", "skills", "dossier-pas-fichier");
+  mkdirSync(path.join(dir, "SKILL.md"), { recursive: true });
+  return skill("project-lead", "dossier-pas-fichier").code === 2;
+})());
 
 // lecture seule absente : refus par défaut
 rmSync(path.join(project, ".claude", "hooks", "read-only-bash.mjs"));
