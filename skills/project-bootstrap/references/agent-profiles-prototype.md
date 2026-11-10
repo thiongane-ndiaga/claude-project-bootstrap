@@ -44,6 +44,21 @@ Claude Code 2.1.316, `claude -p` avec `--agents` et `--settings` (aucun réglage
 
 Conséquence : l'allowlist est celle de la table du hook (ARCH-011), pas `Agent(<types>)`.
 
+## Essai en équipe des outils Agent et Skill (#114)
+
+Dépôt d'essai généré avec les modules `claude`, `agent-profiles`, `agent-teams`, `openspec`, `arc42`, `mainAgent: "project-lead"` et un hook-espion `PreToolUse` journalisant `agent_type`, `agent_id` et l'entrée de l'outil. Session interactive, Claude Code 2.1.322 (2026-11-10), teammates lancés par l'outil `Agent` avec `name` (aucun outil de création d'équipe n'existe à cette version) ; `disallowedTools` essayé en `claude -p`, Claude Code 2.1.318.
+
+| Question | Constat |
+|---|---|
+| Un hook `PreToolUse` se déclenche-t-il sur l'outil `Agent` appelé par l'agent principal ? | **Oui.** Entrée : `agent_type: "project-lead"`, `tool_input.subagent_type`, `tool_input.name`. `project-lead`, agent principal par le réglage `agent`, porte donc un `agent_type`, contrairement à ce que ARCH-013 supposait |
+| Le hook se déclenche-t-il sur l'outil `Skill` appelé par un teammate ? | **Oui.** `agent_type` vaut le nom du teammate (`architect`, `qa-engineer`), `agent_id` est de la forme `a<nom>-<hex>`, `tool_input.skill` porte le nom du skill |
+| La table borne-t-elle les skills d'un teammate ? | **Oui.** `architect` : `arc42-update` accepté, `spec-review` refusé (« Profil architect : skill « spec-review » non permis ») ; `qa-engineer` : `spec-review` accepté |
+| Un teammate voit-il les skills de projet ? | **Oui** pour un skill dont le module est actif. Un skill absent du projet répond `Unknown skill` |
+| `disallowedTools` s'applique-t-il à l'agent principal ? | **Oui.** `Write` et `Edit` absents de la liste d'outils de `project-lead`, aucun fichier créé, et il refuse de passer par `Bash` sur consigne |
+| Un teammate lance-t-il l'outil `Agent` ? | **Non essayé** : `architect`, `qa-engineer` et `developer` n'ont pas l'outil `Agent`. Seul `project-lead` lance des agents |
+| `project-lead` lance-t-il `general-purpose` ? | **Oui**, sans refus : il n'est pas dans la table. Le hook a tracé l'appel avec `agent_type: "project-lead"` |
+| Un agent lancé par un teammate porte-t-il son propre `agent_type` ? | **Non essayé**, pour la même raison |
+
 ## Agent principal project-lead (#35)
 
 Claude Code 2.1.316, plugin Archgate 0.18.0 chargé par `--plugin-dir`, `claude -p`.

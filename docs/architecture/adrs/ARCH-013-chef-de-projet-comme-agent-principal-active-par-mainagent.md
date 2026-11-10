@@ -18,11 +18,12 @@ Le module `agent-profiles` (ARCH-011, ARCH-012) génère des profils bornés. Le
 
 - le prompt d'un agent principal personnalisé remplace le prompt système : sans consigne de délégation écrite, un profil qui a les outils d'écriture écrit lui-même ;
 - le plugin Archgate pose `"agent": "archgate:developer"` comme réglage par défaut de plugin dans son `settings.json`, et le réglage `agent` du `.claude/settings.json` du projet l'emporte ;
-- l'entrée d'un hook ne porte pas d'`agent_type` pour l'agent principal, qui n'est donc pas borné par la table de ARCH-011.
+- l'entrée d'un hook porte `agent_type: "project-lead"` pour l'agent principal défini par le réglage `agent` (essai de #114, Claude Code 2.1.322) : la table de ARCH-011 pourrait le borner, elle ne le fait pas (décision 1) ;
+- `disallowedTools` retire `Write` et `Edit` de la liste d'outils de l'agent principal (essai de #114, Claude Code 2.1.318).
 
 ## Decision
 
-1. **`project-lead.md` est toujours généré** avec `agent-profiles`, en français et en anglais. Il n'est pas dans la table `PROFILES` : l'agent principal reste sous le contrôle de l'utilisateur, et ses garde-fous (délégation, arbitrage, accord pour les écritures visibles) sont dans son prompt, donc des consignes et non des mécanismes.
+1. **`project-lead.md` est toujours généré** avec `agent-profiles`, en français et en anglais. Il n'est pas dans la table `PROFILES` : l'agent principal reste sous le contrôle de l'utilisateur, et ses garde-fous hors `disallowedTools` (délégation, arbitrage, accord pour les écritures visibles) sont dans son prompt, donc des consignes et non des mécanismes.
 2. **Activation par `mainAgent`** : la clé facultative vaut `"project-lead"` (seule valeur). Présente, `settings.json` reçoit `"agent": "project-lead"` ; absente, aucune clé `agent`. `null` la désactive (ni héritée ni consignée). Elle est consignée au manifeste quand elle est présente, héritée par `--update`, refusée sans `agent-profiles`. Un `agent` déjà déclaré par le projet est conservé (ARCH-006) et signalé par le rapport et l'audit.
 3. **Pas de conflit avec `archgate-plugin`** : le réglage de projet l'emporte sur celui du plugin ; aucun champ `conflicts`.
 4. **Orchestrateur** : `project-lead` ne produit ni code ni spec. Il délègue à `architect`, `qa-engineer` et `developer`, toujours générés, et à `business-analyst` pour les specs quand il existe (sinon `developer`). Il lance `openspec archive <id> --yes`, les specs vivantes étant interdites à `developer`. `disallowedTools` refuse `Write`, `Edit`, `MultiEdit` et `NotebookEdit` (une liste `tools` retirerait aussi les outils d'équipe), et son corps le dit. `qa-engineer` relit tout.
