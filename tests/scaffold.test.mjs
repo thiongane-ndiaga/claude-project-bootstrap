@@ -1698,7 +1698,7 @@ for (const dirName of ["templates", "templates.en"]) {
   check("agent-profiles : architect et qa-engineer disposent de Write et Edit (bornés par le hook)", ["architect", "qa-engineer"].every((n) => ["Write", "Edit"].every((t) => tools(txt(r, `.claude/agents/${n}.md`)).includes(t))));
   const settings = JSON.parse(txt(r, ".claude/settings.json"));
   const pre = settings.hooks?.PreToolUse ?? [];
-  check("agent-profiles : settings.json déclare le hook PreToolUse de profile-guard.mjs, sans clé agent", pre.length === 1 && pre[0].matcher === "Write|Edit|MultiEdit|NotebookEdit|Bash|PowerShell|Agent|Task|Skill" && pre[0].hooks[0].command === "node" && /profile-guard\.mjs$/.test(pre[0].hooks[0].args[0]) && settings.agent === undefined, JSON.stringify(pre));
+  check("agent-profiles : settings.json déclare le hook PreToolUse de profile-guard.mjs, sans clé agent", pre.length === 2 && pre[0].matcher === "Write|Edit|MultiEdit|NotebookEdit|Bash|PowerShell|Agent|Task|Skill" && pre[1].matcher === "mcp__.*" && pre.every((e) => e.hooks[0].command === "node" && /profile-guard\.mjs$/.test(e.hooks[0].args[0])) && settings.agent === undefined, JSON.stringify(pre));
   check("agent-profiles : read-only-bash.mjs présent (le hook y délègue)", existsSync(path.join(r.out, ".claude/hooks/read-only-bash.mjs")));
   const q = txt(r, ".claude/agents/qa-engineer.md");
   const a = txt(r, ".claude/agents/architect.md");
@@ -1904,6 +1904,35 @@ const d = mkdtempSync(path.join(tmpdir(), "pb-sonde-")); writeFileSync(path.join
   writeFileSync(mpath, JSON.stringify(mf, null, 2));
   const inh = run({ ...base, visibility: "private", modules: full }, ["--update"], old.out);
   check("developer hérité d'un manifeste : avertissement, manifeste sans developer, developer.md conservé", inh.res.status === 0 && (inh.report?.warnings ?? []).some((w) => /profiles contient developer/.test(w)) && JSON.parse(readFileSync(mpath, "utf8")).config.profiles.join() === "scout" && has(old, ".claude/agents/developer.md"), inh.res.stderr);
+
+  // projet dont settings.json ne porte que la première entrée PreToolUse (généré avant l'entrée mcp__.*) : --update ajoute la seconde, la première reste identique, les hooks du projet subsistent
+  {
+    // un projet généré avant l'entrée mcp__.* : base et manifeste portent la version à une seule entrée
+    const oldProject = (withHook) => {
+      const proj = gen(full);
+      const sp = path.join(proj.out, ".claude", "settings.json");
+      const generated = JSON.parse(readFileSync(sp, "utf8"));
+      const first = generated.hooks.PreToolUse[0];
+      const old = structuredClone(generated);
+      old.hooks.PreToolUse = [first];
+      const oldText = JSON.stringify(old, null, 2) + "\n";
+      writeFileSync(path.join(proj.out, ".bootstrap", "base", ".claude", "settings.json.base"), oldText);
+      const mp = path.join(proj.out, ".bootstrap", "manifest.json");
+      const man = JSON.parse(readFileSync(mp, "utf8"));
+      man.files[".claude/settings.json"].generated = createHash("sha256").update(oldText).digest("hex");
+      man.files[".claude/settings.json"].sha256 = man.files[".claude/settings.json"].generated;
+      writeFileSync(mp, JSON.stringify(man, null, 2));
+      const current = structuredClone(old);
+      if (withHook) current.hooks.PreToolUse.push({ matcher: "Bash", hooks: [{ type: "command", command: "node", args: ["hook-du-projet.mjs"] }] });
+      writeFileSync(sp, JSON.stringify(current, null, 2) + "\n");
+      const upd = run({ ...base, visibility: "private", modules: full }, ["--update"], proj.out);
+      return { upd, first, after: JSON.parse(readFileSync(sp, "utf8")).hooks.PreToolUse };
+    };
+    const plain = oldProject(false);
+    check("--update d'un settings.json à une entrée PreToolUse : la seconde entrée mcp__.* est ajoutée, la première reste identique", plain.upd.res.status === 0 && plain.after.length === 2 && JSON.stringify(plain.after[0]) === JSON.stringify(plain.first) && plain.after[1].matcher === "mcp__.*", JSON.stringify(plain.after).slice(0, 400));
+    const custom = oldProject(true);
+    check("--update d'un settings.json à une entrée et un hook du projet : hook du projet conservé, entrée mcp__.* ajoutée une seule fois", custom.upd.res.status === 0 && JSON.stringify(custom.after[0]) === JSON.stringify(custom.first) && custom.after.some((e) => e.hooks[0].args[0] === "hook-du-projet.mjs") && custom.after.filter((e) => e.matcher === "mcp__.*").length === 1, JSON.stringify(custom.after).slice(0, 500));
+  }
 
   // projet généré avant ce changement : --update ajoute developer.md et les skills, ne retire rien d'agent-profiles ; profil modifié et fichier hors manifeste
   const prev = gen(full);

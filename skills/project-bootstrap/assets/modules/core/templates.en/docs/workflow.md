@@ -223,6 +223,7 @@ A rule written in `CLAUDE.md` is only an instruction as long as nothing prevents
 @@module:github
 | A profile without a free shell runs no writing `gh` command. | `.claude/hooks/read-only-bash.mjs`, called by `.claude/hooks/profile-guard.mjs` (except `developer`, whose shell is not bounded, and `project-lead`, whose writing `gh issue` and `gh pr` commands the hook bounds) |
 @@end
+| A profile calls only a read MCP tool (or one listed in `mcpAllow`) and no `context: fork` skill. | `.claude/hooks/profile-guard.mjs` (`mcp__.*` entry) |
 | Whoever writes does not review: what the other profiles write is reviewed by `qa-engineer`. | instruction only |
 | `project-lead` produces neither code nor specs. | `.claude/agents/project-lead.md` (`disallowedTools`), `.claude/hooks/profile-guard.mjs` (writes and shell) and instruction |
 @@end

@@ -3,7 +3,8 @@
 // Sous-agent : agent_type est le nom du profil. Teammate : agent_type est le nom du teammate, qui doit porter celui de son profil.
 // Un agent absent de PROFILES (session sans réglage `agent`, autre agent) n'est pas borné. Sortie 2 = refus (stderr renvoyé à Claude).
 import { spawnSync } from "node:child_process";
-import { existsSync, realpathSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -50,6 +51,58 @@ function ghPilot(command) {
     previous = token;
   }
   return true;
+}
+
+// Outils MCP : permis à un profil de la table si la partie finale du nom (après le dernier « __ ») est un nom de lecture sans mot d'écriture,
+// ou si le nom complet figure dans mcpAllow de l'entrée. Défaut fermé : un outil de lecture au nom inhabituel s'ajoute à mcpAllow.
+// Skills à contexte isolé : leurs outils portent agent_type « general-purpose », hors de la table. Le hook refuse un skill dont l'en-tête déclare
+// « context: fork » (projet, configuration de l'utilisateur, plugins installés). Introuvable : permis ; fichier présent mais illisible : refus.
+const MCP_READ_START = /^(get|list|search|read|find|fetch|view|describe|show|check)(_|$)/;
+const MCP_READ_END = /_(read|get|list|search)$/;
+const WRITE_WORDS = new Set(["create", "update", "delete", "remove", "write", "set", "add", "edit", "modify", "replace", "insert", "send", "post", "put", "patch", "merge", "mark", "move", "upload", "publish", "run", "exec", "execute", "mutate", "mutation", "trigger", "cancel", "dismiss", "assign", "approve", "apply", "commit", "push", "or", "query"]);
+function mcpRead(tool) {
+  const cut = tool.lastIndexOf("__");
+  const name = cut >= 6 ? tool.slice(cut + 2) : "";
+  if (!name || name.split("_").some((word) => WRITE_WORDS.has(word.toLowerCase()))) return false;
+  return MCP_READ_START.test(name) || MCP_READ_END.test(name);
+}
+
+const SKILL_NAME = /^[\w-][\w.-]*(:[\w-][\w.-]*)?$/;
+const FORK = /^context:\s*["']?fork["']?\s*(#.*)?$/m;
+function declaresFork(file) {
+  if (!existsSync(file)) return false;
+  const head = /^\uFEFF?---\r?\n([\s\S]*?)\r?\n---/.exec(readFileSync(file, "utf8"));
+  return head ? FORK.test(head[1]) : false;
+}
+function pluginDirs(plugin, config) {
+  const dirs = new Set();
+  const registry = path.join(config, "plugins", "installed_plugins.json");
+  if (existsSync(registry)) {
+    for (const [key, installs] of Object.entries(JSON.parse(readFileSync(registry, "utf8")).plugins ?? {})) {
+      if (key.split("@")[0] === plugin) for (const install of installs) if (install?.installPath) dirs.add(install.installPath);
+    }
+  }
+  const cache = path.join(config, "plugins", "cache");
+  if (existsSync(cache)) {
+    for (const market of readdirSync(cache)) {
+      const dir = path.join(cache, market, plugin);
+      if (existsSync(dir)) for (const version of readdirSync(dir)) dirs.add(path.join(dir, version));
+    }
+  }
+  return [...dirs];
+}
+function forkedSkill(name, root) {
+  const config = process.env.CLAUDE_CONFIG_DIR ?? path.join(os.homedir(), ".claude");
+  const [first, second] = name.split(":");
+  const files =
+    second === undefined
+      ? [path.join(root, ".claude", "skills", first, "SKILL.md"), path.join(root, ".claude", "commands", first + ".md"), path.join(config, "skills", first, "SKILL.md"), path.join(config, "commands", first + ".md")]
+      : [
+          path.join(root, ".claude", "commands", first, second + ".md"),
+          path.join(config, "commands", first, second + ".md"),
+          ...pluginDirs(first, config).flatMap((dir) => [path.join(dir, "skills", second, "SKILL.md"), path.join(dir, "commands", second + ".md")]),
+        ];
+  return files.some(declaresFork);
 }
 
 const QUALITY_GATE = /^node \.claude[\\/]hooks[\\/]quality-gate\.mjs$/;
@@ -100,6 +153,7 @@ const PROFILES = {
     namedAgents: ["architect", "qa-engineer", "developer", "business-analyst", "product-owner", "acceptance-tester", "scout", "devops-engineer", "compliance-reviewer"],
     skills: [],
     skillsOpen: true,
+    mcpAllow: [],
   },
 };
 
@@ -164,6 +218,14 @@ try {
   } else if (event.tool_name === "Skill") {
     const skill = String(toolInput.skill ?? "");
     if (!profile.skillsOpen && !(profile.skills ?? []).includes(skill)) deny(`skill « ${skill} » non permis`);
+    const name = skill.trim().replace(/^\//, "");
+    if (!SKILL_NAME.test(name)) deny(`nom de skill invalide « ${skill} »`);
+    const projectRoot = process.env.CLAUDE_PROJECT_DIR ?? event.cwd;
+    if (!projectRoot) deny("racine du projet inconnue");
+    if (forkedSkill(name, projectRoot)) deny(`skill « ${skill} » à contexte isolé (context: fork) refusé : ses outils échapperaient à la table`);
+  } else if (String(event.tool_name ?? "").startsWith("mcp__")) {
+    const tool = String(event.tool_name);
+    if (!mcpRead(tool) && !(profile.mcpAllow ?? []).includes(tool)) deny(`outil MCP « ${tool} » non classé en lecture : demande-le à l'utilisateur ou ajoute-le à mcpAllow de .claude/hooks/profile-guard.mjs${/github/i.test(tool) ? " ; pour GitHub, utilise gh issue ou gh pr" : ""}`);
   } else if (SHELL_TOOLS.has(event.tool_name)) {
     const command = String(toolInput.command ?? "").trim();
     if (!profile.shellOpen && !profile.shell.some((match) => (typeof match === "function" ? match(command) : match.test(command)))) {

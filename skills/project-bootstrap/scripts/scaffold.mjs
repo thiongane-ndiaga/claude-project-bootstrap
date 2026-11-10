@@ -271,7 +271,14 @@ function buildSettings() {
     TaskCompleted: [{ hooks: [{ type: "command", command: "node", args: ["${CLAUDE_PROJECT_DIR}/.claude/hooks/quality-gate.mjs"] }] }],
   };
   if (config.mainAgent === "project-lead") settings.agent = "project-lead";
-  if (active.has("agent-profiles")) settings.hooks.PreToolUse = [{ matcher: "Write|Edit|MultiEdit|NotebookEdit|Bash|PowerShell|Agent|Task|Skill", hooks: [{ type: "command", command: "node", args: ["${CLAUDE_PROJECT_DIR}/.claude/hooks/profile-guard.mjs"] }] }];
+  if (active.has("agent-profiles")) {
+    // deux entrées : la première (outils nommés) reste identique d'une version à l'autre, la seconde couvre les outils MCP (ARCH-011)
+    const guard = { type: "command", command: "node", args: ["${CLAUDE_PROJECT_DIR}/.claude/hooks/profile-guard.mjs"] };
+    settings.hooks.PreToolUse = [
+      { matcher: "Write|Edit|MultiEdit|NotebookEdit|Bash|PowerShell|Agent|Task|Skill", hooks: [guard] },
+      { matcher: "mcp__.*", hooks: [{ ...guard }] },
+    ];
+  }
   const sessionStart = [];
   if (active.has("cli-local")) sessionStart.push({ hooks: [{ type: "command", command: "node", args: ["${CLAUDE_PROJECT_DIR}/.claude/hooks/session-path.mjs"] }] });
   if (active.has("compact-recall")) sessionStart.push({ matcher: "compact", hooks: [{ type: "command", command: "node", args: ["${CLAUDE_PROJECT_DIR}/.claude/hooks/compact-recall.mjs"] }] });
