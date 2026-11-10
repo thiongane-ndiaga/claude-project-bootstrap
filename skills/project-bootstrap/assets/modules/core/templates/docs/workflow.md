@@ -54,6 +54,9 @@ Chaque couche a un rôle :
 @@end
 - **Synchronisation** `/opsx:sync` : reporte les deltas de specs d'un changement vers les specs en vigueur sans l'archiver ; `/opsx:archive` le fait aussi à l'archivage.
 - **Archivage** `/opsx:archive` **dans la PR, avant le merge** : les specs vivantes (`openspec/specs/`) sont à jour au moment du merge.
+@@module:agent-profiles
+- Avec `agent-profiles`, `project-lead` archive par `openspec archive <id> --yes` : son hook de bornage refuse `/opsx:archive` et `/opsx:sync`, qui éditent et déplacent des fichiers.
+@@end
 @@end
 @@module:github
 @@module:legacy-agents
@@ -82,11 +85,11 @@ Chaque couche a un rôle :
 @@module:agent-profiles
 ## Qui fait quoi
 
-Chaque agent généré dans `.claude/agents/` a une ligne. Les droits d'écriture sont ceux du hook `.claude/hooks/profile-guard.mjs` (table `PROFILES`) : un agent absent de la table, dont l'agent principal, n'est pas borné.
+Chaque agent généré dans `.claude/agents/` a une ligne. Les droits d'écriture sont ceux du hook `.claude/hooks/profile-guard.mjs` (table `PROFILES`) : un agent absent de la table n'est pas borné.
 
 | Agent | Rôle dans les étapes | Écrit dans |
 |---|---|---|
-| `project-lead` | chef de projet orchestrateur (agent principal avec `mainAgent`) : brief, délégation, arbitrage, journal des décisions ; ne produit ni code ni spec | non borné par le hook ; `Write` et `Edit` refusés par son frontmatter |
+| `project-lead` | chef de projet orchestrateur (agent principal avec `mainAgent`) : brief, délégation, arbitrage, journal des décisions ; ne produit ni code ni spec | rien ; le hook lui refuse l'écriture, borne son shell au pilotage et ses agents aux profils |
 | `architect` | décisions d'architecture, ADR, arc42 | `docs/architecture/` |
 | `qa-engineer` | relecture du code et des specs, contrôle de traçabilité, tests, contrôles | `tests/`, `test/` |
 @@module:profile-product-owner
@@ -218,10 +221,10 @@ Une règle écrite dans `CLAUDE.md` n'est une consigne que tant que rien ne l'em
 @@module:agent-profiles
 | Un profil n'écrit que dans son périmètre ; `developer` jamais sous `.claude/`, `docs/architecture/` (dont `rules.d.ts`) ni `openspec/specs/`, `architect` écrit dans `docs/architecture/`. | `.claude/hooks/profile-guard.mjs` |
 @@module:github
-| Un profil sans shell libre ne lance aucune commande `gh` d'écriture. | `.claude/hooks/read-only-bash.mjs`, appelé par `.claude/hooks/profile-guard.mjs` (sauf `developer`, au shell non borné) |
+| Un profil sans shell libre ne lance aucune commande `gh` d'écriture. | `.claude/hooks/read-only-bash.mjs`, appelé par `.claude/hooks/profile-guard.mjs` (sauf `developer`, au shell non borné, et `project-lead`, dont les commandes `gh issue` et `gh pr` d'écriture sont bornées par le hook) |
 @@end
 | Qui écrit ne relit pas : ce qu'écrivent les autres profils est relu par `qa-engineer`. | consigne seulement |
-| `project-lead` ne produit ni code ni spec. | `.claude/agents/project-lead.md` (`disallowedTools`, effet sur l'agent principal non vérifié) et consigne ; `Bash` reste permis |
+| `project-lead` ne produit ni code ni spec. | `.claude/agents/project-lead.md` (`disallowedTools`), `.claude/hooks/profile-guard.mjs` (écritures et shell) et consigne |
 @@end
 
 @@end

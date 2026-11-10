@@ -54,6 +54,9 @@ Each layer has a role:
 @@end
 - **Synchronization** `/opsx:sync`: carries a change's spec deltas over to the specs in force without archiving it; `/opsx:archive` does it too when archiving.
 - **Archiving** `/opsx:archive` **in the PR, before the merge**: the living specs (`openspec/specs/`) are up to date at merge time.
+@@module:agent-profiles
+- With `agent-profiles`, `project-lead` archives with `openspec archive <id> --yes`: its bounding hook refuses `/opsx:archive` and `/opsx:sync`, which edit and move files.
+@@end
 @@end
 @@module:github
 @@module:legacy-agents
@@ -82,11 +85,11 @@ Each layer has a role:
 @@module:agent-profiles
 ## Who does what
 
-Every agent generated in `.claude/agents/` has a row. Write rights are those of the hook `.claude/hooks/profile-guard.mjs` (`PROFILES` table): an agent missing from the table, the main agent included, is not bounded.
+Every agent generated in `.claude/agents/` has a row. Write rights are those of the hook `.claude/hooks/profile-guard.mjs` (`PROFILES` table): an agent missing from the table is not bounded.
 
 | Agent | Role in the steps | Writes to |
 |---|---|---|
-| `project-lead` | orchestrating project lead (main agent with `mainAgent`): brief, delegation, arbitration, decision log; produces neither code nor specs | not bounded by the hook; `Write` and `Edit` refused by its frontmatter |
+| `project-lead` | orchestrating project lead (main agent with `mainAgent`): brief, delegation, arbitration, decision log; produces neither code nor specs | nothing; the hook refuses its writes, bounds its shell to piloting and its agents to the profiles |
 | `architect` | architecture decisions, ADRs, arc42 | `docs/architecture/` |
 | `qa-engineer` | review of code and specs, traceability check, tests, checks | `tests/`, `test/` |
 @@module:profile-product-owner
@@ -218,10 +221,10 @@ A rule written in `CLAUDE.md` is only an instruction as long as nothing prevents
 @@module:agent-profiles
 | A profile writes only within its scope; `developer` never under `.claude/`, `docs/architecture/` (`rules.d.ts` included) or `openspec/specs/`, `architect` writes in `docs/architecture/`. | `.claude/hooks/profile-guard.mjs` |
 @@module:github
-| A profile without a free shell runs no writing `gh` command. | `.claude/hooks/read-only-bash.mjs`, called by `.claude/hooks/profile-guard.mjs` (except `developer`, whose shell is not bounded) |
+| A profile without a free shell runs no writing `gh` command. | `.claude/hooks/read-only-bash.mjs`, called by `.claude/hooks/profile-guard.mjs` (except `developer`, whose shell is not bounded, and `project-lead`, whose writing `gh issue` and `gh pr` commands the hook bounds) |
 @@end
 | Whoever writes does not review: what the other profiles write is reviewed by `qa-engineer`. | instruction only |
-| `project-lead` produces neither code nor specs. | `.claude/agents/project-lead.md` (`disallowedTools`, effect on the main agent not verified) and instruction; `Bash` stays allowed |
+| `project-lead` produces neither code nor specs. | `.claude/agents/project-lead.md` (`disallowedTools`), `.claude/hooks/profile-guard.mjs` (writes and shell) and instruction |
 @@end
 
 @@end

@@ -25,6 +25,9 @@ The details are in `docs/workflow.md`.
 - Branch `<type>/<issue>-<slug>`.
 @@module:openspec
 - Behavior → `/opsx:propose` (id `<issue>-<slug>`) → `/opsx:apply` → `/opsx:archive` in the PR.
+@@module:agent-profiles
+- With `agent-profiles`, `project-lead` archives with `openspec archive <id> --yes` (its hook refuses `/opsx:archive`).
+@@end
 @@end
 @@module:github
 - PR (`Closes #<issue>`) + CI → squash merge.
