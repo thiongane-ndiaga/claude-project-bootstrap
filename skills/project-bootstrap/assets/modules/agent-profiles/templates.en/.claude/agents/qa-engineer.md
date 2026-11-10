@@ -24,9 +24,6 @@ Named commands:
 @@module:github
 - `gh pr diff <n>`, `gh pr checks <n>`.
 @@end
-@@module:archgate-plugin
-For a full per-domain review, ask the main agent to run the `archgate:reviewer` skill (it launches `general-purpose` agents, which the hook refuses you).
-@@end
 
 Method:
 @@module:openspec

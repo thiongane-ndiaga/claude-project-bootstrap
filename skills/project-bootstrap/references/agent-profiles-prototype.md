@@ -56,7 +56,8 @@ Dépôt d'essai généré avec les modules `claude`, `agent-profiles`, `agent-te
 | Un teammate voit-il les skills de projet ? | **Oui** pour un skill dont le module est actif. Un skill absent du projet répond `Unknown skill` |
 | `disallowedTools` s'applique-t-il à l'agent principal ? | **Oui.** `Write` et `Edit` absents de la liste d'outils de `project-lead`, aucun fichier créé, et il refuse de passer par `Bash` sur consigne |
 | Un teammate lance-t-il l'outil `Agent` ? | **Non essayé** : `architect`, `qa-engineer` et `developer` n'ont pas l'outil `Agent`. Seul `project-lead` lance des agents |
-| `project-lead` lance-t-il `general-purpose` ? | **Oui**, sans refus : il n'est pas dans la table. Le hook a tracé l'appel avec `agent_type: "project-lead"` |
+| `project-lead` lance-t-il `general-purpose` ? | **Oui avant #141** (sans entrée dans la table, aucun refus, Claude Code 2.1.322), **non depuis** : avec l'entrée `project-lead`, `general-purpose` est refusé (« agent « general-purpose » non permis (permis : architect, qa-engineer, … ) ») et `architect` lancé avec `name: "architect"` est permis (#141, `claude -p`) |
+| `project-lead` écrit-il par le shell depuis #141 ? | **Non.** `echo x > a.txt` est refusé (« Profil project-lead : Agent en lecture seule : commande refusée (caractère non autorisé) … Délègue cette commande à developer ou demande-la à l'utilisateur. »), `a.txt` est absent du disque |
 | Un agent lancé par un teammate porte-t-il son propre `agent_type` ? | **Non essayé**, pour la même raison |
 
 ## Agent principal project-lead (#35)

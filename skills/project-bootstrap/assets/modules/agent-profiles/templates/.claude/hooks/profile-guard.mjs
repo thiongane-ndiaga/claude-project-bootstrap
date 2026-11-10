@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Hook PreToolUse unique des profils d'agents : borne les écritures, le shell, les agents et les skills de chaque profil selon agent_type.
 // Sous-agent : agent_type est le nom du profil. Teammate : agent_type est le nom du teammate, qui doit porter celui de son profil.
-// Un agent absent de PROFILES (agent principal, autre agent) n'est pas borné. Sortie 2 = refus (stderr renvoyé à Claude).
+// Un agent absent de PROFILES (session sans réglage `agent`, autre agent) n'est pas borné. Sortie 2 = refus (stderr renvoyé à Claude).
 import { spawnSync } from "node:child_process";
 import { existsSync, realpathSync } from "node:fs";
 import path from "node:path";
@@ -12,6 +12,50 @@ import { fileURLToPath } from "node:url";
 // agents, skills : agents (subagent_type) et skills que le profil peut lancer lui-même ; tout le reste est refusé. Un agent lancé échappe à cette table
 // (son agent_type est le sien) : n'y mettre que des agents déjà bornés par leur propre frontmatter, sans outil Agent.
 // writeExcept : le profil écrit partout sauf sous ces entrées (dossier terminé par « / », sinon fichier exact), sans tenir compte de la casse ; shellOpen : shell non borné.
+// namedAgents : types que le profil peut lancer avec un name égal au type (teammate nommé comme son profil) ; skillsOpen : skills non bornés ;
+// shellHint : phrase ajoutée à un refus du shell.
+// Commandes gh de pilotage de project-lead : verbe d'écriture d'issue ou de PR, jetons du jeu fermé de read-only-bash.mjs,
+// chaîne entre guillemets droits seulement comme valeur de --title, -t ou --subject (ni $, ni accent grave, ni guillemet : aucune substitution),
+// --body-file et -F avec un chemin relatif sans « .. », options dangereuses refusées.
+const GH_VERBS = new Set(["create", "comment", "edit", "close", "reopen", "merge", "ready"]);
+const GH_DENIED_LONG = new Set(["--admin", "--web", "--repo", "--delete-last", "--body", "--editor"]);
+const GH_DENIED_SHORT = new Set(["w", "R", "b", "e"]);
+const GH_TITLES = new Set(["--title", "-t", "--subject"]);
+const GH_WORD = /^[\w./:@^~=,#+-]+$/;
+const GH_QUOTED = /^"[\p{L}\p{N} ,.:'’()_/#-]+"$/u;
+const GH_PATH = /^[\w.][\w./-]*$/;
+function ghPilot(command) {
+  if (/[\r\n\u2028\u2029]/.test(command)) return false;
+  const tokens = command.match(/"[^"]*"|\S+/gu) ?? [];
+  if (tokens[0] !== "gh" || !["issue", "pr"].includes(tokens[1]) || !GH_VERBS.has(tokens[2])) return false;
+  const relativePath = (value) => GH_PATH.test(value) && !value.split("/").includes("..");
+  let previous = "";
+  for (const token of tokens.slice(3)) {
+    if (token.startsWith('"')) {
+      if (!GH_QUOTED.test(token) || !GH_TITLES.has(previous)) return false;
+    } else {
+      if (!GH_WORD.test(token)) return false;
+      if (token.startsWith("--")) {
+        const [name, value] = token.split(/=(.*)/s);
+        if (GH_DENIED_LONG.has(name)) return false;
+        if (name === "--body-file" && value !== undefined && !relativePath(value)) return false;
+      } else if (token.startsWith("-") && token !== "-") {
+        if (!/^-[A-Za-z]$/.test(token) || GH_DENIED_SHORT.has(token[1])) return false;
+      } else if (token === "-") {
+        return false;
+      } else if ((previous === "--body-file" || previous === "-F") && !relativePath(token)) {
+        return false;
+      }
+    }
+    previous = token;
+  }
+  return true;
+}
+
+const QUALITY_GATE = /^node \.claude[\\/]hooks[\\/]quality-gate\.mjs$/;
+const RUN_CHECKS = /^node \.bootstrap[\\/]run-checks\.mjs$/;
+const REVIEW_CONTEXT = /^archgate review-context( --(staged|run-checks|verbose|strict|base( [\w./-]+)?|domain [\w-]+))*$/;
+
 const PROFILES = {
   architect: {
     write: ["docs/architecture/"],
@@ -25,9 +69,9 @@ const PROFILES = {
     agents: [],
     skills: ["spec-review", "pr-readiness-review"],
     shell: [
-      /^node \.claude[\\/]hooks[\\/]quality-gate\.mjs$/,
-      /^node \.bootstrap[\\/]run-checks\.mjs$/,
-      /^archgate review-context( --(staged|run-checks|verbose|strict|base( [\w./-]+)?|domain [\w-]+))*$/,
+      QUALITY_GATE,
+      RUN_CHECKS,
+      REVIEW_CONTEXT,
     ],
   },
   "product-owner": { write: [], shell: [], agents: [], skills: [] },
@@ -46,6 +90,16 @@ const PROFILES = {
     shell: [/^openspec new change "?[a-z0-9-]+"?$/, /^openspec instructions "?[a-z-]+"? --change "?[a-z0-9-]+"?( --json)?$/, /^openspec context( --json)?$/],
     agents: [],
     skills: ["openspec-propose", "openspec-update-change", "opsx:propose", "opsx:update"],
+  },
+  // project-lead (agent principal avec mainAgent) : n'écrit pas ; il pilote (archivage, contrôles, issues et PR) et lance les profils.
+  "project-lead": {
+    write: [],
+    shell: [/^openspec archive [a-z0-9-]+ --yes$/, QUALITY_GATE, RUN_CHECKS, REVIEW_CONTEXT, /^archgate session-context( --max-entries \d+)?$/, ghPilot],
+    shellHint: "Délègue cette commande à developer ou demande-la à l'utilisateur.",
+    agents: ["architect", "qa-engineer", "developer", "business-analyst", "product-owner", "acceptance-tester", "scout", "second-opinion", "devops-engineer", "compliance-reviewer"],
+    namedAgents: ["architect", "qa-engineer", "developer", "business-analyst", "product-owner", "acceptance-tester", "scout", "devops-engineer", "compliance-reviewer"],
+    skills: [],
+    skillsOpen: true,
   },
 };
 
@@ -105,17 +159,17 @@ try {
     }
   } else if (AGENT_TOOLS.has(event.tool_name)) {
     const type = toolInput.subagent_type ?? "general-purpose";
-    if (toolInput.name || toolInput.team_name) deny("agent nommé refusé (un agent nommé est un teammate, que le hook de frontmatter ne borne pas)");
+    if ((toolInput.name || toolInput.team_name) && !((profile.namedAgents ?? []).includes(type) && toolInput.name === type)) deny("agent nommé refusé (le name doit égaler le subagent_type d'un type de namedAgents)");
     if (!(profile.agents ?? []).includes(type)) deny(`agent « ${type} » non permis (permis : ${(profile.agents ?? []).join(", ") || "aucun"})`);
   } else if (event.tool_name === "Skill") {
     const skill = String(toolInput.skill ?? "");
-    if (!(profile.skills ?? []).includes(skill)) deny(`skill « ${skill} » non permis`);
+    if (!profile.skillsOpen && !(profile.skills ?? []).includes(skill)) deny(`skill « ${skill} » non permis`);
   } else if (SHELL_TOOLS.has(event.tool_name)) {
     const command = String(toolInput.command ?? "").trim();
-    if (!profile.shellOpen && !profile.shell.some((re) => re.test(command))) {
+    if (!profile.shellOpen && !profile.shell.some((match) => (typeof match === "function" ? match(command) : match.test(command)))) {
       const readOnly = path.join(path.dirname(fileURLToPath(import.meta.url)), "read-only-bash.mjs");
       const res = spawnSync(process.execPath, [readOnly], { input: raw, encoding: "utf8" });
-      if (res.status !== 0) deny(res.stderr.trim() || `commande refusée « ${command} »`);
+      if (res.status !== 0) deny((res.stderr.trim() || `commande refusée « ${command} »`) + (profile.shellHint ? " " + profile.shellHint : ""));
     }
   }
 } catch (err) {

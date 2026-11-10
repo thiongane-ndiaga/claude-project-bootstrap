@@ -28,7 +28,7 @@ Les modules `archgate`, `arc42`, `openspec` et `github` génèrent quatre agents
 4. **Sans `agent-profiles`, rien ne change.** Un pseudo-module `legacy-agents`, actif quand `agent-profiles` est absent, conditionne les fichiers des quatre agents et le hook `restrict-path.mjs` qui ne sert qu'à `arc42-keeper`.
 5. **La table `PROFILES` n'a plus d'entrée pour les quatre agents** ; ses listes `agents` sont vides, les listes `skills` de `architect` et `qa-engineer` nomment leurs skills ; `qa-engineer` reçoit l'outil `Skill`.
 6. **Une migration retire les fichiers des quatre agents** d'un projet existant, seulement s'ils sont égaux à leur copie de `.bootstrap/base` ; sinon ils sont conservés et signalés. Les skills arrivent par `--update`.
-7. **Amende ARCH-011 (§6) et ARCH-012** : les profils ne lancent plus d'agent ; les tableaux de droits listent les skills.
+7. **Amende ARCH-011 (§6) et ARCH-012** : seul `project-lead` lance des agents (ARCH-012, ARCH-013) ; les tableaux de droits listent les skills.
 8. **Les textes générés** qui nomment ces agents (`workflow.md`, ADR et modèles d'ADR) nomment la skill et le profil quand `agent-profiles` est actif, l'agent sinon.
 
 ## Do's and Don'ts
