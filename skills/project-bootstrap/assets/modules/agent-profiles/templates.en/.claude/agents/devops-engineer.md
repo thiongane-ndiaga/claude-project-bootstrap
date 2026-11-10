@@ -33,7 +33,7 @@ Method:
 
 Rules:
 - You do not rerun a CI, merge anything or publish anything: you propose the action to the project lead.
-- Traceability between issue, change, PR and ADR stays with `qa-engineer`: do not redo it.
+- The PR check before the merge (issue, change, PR and ADR chain) stays with `qa-engineer`: do not redo it.
 - Whoever writes does not review: you write nothing, you report what you observe.
 - The hook's shell refuses quotes, pipes and the `%` character: do not use them in your commands.
 

@@ -1,5 +1,5 @@
 {
-  "description": "Profils d'agents architect, qa-engineer et project-lead (agent principal avec mainAgent), profils optionnels choisis par la clé profiles, bornés par un hook unique selon agent_type",
+  "description": "Profils d'agents architect, qa-engineer, developer et project-lead (orchestrateur, agent principal avec mainAgent), skills de leurs méthodes, profils optionnels choisis par la clé profiles, bornés par un hook unique selon agent_type",
   "requires": ["claude"],
   "default": false,
   "files": [
@@ -7,18 +7,22 @@
     {"path": ".claude/agents/architect.md"},
     {"path": ".claude/agents/compliance-reviewer.md", "when": ["profile-compliance-reviewer"]},
     {"path": ".claude/agents/business-analyst.md", "when": ["profile-business-analyst"]},
-    {"path": ".claude/agents/developer.md", "when": ["profile-developer"]},
+    {"path": ".claude/agents/developer.md"},
     {"path": ".claude/agents/devops-engineer.md", "when": ["profile-devops-engineer"]},
     {"path": ".claude/agents/product-owner.md", "when": ["profile-product-owner"]},
     {"path": ".claude/agents/project-lead.md"},
     {"path": ".claude/agents/qa-engineer.md"},
     {"path": ".claude/agents/scout.md", "when": ["profile-scout"]},
     {"path": ".claude/agents/second-opinion.md", "when": ["profile-second-opinion"]},
-    {"path": ".claude/hooks/profile-guard.mjs"}
+    {"path": ".claude/hooks/profile-guard.mjs"},
+    {"path": ".claude/skills/adr-options-comparison/SKILL.md", "when": ["archgate"]},
+    {"path": ".claude/skills/arc42-update/SKILL.md", "when": ["arc42"]},
+    {"path": ".claude/skills/pr-readiness-review/SKILL.md", "when": ["github"]},
+    {"path": ".claude/skills/spec-review/SKILL.md", "when": ["openspec"]}
   ],
   "questions": [
     "Faire de project-lead l'agent principal des sessions du projet (clé mainAgent) ? Le choix s'applique à toutes les sessions du clone et remplace l'agent par défaut, y compris celui du plugin Archgate. Défaut : non.",
-    "Quels profils optionnels générer (clé profiles) parmi product-owner, developer, business-analyst, acceptance-tester, devops-engineer, scout, second-opinion et compliance-reviewer ? business-analyst exige le module openspec, compliance-reviewer exige la clé regulatedDomain. Défaut : aucun.",
+    "Quels profils optionnels générer (clé profiles) parmi product-owner, business-analyst, acceptance-tester, devops-engineer, scout, second-opinion et compliance-reviewer (developer est toujours généré) ? business-analyst exige le module openspec, compliance-reviewer exige la clé regulatedDomain. Défaut : aucun.",
     "Le projet relève-t-il d'un domaine réglementé (clé regulatedDomain, texte libre de 120 caractères au plus, par exemple RGPD ou paiement) ? Le texte est écrit dans le profil compliance-reviewer et le manifeste, donc visible dans le dépôt. Sans domaine, compliance-reviewer n'est pas proposé. Défaut : non."
   ]
 }

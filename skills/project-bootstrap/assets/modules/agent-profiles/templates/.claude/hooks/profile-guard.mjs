@@ -16,14 +16,14 @@ const PROFILES = {
   architect: {
     write: ["docs/architecture/"],
     agents: [],
-    skills: ["archgate:adr-author"],
+    skills: ["archgate:adr-author", "adr-options-comparison", "arc42-update"],
     // titre : lettres, chiffres, espace et ponctuation simple seulement (ni guillemet, ni parenthèse, ni substitution : PowerShell évalue les parenthèses)
     shell: [/^archgate adr create --title "[\p{L}\p{N} ,.:'’_-]+" --domain [a-z0-9-]+$/u, /^archgate adr domain list$/],
   },
   "qa-engineer": {
     write: ["tests/", "test/"],
     agents: [],
-    skills: [],
+    skills: ["spec-review", "pr-readiness-review"],
     shell: [
       /^node \.claude[\\/]hooks[\\/]quality-gate\.mjs$/,
       /^node \.bootstrap[\\/]run-checks\.mjs$/,

@@ -18,7 +18,8 @@ Method:
 - Read the ADR briefings for the files to change (`archgate review-context --base`) before writing: ADRs are blockers.
 @@end
 @@module:openspec
-- For an OpenSpec change, follow `openspec/changes/<id>/tasks.md` in order and tick each finished task; you do not edit the other files of the change.
+- For an existing OpenSpec change, follow `openspec/changes/<id>/tasks.md` in order and tick each finished task; you do not edit its other files.
+- If the brief asks you to write or revise the change (there is no `business-analyst`), create it with `openspec new change`, write the artifacts following `openspec instructions <artifact> --change <id> --json`, then validate with `openspec validate <id> --strict --no-interactive`; you write only in `openspec/changes/<id>/`.
 @@end
 - One atomic commit per task, Conventional Commits message.
 - Run the project's tests and checks before handing back.

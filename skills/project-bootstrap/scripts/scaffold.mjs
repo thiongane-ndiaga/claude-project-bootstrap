@@ -15,7 +15,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, mkdtempSync, readdi
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { ADVISOR_PROFILES, CatalogError, OPTIONAL_PROFILES, REGULATED_DOMAIN_RE, PSEUDO_MODULES, describeModules, loadCatalog, modulesTable, templatePath } from "./catalog.mjs";
+import { CatalogError, OPTIONAL_PROFILES, REGULATED_DOMAIN_RE, PSEUDO_MODULES, describeModules, loadCatalog, modulesTable, templatePath } from "./catalog.mjs";
 import { mergeJson, mergeLines, mergeThreeWay } from "./merge.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -149,6 +149,12 @@ if (config.mainAgent !== undefined && !MAIN_AGENTS.includes(config.mainAgent)) e
 if (config.mainAgent !== undefined && !selected.has("agent-profiles")) errors.push("mainAgent exige le module agent-profiles");
 if (config.advisor !== undefined && config.advisor !== true) errors.push(`advisor doit valoir true, ou null pour le désactiver (reçu : ${JSON.stringify(config.advisor)})`);
 if (config.advisor !== undefined && !selected.has("advisor")) errors.push("advisor exige le module advisor");
+// developer est toujours généré avec agent-profiles : le nommer dans profiles est sans effet (avertissement), il n'est pas consigné
+const developerListed = selected.has("agent-profiles") && Array.isArray(config.profiles) && config.profiles.includes("developer");
+if (developerListed) {
+  config.profiles = config.profiles.filter((p) => p !== "developer");
+  if (config.profiles.length === 0) delete config.profiles;
+}
 if (config.profiles !== undefined && (!Array.isArray(config.profiles) || config.profiles.some((p) => !OPTIONAL_PROFILES.includes(p)))) errors.push(`profiles doit être une liste de noms parmi ${OPTIONAL_PROFILES.join(", ")} (reçu : ${JSON.stringify(config.profiles)})`);
 if (config.profiles !== undefined && !selected.has("agent-profiles")) errors.push("profiles exige le module agent-profiles");
 if (Array.isArray(config.profiles) && config.profiles.includes("business-analyst") && !selected.has("openspec")) errors.push("le profil business-analyst exige le module openspec");
@@ -363,7 +369,7 @@ if (config.mainAgent === "project-lead") {
   }
 }
 if (config.regulatedDomain !== undefined && !(Array.isArray(config.profiles) && config.profiles.includes("compliance-reviewer"))) warnings.push("regulatedDomain sans le profil compliance-reviewer (profiles) : la clé est sans effet");
-if (config.advisor === true && !(Array.isArray(config.profiles) && config.profiles.some((p) => ADVISOR_PROFILES.includes(p)))) warnings.push("advisor: true sans profil optionnel sonnet ou haiku (profiles) : aucun profil ne reçoit la consigne, seule l'étape du « Nouveau poste » de docs/workflow.md est générée");
+if (developerListed) warnings.push("profiles contient developer : ce profil est généré par défaut avec agent-profiles, la valeur est ignorée et retirée de la configuration consignée");
 if (selected.has("agent-profiles") && (config.keep ?? []).includes(".claude/hooks/profile-guard.mjs")) warnings.push("profile-guard.mjs est dans keep : les profils ne sont bornés que par votre version du hook (vérifie qu'elle contient les entrées de leurs profils)");
 const diffs = {};
 const put = (dest, text) => {

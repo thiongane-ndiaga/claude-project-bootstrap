@@ -23,10 +23,10 @@ Le module `agent-profiles` (ARCH-011, ARCH-012) génère des profils bornés. Le
 ## Decision
 
 1. **`project-lead.md` est toujours généré** avec `agent-profiles`, en français et en anglais. Il n'est pas dans la table `PROFILES` : l'agent principal reste sous le contrôle de l'utilisateur, et ses garde-fous (délégation, arbitrage, accord pour les écritures visibles) sont dans son prompt, donc des consignes et non des mécanismes.
-2. **Activation par `mainAgent`** : la clé facultative `mainAgent` de la configuration vaut `"project-lead"` (seule valeur). Présente, `settings.json` reçoit `"agent": "project-lead"` ; absente, aucune clé `agent` n'est écrite. `null` désactive explicitement la clé (ni héritée ni consignée), ce qui permet de retirer le module. La clé est consignée au manifeste seulement quand elle est présente, héritée par `--update`, et refusée sans le module `agent-profiles`. Un `agent` déjà déclaré par le projet est conservé (ARCH-006) et signalé par le rapport et l'audit.
+2. **Activation par `mainAgent`** : la clé facultative vaut `"project-lead"` (seule valeur). Présente, `settings.json` reçoit `"agent": "project-lead"` ; absente, aucune clé `agent`. `null` la désactive (ni héritée ni consignée). Elle est consignée au manifeste quand elle est présente, héritée par `--update`, refusée sans `agent-profiles`. Un `agent` déjà déclaré par le projet est conservé (ARCH-006) et signalé par le rapport et l'audit.
 3. **Pas de conflit avec `archgate-plugin`** : le réglage de projet l'emporte sur celui du plugin ; aucun champ `conflicts`.
-4. **Délégation** : `project-lead` délègue à `architect` et à `qa-engineer` ; il écrit lui-même le code et les specs OpenSpec tant que les profils `developer` et `business-analyst` n'existent pas dans `.claude/agents/`, et leur délègue ensuite. « Qui écrit ne relit pas » : la relecture revient toujours à `qa-engineer`.
-5. **Savoir-faire d'`archgate:developer` réparti** : `architect` décide et rédige les ADR ; `project-lead` lance `lessons-learned` (non permis à `architect`, ARCH-012) et lui en confie les ADR ; `qa-engineer` valide (`archgate check`, `review-context --run-checks`, skill reviewer) ; le brief de celui qui écrit joint les briefings d'ADR, bloquants (niveau 1 de l'échelle).
+4. **Orchestrateur** : `project-lead` ne produit ni code ni spec. Il délègue à `architect`, `qa-engineer` et `developer`, toujours générés, et à `business-analyst` pour les specs quand il existe (sinon `developer`). Il lance `openspec archive <id> --yes`, les specs vivantes étant interdites à `developer`. `disallowedTools` refuse `Write`, `Edit`, `MultiEdit` et `NotebookEdit` (une liste `tools` retirerait aussi les outils d'équipe), et son corps le dit. `qa-engineer` relit tout.
+5. **Savoir-faire d'`archgate:developer` réparti** : `architect` décide et rédige les ADR ; `project-lead` lance `lessons-learned` (non permis à `architect`, ARCH-012) et lui en confie les ADR ; `qa-engineer` valide (`archgate check`, `review-context --run-checks`, skill reviewer) ; le brief joint les briefings d'ADR, bloquants.
 6. **Règles critiques doublées** : l'échelle d'arbitrage figure dans `project-lead.md` et dans le `CLAUDE.md` racine, relu depuis le disque après une compaction ; la documentation ne garantit pas la survie du corps d'un agent principal personnalisé.
 
 ## Do's and Don'ts
@@ -51,7 +51,7 @@ Le module `agent-profiles` (ARCH-011, ARCH-012) génère des profils bornés. Le
 
 ### Negative
 
-- Quand `project-lead` écrit lui-même le code, rien ne l'empêche mécaniquement de relire son propre travail : seule la consigne et `qa-engineer` le garantissent.
+- Rien n'empêche mécaniquement `project-lead` d'écrire : la documentation ne dit pas que `disallowedTools` s'applique à l'agent principal, et le hook de bornage ne le voit pas. La consigne et l'essai sur une session réelle (#114) le garantissent.
 
 ### Risks
 

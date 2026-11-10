@@ -8,7 +8,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { runMigrations } from "../skills/project-bootstrap/scripts/migrate.mjs";
-import { loadCatalog, templatePath } from "../skills/project-bootstrap/scripts/catalog.mjs";
+import { PSEUDO_MODULES, loadCatalog, templatePath } from "../skills/project-bootstrap/scripts/catalog.mjs";
 import { syncLabels } from "../skills/project-bootstrap/assets/modules/github/templates/scripts/sync-labels.mjs";
 import { formatReport, isGhWrite, parseArgs, parseFormLabels, realExec, runAudit } from "../skills/project-bootstrap/scripts/audit.mjs";
 
@@ -1692,9 +1692,9 @@ for (const dirName of ["templates", "templates.en"]) {
     const text = txt(r, `.claude/agents/${name}.md`);
     check(`agent-profiles : ${name} sans hooks de frontmatter, nom du fichier = name`, !/^hooks:/m.test(front(text)) && new RegExp(`^name: ${name}$`, "m").test(front(text)));
   }
-  check("agent-profiles : architect a Skill sans Agent, qa-engineer n'a ni Agent ni Skill (ils ne lancent plus d'agent)", tools(txt(r, ".claude/agents/architect.md")).includes("Skill") && !tools(txt(r, ".claude/agents/architect.md")).includes("Agent") && !tools(txt(r, ".claude/agents/qa-engineer.md")).includes("Agent") && !tools(txt(r, ".claude/agents/qa-engineer.md")).includes("Skill"));
+  check("agent-profiles : architect et qa-engineer ont Skill sans Agent (ils lancent des skills, aucun agent)", ["architect", "qa-engineer"].every((n) => tools(txt(r, `.claude/agents/${n}.md`)).includes("Skill") && !tools(txt(r, `.claude/agents/${n}.md`)).includes("Agent")));
   const guardText = txt(r, ".claude/hooks/profile-guard.mjs");
-  check("agent-profiles : la table du hook ne liste plus d'agent lançable, seulement le skill de architect, identique en anglais", !/agents: \["[^\]]/.test(guardText) && /skills: \["archgate:adr-author"\]/.test(guardText) && !/agents: \["[^\]]/.test(txt(gen(full, { docLanguage: "en" }), ".claude/hooks/profile-guard.mjs")));
+  check("agent-profiles : la table du hook ne liste plus d'agent lançable, seulement les skills de architect et de qa-engineer, identique en anglais", !/agents: \["[^\]]/.test(guardText) && /skills: \["archgate:adr-author", "adr-options-comparison", "arc42-update"\]/.test(guardText) && /skills: \["spec-review", "pr-readiness-review"\]/.test(guardText) && /skills: \["spec-review", "pr-readiness-review"\]/.test(txt(gen(full, { docLanguage: "en" }), ".claude/hooks/profile-guard.mjs")) && !/agents: \["[^\]]/.test(txt(gen(full, { docLanguage: "en" }), ".claude/hooks/profile-guard.mjs")));
   check("agent-profiles : architect et qa-engineer disposent de Write et Edit (bornés par le hook)", ["architect", "qa-engineer"].every((n) => ["Write", "Edit"].every((t) => tools(txt(r, `.claude/agents/${n}.md`)).includes(t))));
   const settings = JSON.parse(txt(r, ".claude/settings.json"));
   const pre = settings.hooks?.PreToolUse ?? [];
@@ -1702,7 +1702,7 @@ for (const dirName of ["templates", "templates.en"]) {
   check("agent-profiles : read-only-bash.mjs présent (le hook y délègue)", existsSync(path.join(r.out, ".claude/hooks/read-only-bash.mjs")));
   const q = txt(r, ".claude/agents/qa-engineer.md");
   const a = txt(r, ".claude/agents/architect.md");
-  check("agent-profiles : références Archgate, OpenSpec, GitHub et arc42 présentes avec leurs modules, sans les anciens agents", /archgate review-context --base --run-checks/.test(q) && /Revue de spec/.test(q) && /openspec show/.test(q) && /Contrôle de traçabilité/.test(q) && /gh pr diff/.test(q) && /tableau critères × options/.test(a) && /arc42 à jour toi-même/.test(a) && !/architecture-explorer|arc42-keeper|spec-reviewer|traceability-checker/.test(q + a));
+  check("agent-profiles : références Archgate, OpenSpec, GitHub et arc42 présentes avec leurs modules, skills citées, sans les anciens agents", /archgate review-context --base --run-checks/.test(q) && /skill `spec-review`/.test(q) && /skill `pr-readiness-review`/.test(q) && /openspec show/.test(q) && /gh pr diff/.test(q) && /skill `adr-options-comparison`/.test(a) && /skill `arc42-update`/.test(a) && !/architecture-explorer|arc42-keeper|spec-reviewer|traceability-checker/.test(q + a));
   check("agent-profiles : le skill onboard n'est cité nulle part", !/onboard/.test(q + a));
   check("agent-profiles : la règle « qui écrit ne relit pas » figure dans les deux profils, en français et en anglais", /Qui écrit ne relit pas/.test(q) && /Qui écrit ne relit pas/.test(a) && /Whoever writes does not review/.test(txt(gen(full, { docLanguage: "en" }), ".claude/agents/qa-engineer.md")) && /Whoever writes does not review/.test(txt(gen(full, { docLanguage: "en" }), ".claude/agents/architect.md")));
 
@@ -1736,11 +1736,11 @@ for (const dirName of ["templates", "templates.en"]) {
   const r = gen(full);
   const lead = txt(r, ".claude/agents/project-lead.md");
   const fm = lead.match(/^---\n([\s\S]*?)\n---/)[1];
-  check("project-lead : généré avec agent-profiles, sans tools ni hooks de frontmatter (agent principal), nom du fichier = name", r.res.status === 0 && /^name: project-lead$/m.test(fm) && !/^tools:/m.test(fm) && !/^hooks:/m.test(fm));
+  check("project-lead : généré avec agent-profiles, sans tools ni hooks de frontmatter (agent principal), nom du fichier = name", r.res.status === 0 && /^name: project-lead$/m.test(fm) && !/^tools:/m.test(fm) && /^disallowedTools: Write, Edit, MultiEdit, NotebookEdit$/m.test(fm) && !/^hooks:/m.test(fm));
   check("project-lead : consigne de délégation, brief borné, échelle à cinq niveaux, qui écrit ne relit pas", /Déléguer/.test(lead) && /Brief borné/.test(lead) && /objectif, fichiers de référence, critères de fin, contraintes, non-objectifs/.test(lead) && (lead.match(/^\| [1-5] \|/gm) ?? []).length === 5 && /Qui écrit ne relit pas/.test(lead));
   check("project-lead : explore, update et lecture de l'avancement depuis le disque (openspec)", /\/opsx:explore/.test(lead) && /\/opsx:update/.test(lead) && /openspec status --json/.test(lead));
   check("project-lead : briefings d'ADR, ADR bloquants (archgate)", /archgate review-context --base/.test(lead) && /bloquants/.test(lead));
-  check("project-lead : écrit lui-même le code et les specs sans developer ni business-analyst, délègue sinon", /developer/.test(lead) && /business-analyst/.test(lead) && /sinon écris-les toi-même/.test(lead));
+  check("project-lead : orchestrateur, délègue le code à developer et les specs à business-analyst ou à developer, ne les écrit pas lui-même", /`developer`/.test(lead) && /business-analyst/.test(lead) && /ne produis ni code ni spec/.test(lead) && !/sinon écris-les toi-même/.test(lead) && /disallowedTools: Write, Edit, MultiEdit, NotebookEdit/.test(fm));
   check("project-lead : lessons-learned et reviewer lancés par lui (archgate-plugin), arc42 mis à jour par architect (arc42)", /archgate:lessons-learned/.test(txt(gen([...full, "archgate-plugin"]), ".claude/agents/project-lead.md")) && /archgate:reviewer/.test(txt(gen([...full, "archgate-plugin"]), ".claude/agents/project-lead.md")) && /architect` met arc42 à jour/.test(lead) && !/lessons-learned/.test(lead));
   check("project-lead : écritures visibles soumises à l'accord de l'utilisateur (github), demandes des profils traitées", /gh issue create/.test(lead) && /gh pr merge/.test(lead) && /accord de l'utilisateur/.test(lead) && /ce que le hook leur refuse/.test(lead));
   check("project-lead : absent de la table du hook (agent principal non borné)", !/"project-lead"|project-lead:/.test(txt(r, ".claude/hooks/profile-guard.mjs")));
@@ -1803,15 +1803,15 @@ const d = mkdtempSync(path.join(tmpdir(), "pb-sonde-")); writeFileSync(path.join
   const front = (text) => text.match(/^---\n([\s\S]*?)\n---/)[1];
   const tools = (text) => /^tools: (.*)$/m.exec(front(text))[1].split(",").map((t) => t.trim());
   const full = ["claude", "github", "openspec", "archgate", "arc42", "agent-profiles"];
-  const all = ["business-analyst", "developer", "product-owner"];
+  const all = ["business-analyst", "product-owner"];
   const has = (r, name) => existsSync(path.join(r.out, ".claude/agents", name + ".md"));
 
   const none = gen(full);
-  check("profiles absent : aucun profil optionnel, aucune clé au manifeste", all.every((n) => !has(none, n)) && JSON.parse(txt(none, ".bootstrap/manifest.json")).config.profiles === undefined);
+  check("profiles absent : aucun profil optionnel, developer généré, aucune clé au manifeste", all.every((n) => !has(none, n)) && has(none, "developer") && JSON.parse(txt(none, ".bootstrap/manifest.json")).config.profiles === undefined);
   const three = gen(full, { profiles: ["product-owner", "developer", "business-analyst", "developer"] });
-  check("profiles : les trois profils sont générés, consignés triés sans doublon au manifeste", three.res.status === 0 && all.every((n) => has(three, n)) && JSON.parse(txt(three, ".bootstrap/manifest.json")).config.profiles.join() === all.join(), three.res.stderr);
-  const onlyDev = gen(full, { profiles: ["developer"] });
-  check("profiles : seuls les profils listés sont générés", has(onlyDev, "developer") && !has(onlyDev, "product-owner") && !has(onlyDev, "business-analyst"));
+  check("profiles : developer listé est ignoré avec un avertissement, les deux profils optionnels sont consignés triés sans doublon", three.res.status === 0 && all.every((n) => has(three, n)) && has(three, "developer") && JSON.parse(txt(three, ".bootstrap/manifest.json")).config.profiles.join() === all.join() && (three.report?.warnings ?? []).some((w) => /profiles contient developer/.test(w)), three.res.stderr);
+  const onlyDev = gen(full, { profiles: ["scout"] });
+  check("profiles : seuls les profils listés sont générés en plus de developer", has(onlyDev, "scout") && has(onlyDev, "developer") && !has(onlyDev, "product-owner") && !has(onlyDev, "business-analyst"));
   for (const n of all) {
     const text = txt(three, `.claude/agents/${n}.md`);
     check(`profil ${n} : nom = fichier, sans hooks de frontmatter, sans Agent`, new RegExp(`^name: ${n}$`, "m").test(front(text)) && !/^hooks:/m.test(front(text)) && !tools(text).includes("Agent"));
@@ -1820,9 +1820,9 @@ const d = mkdtempSync(path.join(tmpdir(), "pb-sonde-")); writeFileSync(path.join
   check("product-owner : lecture seule (ni Write ni Edit)", !tools(txt(three, ".claude/agents/product-owner.md")).some((t) => ["Write", "Edit"].includes(t)));
   check("business-analyst : Skill et outils d'écriture, bornés au dossier des changements", tools(txt(three, ".claude/agents/business-analyst.md")).includes("Skill") && /write: \["openspec\/changes\/"\]/.test(txt(three, ".claude/hooks/profile-guard.mjs")));
   check("qui écrit ne relit pas : présent dans les trois profils optionnels, en français et en anglais", all.every((n) => /Qui écrit ne relit pas/.test(txt(three, `.claude/agents/${n}.md`))) && all.every((n) => /Whoever writes does not review/.test(txt(gen(full, { profiles: all, docLanguage: "en" }), `.claude/agents/${n}.md`))));
-  const bare = gen(["claude", "agent-profiles"], { profiles: ["product-owner", "developer"] });
+  const bare = gen(["claude", "agent-profiles"], { profiles: ["product-owner"] });
   check("profils optionnels sans archgate, openspec, github ni arc42 : aucune référence à ces modules", ["product-owner", "developer"].every((n) => !/archgate|openspec|opsx|gh |arc42|spec-reviewer/i.test(txt(bare, `.claude/agents/${n}.md`))), txt(bare, ".claude/agents/developer.md"));
-  check("project-lead : délègue à developer et business-analyst quand ils existent (consigne inchangée)", /sinon écris-les toi-même/.test(txt(three, ".claude/agents/project-lead.md")));
+  check("project-lead : délègue à developer, à business-analyst quand il existe, sans consigne d'écrire lui-même", /business-analyst/.test(txt(three, ".claude/agents/project-lead.md")) && !/sinon écris-les toi-même/.test(txt(three, ".claude/agents/project-lead.md")));
 
   // refus
   const bad = gen(full, { profiles: ["profil-inexistant"] });
@@ -1838,7 +1838,7 @@ const d = mkdtempSync(path.join(tmpdir(), "pb-sonde-")); writeFileSync(path.join
   const upd = run({ ...base, visibility: "private", modules: full }, ["--update"], three.out);
   check("--update sans profiles dans la configuration : la liste du manifeste est conservée", upd.res.status === 0 && all.every((n) => has(three, n)) && JSON.parse(txt(three, ".bootstrap/manifest.json")).config.profiles.join() === all.join(), upd.res.stderr);
   const off = run({ ...base, visibility: "private", modules: full, profiles: [] }, ["--update"], three.out);
-  check("profiles [] : désactive la clé (ni héritée ni consignée), les fichiers sont retirés du manifeste", off.res.status === 0 && JSON.parse(txt(three, ".bootstrap/manifest.json")).config.profiles === undefined && (off.report?.retired ?? []).length === 3, JSON.stringify(off.report?.retired));
+  check("profiles [] : désactive la clé (ni héritée ni consignée), les fichiers sont retirés du manifeste", off.res.status === 0 && JSON.parse(txt(three, ".bootstrap/manifest.json")).config.profiles === undefined && (off.report?.retired ?? []).length === 2 && !(off.report?.retired ?? []).some((f) => /developer\.md/.test(f)), JSON.stringify(off.report?.retired));
   check("profiles [] : les fichiers de profils restent sur le disque (signalés, jamais supprimés)", all.every((n) => has(three, n)));
   const viaNull = run({ ...base, visibility: "private", modules: full, profiles: null }, ["--update"], onlyDev.out);
   check("profiles null : désactive la clé comme []", viaNull.res.status === 0 && JSON.parse(txt(onlyDev, ".bootstrap/manifest.json")).config.profiles === undefined, viaNull.res.stderr);
@@ -1847,12 +1847,92 @@ const d = mkdtempSync(path.join(tmpdir(), "pb-sonde-")); writeFileSync(path.join
   check("--update qui retire openspec alors que business-analyst est hérité : échec (code 1)", dropOpenspec.res.status === 1 && /business-analyst exige le module openspec/.test(dropOpenspec.res.stderr), dropOpenspec.res.stderr);
   const dropModule = run({ ...base, visibility: "private", modules: ["claude", "github", "openspec"] }, ["--update"], baInherited.out);
   check("--update qui retire agent-profiles alors que profiles est hérité : échec (code 1)", dropModule.res.status === 1 && /profiles exige le module agent-profiles/.test(dropModule.res.stderr), dropModule.res.stderr);
-  const keepHook = gen(full, { profiles: ["developer"], keep: [".claude/hooks/profile-guard.mjs"] });
+  const keepHook = gen(full, { profiles: ["scout"], keep: [".claude/hooks/profile-guard.mjs"] });
   check("hook conservé par keep : avertissement dans le rapport", keepHook.res.status === 0 && (keepHook.report?.warnings ?? []).some((w) => /profile-guard\.mjs est dans keep/.test(w)), JSON.stringify(keepHook.report?.warnings));
   check("developer, product-owner et business-analyst : la table du hook borne developer par une liste d'exclusion sans lister src/", /writeExcept: \[/.test(txt(three, ".claude/hooks/profile-guard.mjs")) && !/writeExcept: \[[^\]]*"src\//.test(txt(three, ".claude/hooks/profile-guard.mjs")));
-  check("developer : consigne de ne rien publier et de ne cocher que les tâches", /ne publies rien/.test(txt(three, ".claude/agents/developer.md")) && /tu ne modifies pas les autres fichiers du changement/.test(txt(three, ".claude/agents/developer.md")));
+  check("developer : consigne de ne rien publier et de ne cocher que les tâches", /ne publies rien/.test(txt(three, ".claude/agents/developer.md")) && /tu ne modifies pas ses autres fichiers/.test(txt(three, ".claude/agents/developer.md")));
   const removed = run({ ...base, visibility: "private", modules: ["claude", "github"], profiles: [] }, ["--update"], onlyDev.out);
   check("retrait du module agent-profiles avec profiles [] : accepté", removed.res.status === 0, removed.res.stderr);
+}
+
+// skills de projet des profils, developer par défaut, project-lead orchestrateur (#138)
+{
+  const gen = (modules, extra = {}, extraArgs = [], target) => run({ ...base, visibility: "private", modules, ...extra }, extraArgs, target);
+  const txt = (r, rel) => readFileSync(path.join(r.out, ...rel.split("/")), "utf8");
+  const has = (r, rel) => existsSync(path.join(r.out, ...rel.split("/")));
+  const full = ["claude", "github", "openspec", "archgate", "arc42", "agent-profiles"];
+  const names = ["adr-options-comparison", "arc42-update", "spec-review", "pr-readiness-review"];
+  const skill = (n) => `.claude/skills/${n}/SKILL.md`;
+  const front = (t) => /^---\n([\s\S]*?)\n---/.exec(t)?.[1] ?? "";
+  const contents = {
+    fr: { "adr-options-comparison": [/au moins deux options/, /non vérifié/, /tableau critères × options/], "arc42-update": [/sections impactées/, /section 9/, /N'invente rien/], "spec-review": [/bloquant/, /scénarios manquants/], "pr-readiness-review": [/Conventional Commits/, /tableau maillon/] },
+    en: { "adr-options-comparison": [/at least two options/, /not verified/, /criteria × options table/], "arc42-update": [/impacted sections/, /section 9/, /Invent nothing/], "spec-review": [/blocking/, /missing scenarios/], "pr-readiness-review": [/Conventional Commits/, /link \/ status/] },
+  };
+  for (const [tag, lang] of [["fr", {}], ["en", { docLanguage: "en" }]]) {
+    const r = gen([...full, "dependabot"], lang);
+    check(`skills de profils (${tag}) : les quatre skills sont générées`, r.res.status === 0 && names.every((n) => has(r, skill(n))), r.res.stderr);
+    check(`skills de profils (${tag}) : name = dossier, description qui nomme le profil, ni context, hooks, allowed-tools ni Agent`, names.every((n) => { const t = txt(r, skill(n)); const f = front(t); return new RegExp(`^name: ${n}$`, "m").test(f) && /^description: .*(`architect`|`qa-engineer`)\.$/m.test(f) && !/^(context|hooks|allowed-tools):/m.test(f) && !/\bAgent\b/.test(t); }));
+    check(`skills de profils (${tag}) : méthodes conservées`, names.every((n) => contents[tag][n].every((re) => re.test(txt(r, skill(n))))), names.filter((n) => !contents[tag][n].every((re) => re.test(txt(r, skill(n))))).join(", "));
+    check(`skills de profils (${tag}) : pr-readiness-review sans commande gh d'écriture, avec l'exception Dependabot`, !/gh (issue|pr) (create|merge|edit|comment|close)|gh release/.test(txt(r, skill("pr-readiness-review"))) && /dependabot\//.test(txt(r, skill("pr-readiness-review"))));
+    const q = txt(r, ".claude/agents/qa-engineer.md");
+    const a = txt(r, ".claude/agents/architect.md");
+    check(`profils (${tag}) : qa-engineer cite spec-review et pr-readiness-review, architect cite adr-options-comparison et arc42-update, sans champ skills`, /spec-review/.test(q) && /pr-readiness-review/.test(q) && /adr-options-comparison/.test(a) && /arc42-update/.test(a) && !/^skills:/m.test(front(q) + front(a)));
+  }
+  const noGithub = gen(["claude", "openspec", "archgate", "arc42", "agent-profiles"]);
+  check("skills de profils : sans github, pas de pr-readiness-review ni dans qa-engineer ; les trois autres selon leurs modules", !has(noGithub, skill("pr-readiness-review")) && ["adr-options-comparison", "arc42-update", "spec-review"].every((n) => has(noGithub, skill(n))) && !/pr-readiness-review/.test(txt(noGithub, ".claude/agents/qa-engineer.md")));
+  const noOpenspec = gen(["claude", "github", "agent-profiles"]);
+  check("skills de profils : sans openspec, archgate ni arc42, seule pr-readiness-review ; qa-engineer et architect ne citent que ce qui existe", ["adr-options-comparison", "arc42-update", "spec-review"].every((n) => !has(noOpenspec, skill(n))) && has(noOpenspec, skill("pr-readiness-review")) && !/spec-review/.test(txt(noOpenspec, ".claude/agents/qa-engineer.md")) && !/adr-options-comparison|arc42-update/.test(txt(noOpenspec, ".claude/agents/architect.md")));
+  const legacy = gen(full.filter((m) => m !== "agent-profiles"));
+  check("skills de profils : sans agent-profiles, aucune skill n'est générée", legacy.res.status === 0 && names.every((n) => !has(legacy, skill(n))));
+  check("project-lead : archive lui-même (openspec archive), confie /opsx:apply à developer, nomme les fichiers de gouvernance et le worktree", ["fr", "en"].every((lang) => { const t = txt(gen(full, lang === "en" ? { docLanguage: "en" } : {}), ".claude/agents/project-lead.md"); return /openspec archive <id> --yes/.test(t) && /\/opsx:apply/.test(t) && /CLAUDE\.md/.test(t) && /worktree/.test(t); }));
+  const dv = txt(gen(full), ".claude/agents/developer.md");
+  check("developer : généré par défaut, rédige et valide le changement OpenSpec sans business-analyst", /openspec new change/.test(dv) && /openspec validate <id> --strict/.test(dv) && /n'écris que dans `openspec\/changes\/<id>\/`/.test(dv));
+  const wf = txt(gen(full), "docs/workflow.md");
+  check("workflow.md : les quatre skills, la ligne developer sans clé profiles, l'orchestrateur et sa règle doublée", names.every((n) => wf.includes(n)) && /\| `developer` \|/.test(wf) && /ne produit ni code ni spec/.test(wf) && /disallowedTools/.test(wf) && /Qui exécute/.test(wf));
+  check("workflow.md : sans agent-profiles, aucune skill ni ligne Qui exécute", names.every((n) => !txt(legacy, "docs/workflow.md").includes("`" + n + "`")) && !/Qui exécute/.test(txt(legacy, "docs/workflow.md")));
+
+  // developer hérité du manifeste : retiré avec un avertissement, developer.md conservé
+  const old = gen(full, { profiles: ["scout"] });
+  const mpath = path.join(old.out, ".bootstrap", "manifest.json");
+  const mf = JSON.parse(readFileSync(mpath, "utf8"));
+  mf.config.profiles = ["developer", "scout"];
+  writeFileSync(mpath, JSON.stringify(mf, null, 2));
+  const inh = run({ ...base, visibility: "private", modules: full }, ["--update"], old.out);
+  check("developer hérité d'un manifeste : avertissement, manifeste sans developer, developer.md conservé", inh.res.status === 0 && (inh.report?.warnings ?? []).some((w) => /profiles contient developer/.test(w)) && JSON.parse(readFileSync(mpath, "utf8")).config.profiles.join() === "scout" && has(old, ".claude/agents/developer.md"), inh.res.stderr);
+
+  // projet généré avant ce changement : --update ajoute developer.md et les skills, ne retire rien d'agent-profiles ; profil modifié et fichier hors manifeste
+  const prev = gen(full);
+  const m2 = JSON.parse(readFileSync(path.join(prev.out, ".bootstrap", "manifest.json"), "utf8"));
+  const newFiles = [".claude/agents/developer.md", ...names.map(skill)];
+  for (const rel of newFiles) {
+    rmSync(path.join(prev.out, ...rel.split("/")), { force: true });
+    rmSync(path.join(prev.out, ".bootstrap", "base", ...rel.split("/")) + ".base", { force: true });
+    delete m2.files?.[rel];
+  }
+  writeFileSync(path.join(prev.out, ".bootstrap", "manifest.json"), JSON.stringify(m2, null, 2));
+  const archPath = path.join(prev.out, ".claude", "agents", "architect.md");
+  writeFileSync(archPath, readFileSync(archPath, "utf8") + "\nLigne du projet.\n");
+  mkdirSync(path.join(prev.out, ".claude", "skills", "spec-review"), { recursive: true });
+  writeFileSync(path.join(prev.out, ".claude", "skills", "spec-review", "SKILL.md"), "Version du projet\n");
+  const upd = run({ ...base, visibility: "private", modules: full }, ["--update"], prev.out);
+  const created = [".claude/agents/developer.md", ...names.filter((n) => n !== "spec-review").map(skill)];
+  check("--update d'un projet antérieur : developer.md et les skills créés, rien d'agent-profiles retiré, le fichier hors manifeste signalé en conflit", upd.res.status === 3 && (upd.report?.conflicts ?? []).some((c) => /skills\/spec-review\/SKILL\.md/.test(typeof c === "string" ? c : c.path ?? JSON.stringify(c))) && created.every((rel) => has(prev, rel)) && !(upd.report?.retired ?? []).some((f) => /\.claude\/(agents|skills)\//.test(f)), JSON.stringify({ s: upd.res.status, miss: created.filter((rel) => !has(prev, rel)), conflicts: upd.report?.conflicts }).slice(0, 600));
+  check("--update d'un projet antérieur : profil modifié fusionné sans perte, fichier hors manifeste conservé", /Ligne du projet\./.test(readFileSync(archPath, "utf8")) && readFileSync(path.join(prev.out, ".claude", "skills", "spec-review", "SKILL.md"), "utf8") === "Version du projet\n");
+
+  // aucun bloc @@module: ne cite un nom inconnu (module ou pseudo-module)
+  const known = new Set([...Object.keys(manifest.modules), ...PSEUDO_MODULES]);
+  const unknown = [];
+  const walkDir = (dir) => {
+    for (const name of readdirSync(dir)) {
+      const full2 = path.join(dir, name);
+      if (statSync(full2).isDirectory()) { walkDir(full2); continue; }
+      let text;
+      try { text = readFileSync(full2, "utf8"); } catch { continue; }
+      for (const m of text.matchAll(/@@module:([^\s]+)/g)) for (const n of m[1].split("|")) if (!known.has(n)) unknown.push(`${path.relative(modulesRoot, full2)} : ${n}`);
+    }
+  };
+  walkDir(modulesRoot);
+  check("modèles : aucun bloc @@module: ne cite un nom inconnu", unknown.length === 0, unknown.slice(0, 5).join(" ; "));
 }
 
 // module advisor (#36, #126) : activation par la clé advisor, consigne portée par les profils sonnet et haiku
@@ -1896,7 +1976,7 @@ const d = mkdtempSync(path.join(tmpdir(), "pb-sonde-")); writeFileSync(path.join
   const off = run({ ...base, visibility: "private", modules: mods, profiles: all, advisor: null }, ["--update"], on.out);
   check("advisor: null : désactive la clé (ni héritée ni consignée), la consigne est retirée des profils", off.res.status === 0 && JSON.parse(txt(on, ".bootstrap/manifest.json")).config.advisor === undefined && !/advisor/i.test(profileText(on, "developer")), off.res.stderr);
   const noProfile = gen(mods, { advisor: true });
-  check("advisor: true sans profil optionnel : seule l'étape du Nouveau poste est générée, avec un avertissement du rapport", noProfile.res.status === 0 && /\*\*Advisor\*\*/.test(txt(noProfile, "docs/workflow.md")) && (noProfile.report?.warnings ?? []).some((w) => /advisor: true sans profil optionnel/.test(w)), JSON.stringify(noProfile.report?.warnings));
+  check("advisor: true sans profil optionnel : l'étape du Nouveau poste est générée, developer porte la consigne, aucun avertissement", noProfile.res.status === 0 && /\*\*Advisor\*\*/.test(txt(noProfile, "docs/workflow.md")) && /consulte l'advisor/.test(txt(noProfile, ".claude/agents/developer.md")) && !(noProfile.report?.warnings ?? []).some((w) => /advisor: true/.test(w)), JSON.stringify(noProfile.report?.warnings));
   check("advisor: true avec des profils : aucun avertissement", !(on.report?.warnings ?? []).some((w) => /advisor: true/.test(w)));
   const offFalse = gen(mods, { advisor: false });
   check("advisor: false équivaut à null", offFalse.res.status === 0 && JSON.parse(txt(offFalse, ".bootstrap/manifest.json")).config.advisor === undefined);
@@ -2024,7 +2104,7 @@ const d = mkdtempSync(path.join(tmpdir(), "pb-sonde-")); writeFileSync(path.join
   const adv = gen(mods, { advisor: true, profiles: NEW });
   check("advisor : acceptance-tester et scout portent la consigne, second-opinion non", ["acceptance-tester", "scout"].every((n) => /consulte l'advisor/.test(txt(adv, `.claude/agents/${n}.md`))) && !/advisor/i.test(txt(adv, ".claude/agents/second-opinion.md")), adv.res.stderr);
   const advOnly = gen(mods, { advisor: true, profiles: ["second-opinion"] });
-  check("advisor : avertissement quand seul second-opinion est choisi", advOnly.res.status === 0 && (advOnly.report?.warnings ?? []).some((w) => /advisor: true sans profil optionnel sonnet ou haiku/.test(w)), JSON.stringify(advOnly.report?.warnings));
+  check("advisor : aucun avertissement quand seul second-opinion est choisi (developer porte la consigne)", advOnly.res.status === 0 && !(advOnly.report?.warnings ?? []).some((w) => /advisor: true/.test(w)) && /consulte l'advisor/.test(txt(advOnly, ".claude/agents/developer.md")), JSON.stringify(advOnly.report?.warnings));
   const advScout = gen(mods, { advisor: true, profiles: ["scout"] });
   check("advisor : pas d'avertissement avec scout", !(advScout.report?.warnings ?? []).some((w) => /advisor: true sans profil/.test(w)));
 
@@ -2095,7 +2175,7 @@ const d = mkdtempSync(path.join(tmpdir(), "pb-sonde-")); writeFileSync(path.join
   check("regulatedDomain sans compliance-reviewer : sans effet, avertissement du rapport", warnDom.res.status === 0 && !has(warnDom, "compliance-reviewer") && (warnDom.report?.warnings ?? []).some((w) => /regulatedDomain sans le profil compliance-reviewer/.test(w)), JSON.stringify(warnDom.report?.warnings));
   check("avec le profil : pas d'avertissement sur regulatedDomain", !(both.report?.warnings ?? []).some((w) => /regulatedDomain/.test(w)));
   const advOpus = gen(mods, { advisor: true, profiles: ["compliance-reviewer"], regulatedDomain: "RGPD" });
-  check("advisor avec compliance-reviewer seul (opus) : avertissement", advOpus.res.status === 0 && (advOpus.report?.warnings ?? []).some((w) => /advisor: true sans profil optionnel sonnet ou haiku/.test(w)), JSON.stringify(advOpus.report?.warnings));
+  check("advisor avec compliance-reviewer seul (opus) : aucun avertissement, compliance-reviewer sans consigne", advOpus.res.status === 0 && !(advOpus.report?.warnings ?? []).some((w) => /advisor: true/.test(w)) && !/advisor/i.test(txt(advOpus, ".claude/agents/compliance-reviewer.md")), JSON.stringify(advOpus.report?.warnings));
   const advDev = gen(mods, { advisor: true, profiles: ["devops-engineer"] });
   check("advisor avec devops-engineer : pas d'avertissement, consigne présente ; compliance-reviewer sans consigne", !(advDev.report?.warnings ?? []).some((w) => /advisor: true sans profil/.test(w)) && /consulte l'advisor/.test(txt(advDev, ".claude/agents/devops-engineer.md")) && !/advisor/i.test(reviewer));
 
@@ -2189,7 +2269,7 @@ const d = mkdtempSync(path.join(tmpdir(), "pb-sonde-")); writeFileSync(path.join
     check(`workflow.md (${lang}) : archgate sans agent-profiles : rules.d.ts en « ${T.only} » sans fichier cité`, rulesD && rulesD[1].includes(T.only) && !/`/.test(rulesD[1]));
     const scoutOnly = gen(full, { profiles: ["scout"], docLanguage: lang });
     const scoutRows = rows(section(txt(scoutOnly, "docs/workflow.md"), T.who)).map((l) => cells(l)[0]);
-    check(`workflow.md (${lang}) : seul le profil choisi a sa ligne`, scoutRows.includes("`scout`") && !scoutRows.includes("`developer`"));
+    check(`workflow.md (${lang}) : seul le profil choisi a sa ligne`, scoutRows.includes("`scout`") && scoutRows.includes("`developer`") && !scoutRows.includes("`product-owner`"));
     const noProf = txt(gen(["claude", "github", "openspec"], { docLanguage: lang }), "docs/workflow.md");
     check(`workflow.md (${lang}) : sans agent-profiles, ni qui fait quoi, ni échelle, ni journal`, section(noProf, T.who) === null && section(noProf, T.scale) === null);
   }
@@ -2260,7 +2340,8 @@ const d = mkdtempSync(path.join(tmpdir(), "pb-sonde-")); writeFileSync(path.join
     const wfP = txt(withProf, "docs/workflow.md");
     check(`absorption (${lang}) : avec agent-profiles, workflow.md et les ADR nomment les profils`, /`qa-engineer`/.test(wfP) && /`architect`/.test(wfP) && /`qa-engineer`/.test(txt(withProf, "docs/architecture/adrs/ARCH-002-workflow-spec-driven-avec-openspec.md")) && /`architect`/.test(txt(withProf, "docs/architecture/adrs/ARCH-001-documentation-d-architecture-arc42-et-adr.md")));
     const qa = txt(withProf, ".claude/agents/qa-engineer.md");
-    check(`absorption (${lang}) : qa-engineer porte la revue de spec, la traçabilité et l'exception Dependabot`, /openspec show/.test(qa) && /dependabot\//.test(qa) && /git branch --show-current/.test(qa) && /gh pr checks/.test(qa));
+    const prr = txt(withProf, ".claude/skills/pr-readiness-review/SKILL.md");
+    check(`absorption (${lang}) : qa-engineer lance spec-review et pr-readiness-review, qui portent la revue de spec, le contrôle de la PR et l'exception Dependabot`, /openspec show/.test(qa) && /spec-review/.test(qa) && /pr-readiness-review/.test(qa) && /dependabot\//.test(prr) && /git branch --show-current/.test(prr) && /gh pr checks/.test(prr));
     check(`absorption (${lang}) : devops-engineer renvoie la traçabilité à qa-engineer`, /`qa-engineer`/.test(txt(withProf, ".claude/agents/devops-engineer.md")) && /`qa-engineer`/.test(txt(withProf, ".claude/agents/project-lead.md")));
   }
 

@@ -34,7 +34,7 @@ Each layer has a role:
 - **ADR if required**: a decision issue, or a change that introduces or replaces a technology or a dependency, a cross-cutting constraint, a data format, an external interface, or that contradicts an ADR. Exploration (`architecture-explorer` agent, possibly in a team), then `archgate adr create --title "…" --domain <domain>`. Status "Proposed" in the body, dedicated PR; "Accepted" at merge.
 @@end
 @@module:agent-profiles
-- **ADR if required**: a decision issue, or a change that introduces or replaces a technology or a dependency, a cross-cutting constraint, a data format, an external interface, or that contradicts an ADR. Exploration (`architect` profile), then `archgate adr create --title "…" --domain <domain>`. Status "Proposed" in the body, dedicated PR; "Accepted" at merge.
+- **ADR if required**: a decision issue, or a change that introduces or replaces a technology or a dependency, a cross-cutting constraint, a data format, an external interface, or that contradicts an ADR. Exploration (`architect` profile, `adr-options-comparison` skill), then `archgate adr create --title "…" --domain <domain>`. Status "Proposed" in the body, dedicated PR; "Accepted" at merge.
 @@end
 @@end
 - **Branch** `<type>/<N>-<slug>` (e.g. `feat/12-password-reset`).
@@ -44,11 +44,14 @@ Each layer has a role:
 - **OpenSpec change** `/opsx:propose`, id `<N>-<slug>` → `openspec/changes/<N>-<slug>/`. `proposal.md` starts with `Issue: #N` and `ADR: …`. Review by the `spec-reviewer` agent.
 @@end
 @@module:agent-profiles
-- **OpenSpec change** `/opsx:propose`, id `<N>-<slug>` → `openspec/changes/<N>-<slug>/`. `proposal.md` starts with `Issue: #N` and `ADR: …`. Review by the `qa-engineer` profile.
+- **OpenSpec change** `/opsx:propose`, id `<N>-<slug>` → `openspec/changes/<N>-<slug>/`. `proposal.md` starts with `Issue: #N` and `ADR: …`. Review by the `qa-engineer` profile (`spec-review` skill).
 @@end
 - **Change without behavior** (documentation, tooling): `skip_specs: true` in the change's `.openspec.yaml`; no spec delta is then expected or created.
 - **Revision** `/opsx:update`: after a review or a surprise, revises the planning artifacts (proposal, specs, design, tasks) and keeps them consistent with each other, never the code.
 - **Execution** `/opsx:apply`; atomic commits in Conventional Commits (English).
+@@module:agent-profiles
+- **Who executes**: `developer` implements (`/opsx:apply`); `project-lead` archives with `openspec archive <id> --yes`, because the living specs are off limits to `developer`.
+@@end
 - **Synchronization** `/opsx:sync`: carries a change's spec deltas over to the specs in force without archiving it; `/opsx:archive` does it too when archiving.
 - **Archiving** `/opsx:archive` **in the PR, before the merge**: the living specs (`openspec/specs/`) are up to date at merge time.
 @@end
@@ -57,7 +60,7 @@ Each layer has a role:
 - **PR**: Conventional Commit title, body with `Closes #N`. `traceability-checker` agent before asking for the merge.
 @@end
 @@module:agent-profiles
-- **PR**: Conventional Commit title, body with `Closes #N`. `qa-engineer` profile (traceability check) before asking for the merge.
+- **PR**: Conventional Commit title, body with `Closes #N`. `qa-engineer` profile (`pr-readiness-review` skill) before asking for the merge.
 @@end
 - **Squash merge**: the PR title becomes the commit on `main`; the issue closes.
 @@module:dependabot
@@ -69,7 +72,7 @@ Each layer has a role:
 - **arc42**: the PR updates the impacted sections (`arc42-keeper` agent); section 9 only points to the ADRs.
 @@end
 @@module:agent-profiles
-- **arc42**: the PR updates the impacted sections (`architect` profile); section 9 only points to the ADRs.
+- **arc42**: the PR updates the impacted sections (`architect` profile, `arc42-update` skill); section 9 only points to the ADRs.
 @@end
 @@end
 @@module:release
@@ -83,13 +86,13 @@ Every agent generated in `.claude/agents/` has a row. Write rights are those of 
 
 | Agent | Role in the steps | Writes to |
 |---|---|---|
-| `project-lead` | project lead (main agent with `mainAgent`): brief, delegation, arbitration, decision log | anywhere (not bounded) |
+| `project-lead` | orchestrating project lead (main agent with `mainAgent`): brief, delegation, arbitration, decision log; produces neither code nor specs | not bounded by the hook; `Write` and `Edit` refused by its frontmatter |
 | `architect` | architecture decisions, ADRs, arc42 | `docs/architecture/` |
 | `qa-engineer` | review of code and specs, traceability check, tests, checks | `tests/`, `test/` |
 @@module:profile-product-owner
 | `product-owner` | need, priorities, acceptance criteria | nothing (read-only) |
 @@end
-@@module:profile-developer
+@@module:agent-profiles
 | `developer` | code and commits | everything except the governance folders (`.archgate/`, `.bootstrap/`, `.claude/`, `.git/`, `.githooks/`, `.github/`, `docs/architecture/`, `openspec/specs/`, archives, `docs/workflow.md`) |
 @@end
 @@module:profile-business-analyst
@@ -217,7 +220,8 @@ A rule written in `CLAUDE.md` is only an instruction as long as nothing prevents
 @@module:github
 | A profile without a free shell runs no writing `gh` command. | `.claude/hooks/read-only-bash.mjs`, called by `.claude/hooks/profile-guard.mjs` (except `developer`, whose shell is not bounded) |
 @@end
-| Whoever writes does not review: what the project lead writes is reviewed by `qa-engineer`. | instruction only |
+| Whoever writes does not review: what the other profiles write is reviewed by `qa-engineer`. | instruction only |
+| `project-lead` produces neither code nor specs. | `.claude/agents/project-lead.md` (`disallowedTools`, effect on the main agent not verified) and instruction; `Bash` stays allowed |
 @@end
 
 @@end

@@ -19,7 +19,7 @@ Method:
 @@end
 - Compare at least two options with criteria, trade-offs and sources. Every claim cites an ADR, a documentation page or a repository file.
 @@module:archgate
-- For each option: how it works, fit with each criterion drawn from the project's constraints and quality goals, costs (tooling and free tiers included), risks, reversibility. Back every factual claim with a source you consulted (URL); mark it "not verified" otherwise. Return a criteria × options table, a reasoned recommendation and the open questions.
+- Before an ADR, run the `adr-options-comparison` skill: it sets the criteria, costs, risks, sources and layout of the comparison.
 @@end
 @@module:archgate-plugin
 - To frame the ADR's content, run the `archgate:adr-author` skill; it is for framing, the ADR is created with `archgate adr create` and then completed with `Edit`.
@@ -28,7 +28,7 @@ Method:
 - Create the ADR with `archgate adr create --title "…" --domain <domain>`, then check that `rules:` in the frontmatter matches the presence of a `.rules.ts`. Run `archgate check`.
 @@end
 @@module:arc42
-- After an accepted ADR, update arc42 yourself in `docs/architecture/arc42/`: change only the impacted sections (often 4, 5, 8, 10, 11, 12); summarize in one or two sentences with a relative link instead of copying an ADR or a spec; keep section 9 a plain pointer to `docs/architecture/adrs/`; invent nothing (leave the guiding question and flag it). Return the list of sections changed.
+- After an accepted ADR or an archived change, run the `arc42-update` skill and update arc42 yourself.
 @@end
 
 Rules:

@@ -14,11 +14,11 @@ Accepté.
 
 ## Context
 
-Le module `agent-profiles` livre trois profils fixes (`architect`, `qa-engineer`, `project-lead`). D'autres rôles sont utiles selon le projet mais ne doivent exister que s'ils sont choisis. Le format de module (ARCH-010) décrit un fichier par module ; il n'a pas de sélection par fichier.
+Le module `agent-profiles` livre quatre profils par défaut (`architect`, `qa-engineer`, `developer`, `project-lead`). D'autres rôles sont utiles selon le projet mais ne doivent exister que s'ils sont choisis. Le format de module (ARCH-010) décrit un fichier par module ; il n'a pas de sélection par fichier.
 
 ## Decision
 
-1. **Clé `profiles`** : liste de noms de profils optionnels, définie par `OPTIONAL_PROFILES` du catalogue. Seuls les profils listés sont générés. Absente (défaut), aucun. `[]` ou `null` la désactive : ni héritée du manifeste ni consignée. Un nom inconnu, une valeur qui n'est pas une liste, ou la clé sans le module `agent-profiles` fait échouer `scaffold.mjs` (code 1). Consignée triée sans doublon, héritée par `--update`.
+1. **Clé `profiles`** : liste de noms de profils optionnels, définie par `OPTIONAL_PROFILES` du catalogue. Seuls les profils listés sont générés. Absente (défaut), aucun. `[]` ou `null` la désactive : ni héritée du manifeste ni consignée. `developer` n'est pas optionnel : le nommer dans la liste est sans effet et le rapport avertit (les configurations existantes restent valides). Un nom inconnu, une valeur qui n'est pas une liste, ou la clé sans le module `agent-profiles` fait échouer `scaffold.mjs` (code 1). Consignée triée sans doublon, héritée par `--update`.
 2. **Un pseudo-module par profil** : `profile-<nom>` est actif quand le profil est listé ; `module.json` le cite dans le `when` du fichier du profil.
 3. **Dépendances** : `business-analyst` exige le module `openspec` ; `compliance-reviewer` exige la clé `regulatedDomain`, texte libre posé par une question de phase 0, validé par liste blanche (le texte entre dans le corps du modèle), jamais injecté dans un frontmatter. Sans le profil, la clé est sans effet et le rapport avertit.
 4. **Bornes dans la table du hook** (ARCH-011, ARCH-012) : les profils en lecture seule n'écrivent nulle part et leur shell est celui de `read-only-bash.mjs` ; `business-analyst` n'écrit que dans `openspec/changes/` ; `developer` écrit partout sauf dans une liste d'exclusion de dossiers de gouvernance, avec un shell non borné (la pile n'est pas choisie). Aucun profil optionnel n'a l'outil `Agent`. Le détail est dans la spec `agent-profiles`.
@@ -43,7 +43,7 @@ Le module `agent-profiles` livre trois profils fixes (`architect`, `qa-engineer`
 
 ### Positive
 
-- Un projet choisit ses rôles profil par profil ; aucun fichier de profil n'est écrit sans l'avoir demandé.
+- Un projet choisit ses profils optionnels un par un ; `developer`, toujours généré, n'en fait pas partie.
 - `project-lead` délègue aux profils choisis dès qu'ils existent, sans autre réglage.
 
 ### Negative
