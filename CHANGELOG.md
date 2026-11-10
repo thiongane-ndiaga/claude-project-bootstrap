@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.16](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.15...v0.1.16) (2026-11-10)
+
+
+### Features
+
+* **skill:** bound MCP tools and isolated-context skills with the profile guard ([#143](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/143)) ([#145](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/145)) ([7624239](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/76242396e66f96d9bc9fd954595820fca5e811a8))
+* **skill:** bound the project-lead main agent with the profile guard table ([#141](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/141)) ([a1ee752](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/a1ee7525d9c8e04d0e3576456c6a35e9db1c5334))
+
 ## [0.1.15](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.14...v0.1.15) (2026-11-10)
 
 
