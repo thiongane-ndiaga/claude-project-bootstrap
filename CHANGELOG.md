@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.15](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.14...v0.1.15) (2026-11-10)
+
+
+### Features
+
+* **skill:** default developer profile, orchestrating project-lead and method skills ([#138](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/138)) ([40a551c](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/40a551cec02c03c7e9bb337b38a1bd5ab2a1ce48))
+* **skill:** profiles absorb the legacy agents, with a migration for existing projects ([#136](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/136)) ([814126e](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/814126e8a79823a352c2cdc81e38b8b776918f81))
+
 ## [0.1.14](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.13...v0.1.14) (2026-11-09)
 
 
