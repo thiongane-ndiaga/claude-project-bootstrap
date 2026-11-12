@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.17](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.16...v0.1.17) (2026-11-12)
+
+
+### Features
+
+* **skill:** add the optional jenkins module ([#24](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/24)) ([#148](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/148)) ([af04697](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/af046974aeb838d1dd76626316c05a5f86c63778))
+
 ## [0.1.16](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.15...v0.1.16) (2026-11-10)
 
 
