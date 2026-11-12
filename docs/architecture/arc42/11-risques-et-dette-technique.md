@@ -47,6 +47,8 @@
 | Compte sans accès à `opus` : les agents déclarés `opus` retombent sur l'ordre de modèles de Claude Code | Moyenne | Faible | Éditer le frontmatter ; consigné dans `pitfalls.md` ([ARCH-015](../adrs/ARCH-015-le-plugin-n-ecrit-pas-de-reglage-payant-ou-experimental.md)) |
 | `effort: high` sur Opus coûte plus ; `maxTurns` trop bas tronque un travail long | Moyenne | Faible | Valeurs fixes documentées, surchargeables par l'environnement ou le frontmatter ([ARCH-015](../adrs/ARCH-015-le-plugin-n-ecrit-pas-de-reglage-payant-ou-experimental.md)) |
 | Surcharge `CLAUDE_CODE_SUBAGENT_MODEL` : consigne de l'advisor sur un profil passé en opus, niveau `effort` possiblement absent du modèle de remplacement | Faible | Faible | Non vérifié ; consigné dans la conception du changement 37 |
+| `Jenkinsfile` non exécuté par un Jenkins dans les tests (seul le script de l'étape `Node` l'est) ; une erreur de syntaxe Groovy n'est pas détectée | Moyenne | Moyen | Validation manuelle par le linter déclaratif de Jenkins ; parité des commandes avec `ci.yml` testée ([ARCH-010](../adrs/ARCH-010-modules-auto-decrits.md)) |
+| `audit.mjs` (contrôle `forge-protection` et `checkVersions`) ne lit que `ci.yml` et `package.json` : le nom du contexte de statut Jenkins peut être signalé comme écart, et une version modifiée à la main dans le `Jenkinsfile` d'un projet n'est pas détectée | Moyenne | Faible | Limite documentée dans `docs/jenkins.md`, suivie par #147 ([ARCH-007](../adrs/ARCH-007-installation-des-cli-d-outillage.md)) |
 
 - Quels risques pèsent sur les objectifs de qualité ?
 - Quelle dette est acceptée consciemment, et jusqu'à quand ?

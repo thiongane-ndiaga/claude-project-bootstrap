@@ -25,6 +25,7 @@ Alternatives pour le mode local : remplacer chaque appel par `npx --no-install <
 3. Seul le mode `local` crée un fichier de plus : `package.json` (propre au projet, `owned`), sans `name`, avec des versions exactes ; le lockfile est créé par le skill avec l'accord de l'utilisateur. Le mode `local` exige au moins un module `openspec` ou `archgate`.
 4. En `local`, la source de vérité des versions est `package.json` (plus de `OPENSPEC_VERSION` ni `ARCHGATE_VERSION` dans `ci.yml`).
 5. npm est le seul gestionnaire géré ; le changement de mode après coup n'est pas automatisé.
+6. Sur un agent d'intégration continue auto-hébergé (`Jenkinsfile`), hors du mode `local`, chaque CLI s'installe par `npm install -g --prefix` dans un dossier de l'espace de travail placé en tête du `PATH` : le préfixe global de l'agent n'est ni modifié ni exigé inscriptible.
 
 ## Do's and Don'ts
 

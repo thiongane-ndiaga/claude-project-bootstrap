@@ -8,7 +8,18 @@
 
 ## Résolution des CLI d'outillage
 
-Les appels `openspec` et `archgate` sont identiques dans tous les modes ; jamais de `npx` dans les fichiers générés. En `local`, `node_modules/.bin` est placé dans le `PATH` par le hook qualité, la CI et l'audit (construit avec `path.delimiter`, clé `PATH` retrouvée sans tenir compte de la casse). Un hook `SessionStart` (`session-path.mjs`) l'ajoute aussi au `PATH` de l'outil Bash des sessions Claude Code via `CLAUDE_ENV_FILE` (ligne en syntaxe Bash, séparateur `:`) : `claude` suffit. L'outil PowerShell et le terminal personnel ne reçoivent pas ce `PATH` : `npm run claude` ou `npx`. Aucun `sudo` n'est proposé. Voir [ARCH-007](../adrs/ARCH-007-installation-des-cli-d-outillage.md).
+Les appels `openspec` et `archgate` sont identiques dans tous les modes ; jamais de `npx` dans les fichiers générés. En `local`, `node_modules/.bin` est placé dans le `PATH` par le hook qualité, la CI et l'audit (construit avec `path.delimiter`, clé `PATH` retrouvée sans tenir compte de la casse). Un hook `SessionStart` (`session-path.mjs`) l'ajoute aussi au `PATH` de l'outil Bash des sessions Claude Code via `CLAUDE_ENV_FILE` (ligne en syntaxe Bash, séparateur `:`) : `claude` suffit. L'outil PowerShell et le terminal personnel ne reçoivent pas ce `PATH` : `npm run claude` ou `npx`. Aucun `sudo` n'est proposé.
+
+Sur un agent Jenkins auto-hébergé (`Jenkinsfile`), le préfixe global de npm n'est ni modifié ni exigé inscriptible. Hors du mode `local`, chaque CLI active s'installe à sa version épinglée par `npm install -g --prefix "$WORKSPACE/.ci-tools"`, et `.ci-tools/bin` est placé en tête du `PATH` du pipeline, donc aussi pour `run-checks`. En `local`, `npm ci` s'exécute et `node_modules/.bin` est placé en tête du `PATH`. Voir [ARCH-007](../adrs/ARCH-007-installation-des-cli-d-outillage.md) (décision 6).
+
+## Jenkinsfile, complément de `ci.yml`
+
+- Le `Jenkinsfile` du module optionnel `jenkins` rejoue les contrôles de `.github/workflows/ci.yml` (Node, titre de PR, CLI d'outillage, `openspec validate`, `archgate check`, chaîne d'outils, `run-checks.mjs`) ; `ci.yml` est la CI de référence. Un test compare les commandes et les versions des deux fichiers.
+- Le titre de PR, contrôlé par l'auteur, est passé par `withEnv` à un `sh` en guillemets simples, sans interpolation dans la commande.
+- `scripts/jenkins-setup.sh` est un fichier du projet (`owned`) : le projet y installe la chaîne d'outils de sa stack sans modifier le `Jenkinsfile` ni créer de conflit de fusion ([ARCH-006](../adrs/ARCH-006-strategie-de-mise-a-jour-des-fichiers-generes.md)).
+- Le module n'écrit rien dans `settings.json`, ne pose aucun hook, aucun secret et aucune question de phase 0 ([ARCH-010](../adrs/ARCH-010-modules-auto-decrits.md)).
+
+Source : changement OpenSpec `24-jenkins-module` (issue #24).
 
 ## Internationalisation de la documentation générée
 

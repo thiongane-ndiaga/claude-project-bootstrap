@@ -39,6 +39,7 @@
   ".gitignore": "db9ce31d2734b734e6fb2d8a6092ff08f5620f2edbf27aa0a4e7923c284fa8a3",
   ".release-please-manifest.json": "b9c66e0126774ab9fa34536f15972438356e7035724a2c0f0ca3b125967e6399",
   "CLAUDE.md": "08e4e9842548ad548f72f0be49bc3f924ff38460839e1a8cd7f4fd1d64c5fc7f",
+  "Jenkinsfile": "53cbff2ba58d4bbc4f8c7eee1f52254eb0229bb96d96131dfec982c220ec194a",
   "docs/architecture/adrs/ARCH-001-documentation-d-architecture-arc42-et-adr.md": "38dc8733418cb0a296975970d8163a2a1bdd86bc53959d544aea1013685bce83",
   "docs/architecture/adrs/ARCH-001-documentation-d-architecture-arc42-et-adr.rules.ts": "77e46409da81d23658a14a30a513cbb265aa90dfe1c1ec4f43c1945067f9bdc2",
   "docs/architecture/adrs/ARCH-002-workflow-spec-driven-avec-openspec.md": "cb6c767598114c112954f31c9dd964c5c7c1fb47334d4779bfc698990ee93b43",
@@ -59,8 +60,10 @@
   "docs/architecture/arc42/10-exigences-de-qualite.md": "f300e85b2da429bae8126f88bc616b8fb9cdde711077d6d45ee35ba72a243377",
   "docs/architecture/arc42/11-risques-et-dette-technique.md": "9bdb3bbf598ca92c4763fcaacda2acfdc08568a5013d64e4e16f65dcacfa4f6e",
   "docs/architecture/arc42/12-glossaire.md": "1678f3b3e6d4fdb2857aa6ea0d0a5efc92362f8336adecd7e7db282b4322d535",
-  "docs/workflow.md": "4c8b562082f00a18b7be4474926574a7bfece0d9269235ff76f06ec47f6c0d54",
+  "docs/jenkins.md": "8b7d4a6cf2c7978ec5c758c3558314f43192e1167971ab42dab2f591cafb513f",
+  "docs/workflow.md": "01c792cd00497d9f31c8a1c889c67359d36fc663137498b75d6a615e26a61f8b",
   "release-please-config.json": "c4a900e93d479b4264ac754c5925c6a699cb08272b864af8d0bc0986f27a8e27",
   "scripts/check-pr-title.mjs": "e0f383242e70d05da533f58473393d34178a843ff9a73170d8b5a269296b583f",
+  "scripts/jenkins-setup.sh": "30fbf6dafc541ab3d5fb49e232d1aa0f4b08e160bde0d5599527c7a204ccc64a",
   "scripts/sync-labels.mjs": "8478be6e2aad6011c472d491567934d9cea9036c4ab9a82dec3e0bb82e4fb22b"
 }
