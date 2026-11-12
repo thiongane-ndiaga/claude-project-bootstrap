@@ -33,4 +33,4 @@ Private repository: a private repository on GitHub Free has no branch protection
 - The git history can be shallow depending on the GitHub Branch Source configuration, whereas `ci.yml` fetches the full history.
 - Editing the PR title does not always rerun the job.
 - The CLIs are installed in the workspace's `.ci-tools`, without touching the agent's npm prefix.
-- No plugin test runs the `Jenkinsfile`; the `forge-protection` audit may report the Jenkins context as missing among the workflow jobs, and the audit does not check the `Jenkinsfile` versions.
+- No plugin test runs the `Jenkinsfile`. The project audit (`forge-protection`) recognizes a required `continuous-integration/jenkins/…` context but cannot compare it with the workflow jobs, since the real name depends on the server; it does compare the CLI versions pinned in the `Jenkinsfile` with those of `ci.yml`.
