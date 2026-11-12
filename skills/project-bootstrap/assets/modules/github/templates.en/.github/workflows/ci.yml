@@ -104,3 +104,30 @@ jobs:
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: node scripts/check-pr-title.mjs
+  # @@module:sonar
+
+  sonar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      # @@module:sonar-server
+      SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+      # @@end
+    steps:
+      - uses: actions/checkout@{{CHECKOUT_REF}}
+        with:
+          fetch-depth: 0
+      - name: Sonar analysis inactive (SONAR_TOKEN secret missing)
+        if: env.SONAR_TOKEN == ''
+        run: |
+          echo "::notice::Sonar analysis inactive: SONAR_TOKEN secret missing (see docs/sonar.md)"
+      - name: Sonar analysis
+        # @@module:sonar-cloud
+        if: env.SONAR_TOKEN != '' && github.event.action != 'edited'
+        # @@end
+        # @@module:sonar-server
+        if: env.SONAR_TOKEN != '' && github.event_name == 'push'
+        # @@end
+        uses: SonarSource/sonarqube-scan-action@{{SONAR_SCAN_REF}}
+  # @@end

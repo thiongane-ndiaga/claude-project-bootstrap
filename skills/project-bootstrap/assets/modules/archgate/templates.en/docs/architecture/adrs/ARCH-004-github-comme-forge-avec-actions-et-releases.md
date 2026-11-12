@@ -33,6 +33,9 @@ The project needs the whole cycle — ticket, tracking, review, CI, delivery —
 @@module:release
 - **Release** (`.github/workflows/release.yml`) through `googleapis/release-please-action` (Apache-2.0).
 @@end
+@@module:sonar
+- **Quality analysis** (`.github/workflows/ci.yml`, `sonar` job) through `SonarSource/sonarqube-scan-action` (LGPL-3.0) to an external service; inactive until the `SONAR_TOKEN` secret exists, which counts as explicit agreement for this analysis.
+@@end
 - Open source third-party actions only, **pinned to a commit SHA** (local `./…` actions excepted).
 - No automation that consumes API tokens in CI without explicit agreement.
 @@module:visibility-private

@@ -21,7 +21,7 @@ export class CatalogError extends Error {
 export const OPTIONAL_PROFILES = ["acceptance-tester", "business-analyst", "compliance-reviewer", "devops-engineer", "product-owner", "scout", "second-opinion"];
 // domaine réglementé (clé regulatedDomain) : texte libre injecté dans le corps du modèle de compliance-reviewer, d'où la liste blanche
 export const REGULATED_DOMAIN_RE = /^(?=.*[\p{L}\p{N}])[\p{L}\p{M}\p{N} ,.;:'’()\/&_-]{1,120}$/u;
-export const PSEUDO_MODULES = ["visibility-private", "visibility-public", "stack-chosen", "stack-open", "cli-npm-global", "cli-default", "cli-user", "cli-local", "advisor-on", "legacy-agents", ...OPTIONAL_PROFILES.map((p) => `profile-${p}`)];
+export const PSEUDO_MODULES = ["visibility-private", "visibility-public", "stack-chosen", "stack-open", "cli-npm-global", "cli-default", "cli-user", "cli-local", "advisor-on", "sonar-cloud", "sonar-server", "legacy-agents", ...OPTIONAL_PROFILES.map((p) => `profile-${p}`)];
 // chemins écrits par le générateur ou par state.mjs : aucun module ne peut les déclarer
 export const RESERVED_PATHS = [".claude/settings.json", "package.json", ".bootstrap/manifest.json"];
 export const RESERVED_PREFIXES = [".bootstrap/base/", ".bootstrap/local/", ".git/"];

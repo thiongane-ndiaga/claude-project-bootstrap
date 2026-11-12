@@ -116,9 +116,11 @@ const config = typeof args.config === "string" ? JSON.parse(readFileSync(args.co
 config.date = config.date ?? previous?.config?.date ?? new Date().toISOString().slice(0, 10);
 // langue de la documentation et mode d'installation des CLI : hérités du manifeste quand --config ne les redéfinit pas
 // (une configuration sans la clé ne fait changer ni la langue ni le mode)
-for (const key of ["docLanguage", "cliInstall", "mainAgent", "profiles", "advisor", "regulatedDomain"]) if (config[key] === undefined && previous?.config?.[key] !== undefined) config[key] = previous.config[key];
+for (const key of ["docLanguage", "cliInstall", "mainAgent", "profiles", "advisor", "regulatedDomain", "sonar"]) if (config[key] === undefined && previous?.config?.[key] !== undefined) config[key] = previous.config[key];
 // mainAgent: null désactive l'agent principal : la valeur n'est ni héritée du manifeste ni consignée
 if (config.mainAgent === null) delete config.mainAgent;
+// sonar: null désactive la clé : ni héritée du manifeste ni consignée
+if (config.sonar === null) delete config.sonar;
 // advisor: null ou false désactive la clé : ni héritée du manifeste ni consignée
 if (config.advisor === null || config.advisor === false) delete config.advisor;
 // regulatedDomain: null désactive la clé : ni héritée du manifeste ni consignée ; texte normalisé NFC, espaces de début et de fin retirés
@@ -149,6 +151,9 @@ if (config.mainAgent !== undefined && !MAIN_AGENTS.includes(config.mainAgent)) e
 if (config.mainAgent !== undefined && !selected.has("agent-profiles")) errors.push("mainAgent exige le module agent-profiles");
 if (config.advisor !== undefined && config.advisor !== true) errors.push(`advisor doit valoir true, ou null pour le désactiver (reçu : ${JSON.stringify(config.advisor)})`);
 if (config.advisor !== undefined && !selected.has("advisor")) errors.push("advisor exige le module advisor");
+const SONAR_HOSTS = ["cloud", "server"];
+if (config.sonar !== undefined && !SONAR_HOSTS.includes(config.sonar)) errors.push(`sonar doit valoir ${SONAR_HOSTS.join(", ")}, ou null pour le désactiver (reçu : ${JSON.stringify(config.sonar)})`);
+if (config.sonar !== undefined && !selected.has("sonar")) errors.push("sonar exige le module sonar");
 // developer est toujours généré avec agent-profiles : le nommer dans profiles est sans effet (avertissement), il n'est pas consigné
 const developerListed = selected.has("agent-profiles") && Array.isArray(config.profiles) && config.profiles.includes("developer");
 if (developerListed) {
@@ -176,7 +181,7 @@ if (incompatible.size) {
 }
 // pseudo-modules utilisés par les blocs conditionnels
 const cliMode = config.cliInstall ?? "global";
-const active = new Set([...selected, ...(selected.has("agent-profiles") ? [] : ["legacy-agents"]), ...(config.advisor === true ? ["advisor-on"] : []), ...(Array.isArray(config.profiles) ? config.profiles.map((p) => `profile-${p}`) : []), `visibility-${config.visibility}`, config.stack ? "stack-chosen" : "stack-open", ...(cliMode === "local" ? ["cli-local"] : ["cli-npm-global"]), ...(cliMode === "user" ? ["cli-user"] : []), ...(cliMode === "global" ? ["cli-default"] : [])]);
+const active = new Set([...selected, ...(selected.has("agent-profiles") ? [] : ["legacy-agents"]), ...(config.advisor === true ? ["advisor-on"] : []), ...(selected.has("sonar") ? [config.sonar === "server" ? "sonar-server" : "sonar-cloud"] : []), ...(Array.isArray(config.profiles) ? config.profiles.map((p) => `profile-${p}`) : []), `visibility-${config.visibility}`, config.stack ? "stack-chosen" : "stack-open", ...(cliMode === "local" ? ["cli-local"] : ["cli-npm-global"]), ...(cliMode === "user" ? ["cli-user"] : []), ...(cliMode === "global" ? ["cli-default"] : [])]);
 
 // --- paramètres ---
 const ref = (a) => (a ? `${a.sha} # ${a.tag}` : undefined);
@@ -213,6 +218,7 @@ const params = {
   CHECKOUT_REF: ref(config.actions?.checkout),
   SETUP_NODE_REF: ref(config.actions?.setupNode),
   RELEASE_PLEASE_REF: ref(config.actions?.releasePlease),
+  SONAR_SCAN_REF: ref(config.actions?.sonarScan),
   CI_OS_JSON: isPublic ? '["ubuntu-latest", "windows-latest"]' : '["ubuntu-latest"]',
   CI_OS_TEXT: langParams.CI_OS_TEXT,
   CI_BLOCKING_NOTE: langParams.CI_BLOCKING_NOTE,
