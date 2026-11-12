@@ -17,7 +17,7 @@ const OWNER_RE = /^[\w.-]+$/;
 const GITHUB_ACTIONS_APP_ID = 15368;
 // CLI installées par npm : raccourcis .cmd sous Windows, qui exigent un shell (arguments toujours constants ici)
 const SHELL_CLIS = new Set(["openspec", "archgate", "npm"]);
-const ACTION_KEYS = { "actions/checkout": "checkout", "actions/setup-node": "setupNode", "googleapis/release-please-action": "releasePlease" };
+const ACTION_KEYS = { "actions/checkout": "checkout", "actions/setup-node": "setupNode", "googleapis/release-please-action": "releasePlease", "SonarSource/sonarqube-scan-action": "sonarScan" };
 
 // Exécuteur réel : { status, stdout, stderr, error }. Le dossier cible ne passe que par cwd, jamais dans une chaîne de commande.
 export function realExec(cmd, args = [], { cwd, env, timeout = 120000 } = {}) {

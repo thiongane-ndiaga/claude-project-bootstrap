@@ -181,3 +181,15 @@ Compléments aux puces des sections « Claude Code » (`skills`, teammate lancé
 - Le titre de PR passe par `withEnv` : interpoler `CHANGE_TITLE` dans une chaîne `sh` serait une injection de commande. Régler la confiance des PR de fork de GitHub Branch Source.
 - L'audit `forge-protection` reconnaît un contexte exigé `continuous-integration/jenkins/…` quand `jenkins` est actif mais ne le compare pas aux jobs (le nom réel dépend du serveur) ; `checkVersions` lit les versions du `Jenkinsfile` hors mode `local` (#147).
 - `scripts/jenkins-setup.sh` est `owned` : le projet y installe sa chaîne d'outils, `--update` ne le touche pas. Un `Jenkinsfile` existant divergent donne un conflit (code 3).
+
+## Module sonar (#22)
+
+Aucun de ces points n'a été observé par un essai réel contre SonarCloud ou un serveur : ils viennent de la documentation de l'action et de la revue du changement.
+
+- Le job `sonar` lit `SONAR_TOKEN` dans l'environnement du job : un secret ne se teste pas dans un `if` de job, seul `env.SONAR_TOKEN` se teste dans l'`if` d'une étape. Sans secret, le job réussit sans analyse (PR de fork et de Dependabot comprises) ; la notice le dit.
+- Une fois le secret posé, l'absence de `sonar.projectKey` dans `sonar-project.properties` fait échouer le job.
+- SonarCloud refuse l'analyse de la CI si l'analyse automatique du projet est active.
+- L'analyse des branches et des pull requests est réservée aux éditions commerciales de SonarQube Server : en mode `server`, seul `push` est analysé.
+- Le message d'une étape `run:` qui contient `: ` doit être un bloc littéral, sinon le YAML est invalide.
+- `sonar-project.properties` est `owned` : un fichier existant est conservé sans conflit, `--update` ne le touche pas ; passer de `cloud` à `server` ne retire pas `sonar.organization`.
+- L'action ne convient pas à Maven, Gradle, .NET ni au C et C++ sans scanner ou build wrapper dédié.

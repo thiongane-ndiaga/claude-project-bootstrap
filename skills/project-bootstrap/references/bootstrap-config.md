@@ -40,7 +40,8 @@ Entrée de `scripts/scaffold.mjs`. Fusionne la sortie de `scripts/resolve-versio
 | `actionsCreditNote` | archgate + github + privé | chiffres **relevés dans la doc du jour**, jamais de mémoire |
 | `versions.openspec` | openspec | épinglage CI et doc |
 | `versions.archgate` | archgate | épinglage CI et doc |
-| `actions.*` | github / release | `uses: owner/action@<sha> # <tag>` |
+| `actions.*` | github / release / sonar | `uses: owner/action@<sha> # <tag>` (`sonarScan` pour le module `sonar`, toujours résolue par `resolve-versions.mjs`) |
+| `sonar` | — | service d'analyse du module `sonar` : `cloud` (défaut, clé à omettre) ou `server` (variable `SONAR_HOST_URL`, analyse des pushes seulement) ; refusée sans le module `sonar`. Consignée seulement si présente, héritée par `--update` ; `null` la retire (ni héritée ni consignée) ; retirer le module alors que la clé est héritée échoue, passer aussi `sonar: null` |
 
 Un paramètre manquant fait échouer le script en nommant le fichier et le paramètre.
 

@@ -52,7 +52,7 @@ const base = {
   projectName: "Test",
   description: "Projet de test.",
   versions: { openspec: "1.0.0", archgate: "0.1.0", node: "24" },
-  actions: { checkout: sha("a"), setupNode: sha("b"), releasePlease: sha("c") },
+  actions: { checkout: sha("a"), setupNode: sha("b"), releasePlease: sha("c"), sonarScan: sha("d") },
   actionsCreditNote: "crédit de test",
 };
 
@@ -468,7 +468,7 @@ for (const c of cases) {
 
   // catalogue réel
   const names = Object.keys(manifest.modules);
-  check("catalogue réel : 16 modules dont core, chacun avec une description", names.length === 16 && names[0] === "core" && names.every((n) => manifest.modules[n].description.length > 10));
+  check("catalogue réel : 17 modules dont core, chacun avec une description", names.length === 17 && names[0] === "core" && names.every((n) => manifest.modules[n].description.length > 10));
   check("catalogue réel : fichiers triés par chemin, propriétaire en tête de la condition de génération", manifest.files.every((f, i, a) => i === 0 || a[i - 1].path < f.path) && manifest.files.every((f) => f.when[0] === f.module));
   check("catalogue réel : langues disponibles fournies par core (en)", manifest.languages.join() === "en");
   const adrOwner = (rel) => manifest.files.find((f) => f.path === rel);
@@ -538,11 +538,11 @@ for (const c of cases) {
   // --list-modules et --catalog
   const list = spawnSync(process.execPath, [scaffold, "--list-modules"], { encoding: "utf8" });
   const listed = JSON.parse(list.stdout);
-  check("--list-modules : sans --target, JSON des 16 modules avec leurs champs et les langues", list.status === 0 && listed.modules.length === 16 && listed.modules.find((m) => m.name === "release").requires.join() === "github" && listed.modules.find((m) => m.name === "dependabot").default === false && listed.languages.join() === "fr,en", list.stderr);
+  check("--list-modules : sans --target, JSON des 17 modules avec leurs champs et les langues", list.status === 0 && listed.modules.length === 17 && listed.modules.find((m) => m.name === "release").requires.join() === "github" && listed.modules.find((m) => m.name === "dependabot").default === false && listed.languages.join() === "fr,en", list.stderr);
   const table = spawnSync(process.execPath, [scaffold, "--list-modules", "--format", "table"], { encoding: "utf8" });
   const apQuestions = listed.modules.find((m) => m.name === "agent-profiles")?.questions ?? [];
   check("--list-modules : agent-profiles déclare les questions de phase 0 sur mainAgent et sur profiles (défaut non / aucun), listées aussi dans le tableau", apQuestions.length === 3 && /regulatedDomain/.test(apQuestions[2]) && /Défaut : non/.test(apQuestions[2]) && /mainAgent/.test(apQuestions[0]) && /Défaut : non/.test(apQuestions[0]) && /profiles/.test(apQuestions[1]) && /Défaut : aucun/.test(apQuestions[1]) && /project-lead/.test(table.stdout.split("\n").find((l) => l.startsWith("| `agent-profiles`")) ?? ""));
-  check("--list-modules --format table : tableau markdown avec les questions de phase 0", table.status === 0 && /^\| Module \| Apporte \| Requiert \| Incompatible avec \| Par défaut \| Questions de phase 0 \|/.test(table.stdout) && table.stdout.split("\n").filter((l) => l.startsWith("| `")).length === 16);
+  check("--list-modules --format table : tableau markdown avec les questions de phase 0", table.status === 0 && /^\| Module \| Apporte \| Requiert \| Incompatible avec \| Par défaut \| Questions de phase 0 \|/.test(table.stdout) && table.stdout.split("\n").filter((l) => l.startsWith("| `")).length === 17);
   const badCatalog = spawnSync(process.execPath, [scaffold, "--list-modules", "--catalog", path.join(mkdtempSync(path.join(tmpdir(), "pb-vide-")), "rien")], { encoding: "utf8" });
   check("--catalog invalide : code 1 et message", badCatalog.status === 1 && /Catalogue introuvable/.test(badCatalog.stderr));
   const brokenDir = copy();
@@ -1429,6 +1429,13 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
     run(cfg([...MODS, "jenkins"], { cliInstall: "local" }), [], jLocal);
     const jv2 = await audit(jLocal, vers);
     check("audit jenkins local : versions lues dans package.json, le Jenkinsfile n'en porte pas -> ok", by(jv2, "version-openspec")?.statut === "ok" && !/Jenkinsfile/.test(by(jv2, "version-openspec").message), JSON.stringify(by(jv2, "version-openspec")));
+    // module sonar (#22) : l'action d'analyse est épinglée et auditée comme les autres
+    const sProj = mkProject([...MODS, "sonar"]);
+    check("audit sonar : action d'analyse épinglée cohérente avec le manifeste -> ok", by(await audit(sProj), "actions-epinglees")?.statut === "ok");
+    const smf = JSON.parse(read(sProj, ".bootstrap/manifest.json"));
+    smf.config.actions.sonarScan.sha = "1".repeat(40);
+    writeFileSync(path.join(sProj, ".bootstrap", "manifest.json"), JSON.stringify(smf, null, 2));
+    check("audit sonar : SHA de l'action d'analyse différent du manifeste -> écart", by(await audit(sProj), "actions-epinglees")?.statut === "ecart");
     const mgm = JSON.parse(read(healthy, ".bootstrap/manifest.json"));
     mgm.migrations = ["0001-actions-pr-permission"];
     const consigned = mkProject();

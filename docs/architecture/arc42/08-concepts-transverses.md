@@ -22,6 +22,16 @@ Sur un agent Jenkins auto-hébergé (`Jenkinsfile`), le préfixe global de npm n
 
 Sources : changements OpenSpec `24-jenkins-module` (issue #24) et `147-audit-jenkinsfile` (issue #147).
 
+## Analyse Sonar optionnelle
+
+- Le job `sonar` de `ci.yml` est inactif sans jeton : l'étape d'analyse est conditionnée par `env.SONAR_TOKEN != ''` (un secret ne se teste pas dans un `if` de job). Sans secret (projet neuf, PR de fork, PR de Dependabot) le job reste vert et une étape `::notice::` le signale ; l'étape est aussi sautée sur l'événement `edited` d'une PR.
+- La quality gate n'est pas bloquante : pas de `sonar.qualitygate.wait`, le job ne rougit pas pour elle. Pour bloquer sur la gate, `docs/sonar.md` indique le contexte posté par SonarCloud à exiger ; l'audit le classe « autre application, non comparable ».
+- En mode `server`, l'analyse se limite à l'événement `push` : l'analyse des branches et des PR est réservée aux éditions commerciales de SonarQube Server.
+- Le plugin n'écrit aucun secret : `SONAR_TOKEN` (et la variable `SONAR_HOST_URL` en `server`) sont créés par l'utilisateur, ce qui vaut accord explicite au sens d'ARCH-004. `SKILL.md` les range dans ce qui reste manuel.
+- `sonar-project.properties` est un fichier du projet (`owned`) ; ses exclusions écartent les fichiers d'outillage des mesures. Passer de `cloud` à `server` par `--update` laisse ces propriétés intactes.
+
+Source : changement OpenSpec `22-sonar-module` (issue #22). Voir [ARCH-004](../adrs/ARCH-004-github-comme-forge-avec-actions-et-releases.md) et [ARCH-006](../adrs/ARCH-006-strategie-de-mise-a-jour-des-fichiers-generes.md).
+
 ## Internationalisation de la documentation générée
 
 - L'arborescence est le contrat : les noms de fichiers sont identiques dans toutes les langues, y compris les slugs français d'arc42 et des ADR.

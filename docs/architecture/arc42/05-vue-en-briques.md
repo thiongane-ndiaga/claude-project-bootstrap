@@ -85,3 +85,13 @@ _Le reste de la section reste à rédiger._
 - `skills/project-bootstrap/assets/modules/jenkins/tests/jenkins.test.mjs` : exécute le script de l'étape `Node` et compare commandes et versions à `ci.yml` ; `tests/scaffold.test.mjs` couvre la génération, le conflit et `--update` ; `tests/matrix.test.mjs` les combinaisons `jenkins` et `jenkins-cli-local`.
 
 Voir [ARCH-007](../adrs/ARCH-007-installation-des-cli-d-outillage.md) et [ARCH-010](../adrs/ARCH-010-modules-auto-decrits.md).
+
+## Briques liées à Sonar
+
+- Module `sonar` (`requires: github`, `default: false`) : apporte `sonar-project.properties` (`owned`), `docs/sonar.md` et le bloc `@@module:sonar` de `.github/workflows/ci.yml` (job `sonar` sur `ubuntu-latest`, action `SonarSource/sonarqube-scan-action`). Le service (SonarCloud ou serveur) est externe.
+- Clé de configuration `sonar` (`cloud` ou `server`) : absente, `cloud` (non consignée) ; toute autre valeur, ou la clé sans le module `sonar`, fait échouer `scaffold.mjs`. Elle est héritée du manifeste par `--update` ; `sonar: null` la retire.
+- Pseudo-modules `sonar-cloud` et `sonar-server`, dérivés de cette clé et cités dans les blocs `@@module` de `ci.yml` et de `sonar-project.properties` (`sonar.organization` en `cloud`, `SONAR_HOST_URL` et analyse limitée à `push` en `server`).
+- Épinglage : `resolve-versions.mjs` résout et consigne toujours `actions.sonarScan` comme les autres actions ; sans elle dans la configuration, la génération échoue quand `sonar` est actif.
+- `skills/project-bootstrap/assets/modules/sonar/tests/sonar.test.mjs` : tests du module ; les cas de `--update` et le refus de la clé sont dans `tests/scaffold.test.mjs`, les combinaisons `sonar` et `sonar-server` dans `tests/matrix.test.mjs`.
+
+Voir [ARCH-004](../adrs/ARCH-004-github-comme-forge-avec-actions-et-releases.md) et [ARCH-010](../adrs/ARCH-010-modules-auto-decrits.md).

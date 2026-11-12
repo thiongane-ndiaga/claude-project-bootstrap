@@ -1,0 +1,12 @@
+{
+  "description": "SonarQube / SonarCloud : job d'analyse dans ci.yml (inactif tant que le secret SONAR_TOKEN n'existe pas, sans quality gate bloquante), sonar-project.properties propre au projet et étapes manuelles documentées",
+  "requires": ["github"],
+  "default": false,
+  "questions": [
+    "Quel service d'analyse (clé sonar) ? « cloud » : SonarCloud (défaut, la clé est omise) ; « server » : serveur SonarQube auto-hébergé (variable de dépôt SONAR_HOST_URL, analyse des pushes seulement). Le secret SONAR_TOKEN et le projet Sonar sont créés par l'utilisateur, jamais par le plugin."
+  ],
+  "files": [
+    {"path": "sonar-project.properties", "owned": true},
+    {"path": "docs/sonar.md"}
+  ]
+}

@@ -51,6 +51,7 @@ const out = {
     checkout: await action("actions/checkout"),
     setupNode: await action("actions/setup-node"),
     releasePlease: await action("googleapis/release-please-action"),
+    sonarScan: await action("SonarSource/sonarqube-scan-action"),
   },
 };
 console.log(JSON.stringify(out, null, 2));
