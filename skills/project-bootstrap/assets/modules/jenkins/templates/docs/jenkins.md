@@ -33,4 +33,4 @@ Mode `local` des CLI : le `Jenkinsfile` lance `npm ci`. Commiter `package-lock.j
 - L'historique git peut être superficiel selon la configuration de GitHub Branch Source, alors que `ci.yml` récupère tout l'historique.
 - Une modification du titre de la PR ne relance pas toujours le job.
 - Les CLI sont installées dans `.ci-tools` de l'espace de travail, sans toucher au préfixe npm de l'agent.
-- Le `Jenkinsfile` n'est exécuté par aucun test du plugin ; l'audit `forge-protection` peut signaler le contexte Jenkins comme introuvable parmi les jobs des workflows, et les versions du `Jenkinsfile` ne sont pas contrôlées par l'audit.
+- Le `Jenkinsfile` n'est exécuté par aucun test du plugin. L'audit du projet (`forge-protection`) reconnaît un contexte exigé `continuous-integration/jenkins/…` mais ne peut pas le comparer aux jobs des workflows, le nom réel dépendant du serveur ; il compare en revanche les versions des CLI épinglées dans le `Jenkinsfile` à celles de `ci.yml`.

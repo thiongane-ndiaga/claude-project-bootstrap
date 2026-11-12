@@ -18,8 +18,9 @@ Sur un agent Jenkins auto-hébergé (`Jenkinsfile`), le préfixe global de npm n
 - Le titre de PR, contrôlé par l'auteur, est passé par `withEnv` à un `sh` en guillemets simples, sans interpolation dans la commande.
 - `scripts/jenkins-setup.sh` est un fichier du projet (`owned`) : le projet y installe la chaîne d'outils de sa stack sans modifier le `Jenkinsfile` ni créer de conflit de fusion ([ARCH-006](../adrs/ARCH-006-strategie-de-mise-a-jour-des-fichiers-generes.md)).
 - Le module n'écrit rien dans `settings.json`, ne pose aucun hook, aucun secret et aucune question de phase 0 ([ARCH-010](../adrs/ARCH-010-modules-auto-decrits.md)).
+- L'audit (`audit.mjs`), module actif, reconnaît par leur préfixe `continuous-integration/jenkins/` les contextes exigés par la protection de branche, sans les comparer aux jobs, et lit les versions du `Jenkinsfile` (hors mode `local`) dans `checkVersions`.
 
-Source : changement OpenSpec `24-jenkins-module` (issue #24).
+Sources : changements OpenSpec `24-jenkins-module` (issue #24) et `147-audit-jenkinsfile` (issue #147).
 
 ## Internationalisation de la documentation générée
 

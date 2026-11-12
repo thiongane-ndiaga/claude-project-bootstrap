@@ -289,6 +289,13 @@ function checkVersions(ctx) {
     const source = mode === "local" ? "package.json" : "ci.yml";
     const inCi = mode === "local" ? (devDeps[CLI_PACKAGE[tool]] ?? "").replace(/^[\^~=v]+/, "") || undefined : new RegExp(`${envName}:\\s*"?([\\w.-]+)`).exec(text)?.[1];
     if (inCi) sources[source] = inCi;
+    let inJenkins;
+    if (mode !== "local" && ctx.modules?.has("jenkins")) {
+      const jf = path.join(ctx.target, "Jenkinsfile");
+      // les noms de paquet (@fission-ai/openspec, archgate) ne contiennent aucun métacaractère d'expression régulière
+      if (existsSync(jf)) inJenkins = new RegExp(`${CLI_PACKAGE[tool]}@(\\d[\\w.-]*)`).exec(readText(jf))?.[1];
+    }
+    if (inJenkins) sources.Jenkinsfile = inJenkins;
     const inManifest = ctx.manifest?.config?.versions?.[tool];
     if (inManifest) sources.manifeste = inManifest;
     const installed = probe(ctx, tool);
@@ -296,7 +303,8 @@ function checkVersions(ctx) {
     const values = new Set(Object.values(sources));
     const pkg = CLI_PACKAGE[tool];
     const wanted = inCi ?? inManifest;
-    const fix = mode === "local" ? `npm install --save-dev --save-exact ${pkg}@${wanted ?? "<version>"}` : mode === "user" ? `npm install -g --prefix ~/.local ${pkg}@${wanted}` : `npm install -g ${pkg}@${wanted}`;
+    const fixInstall = mode === "local" ? `npm install --save-dev --save-exact ${pkg}@${wanted ?? "<version>"}` : mode === "user" ? `npm install -g --prefix ~/.local ${pkg}@${wanted}` : `npm install -g ${pkg}@${wanted}`;
+    const fix = inJenkins && wanted && inJenkins !== wanted ? `${fixInstall} ; aligner la version du Jenkinsfile sur ${wanted}` : fixInstall;
     if (mode === "local" && !inCi) results.push(ecart(`version-${tool}`, `${tool} absent des devDependencies de package.json`, fix));
     else if (!inCi && !inManifest) results.push(nv(`version-${tool}`, "version épinglée introuvable dans ci.yml et le manifeste"));
     else if (values.size > 1) results.push(ecart(`version-${tool}`, `${tool} : ${Object.entries(sources).map(([k, v]) => `${k} ${v}`).join(", ")}`, fix));
@@ -421,19 +429,24 @@ function requiredContexts(gh, repo) {
   return found ? required : null;
 }
 
+const JENKINS_CONTEXT_PREFIX = "continuous-integration/jenkins/";
+
 function checkProtection(ctx, gh, repo) {
   const required = requiredContexts(gh, repo);
   if (required === null) return [nv("forge-protection", "protection de main absente ou inaccessible (dépôt privé en plan gratuit, ou droits insuffisants)")];
   const expected = expectedContexts(ctx.target);
   const bad = [];
   const foreign = [];
+  const jenkins = [];
   for (const r of required) {
-    if (r.appId && r.appId !== GITHUB_ACTIONS_APP_ID && r.appId !== -1) foreign.push(r.context);
+    if (ctx.modules?.has("jenkins") && r.context.startsWith(JENKINS_CONTEXT_PREFIX)) jenkins.push(r.context);
+    else if (r.appId && r.appId !== GITHUB_ACTIONS_APP_ID && r.appId !== -1) foreign.push(r.context);
     else if (!expected.has(r.context)) bad.push(r.context);
   }
   if (bad.length) return [ecart("forge-protection", `checks exigés sur main introuvables parmi les jobs des workflows : ${bad.join(", ")} (jobs connus : ${[...expected].join(", ")})`, "mettre à jour les checks exigés dans la protection de main, ou renommer le job")];
   if (foreign.length) return [nv("forge-protection", `checks d'une autre application, non comparables : ${foreign.join(", ")}`)];
-  return [ok("forge-protection", required.length ? `checks exigés présents : ${required.map((r) => r.context).join(", ")}` : "aucun check exigé")];
+  const jenkinsNote = jenkins.length ? ` (contextes Jenkins, nommés par le job du serveur et non comparables aux workflows : ${jenkins.join(", ")})` : "";
+  return [ok("forge-protection", required.length ? `checks exigés présents : ${required.map((r) => r.context).join(", ")}${jenkinsNote}` : "aucun check exigé")];
 }
 
 async function checkMigrations(ctx, gh, repo) {

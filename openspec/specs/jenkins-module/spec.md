@@ -100,7 +100,7 @@ Un `Jenkinsfile` existant et divergent, sans manifeste, SHALL produire un confli
 - **THEN** chaque étape ci-dessus apparaît dans `docs/jenkins.md`
 
 ### Requirement: Limites documentées
-`docs/jenkins.md` SHALL énoncer les limites : complément de `ci.yml`, agents Linux ou macOS (étiquette d'agent à poser), `ciOs` ignoré, historique git possiblement superficiel, audit `forge-protection` pouvant signaler le contexte Jenkins, dépôt privé sans protection de branche, prérequis `package-lock.json` en mode local.
+`docs/jenkins.md` SHALL énoncer les limites : complément de `ci.yml`, agents Linux ou macOS (étiquette d'agent à poser), `ciOs` ignoré, historique git possiblement superficiel, `Jenkinsfile` exécuté par aucun test du plugin, nom du contexte Jenkins non comparé aux jobs par l'audit `forge-protection`, dépôt privé sans protection de branche, prérequis `package-lock.json` en mode local.
 
 #### Scenario: Selon la visibilité et le mode
 - **WHEN** le projet est privé ou en mode `local`
