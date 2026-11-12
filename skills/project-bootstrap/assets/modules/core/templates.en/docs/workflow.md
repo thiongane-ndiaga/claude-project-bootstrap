@@ -173,6 +173,9 @@ Before 1.0.0: `feat` → patch, `feat!` → minor.
 @@module:github
 | CI `ci.yml` | same check + PR title (`scripts/check-pr-title.mjs`) | {{CI_BLOCKING_NOTE}} |
 @@end
+@@module:jenkins
+| `Jenkinsfile` (complements `ci.yml`, manual steps in `docs/jenkins.md`) | same checks + PR title | depends on the required check in the `main` protection |
+@@end
 @@module:release
 | release-please PR | the CI waits for an approval (*Approve and run*) because it is triggered by the `github-actions` bot | — |
 @@end

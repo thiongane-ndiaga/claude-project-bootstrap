@@ -1,0 +1,84 @@
+// Jenkins pipeline: complements .github/workflows/ci.yml (GitHub Actions) without replacing it.
+// Same checks as ci.yml; manual steps and limits: docs/jenkins.md.
+// Linux or macOS agents (sh steps). The stack toolchain is installed in scripts/jenkins-setup.sh.
+pipeline {
+  agent any
+  options {
+    timeout(time: 10, unit: 'MINUTES')
+  }
+  environment {
+    CI = 'true'
+    // @@module:openspec
+    OPENSPEC_TELEMETRY = '0'
+    // @@end
+    // @@module:openspec|archgate
+    // @@module:cli-local
+    PATH = "${env.WORKSPACE}/node_modules/.bin:${env.PATH}"
+    // @@end
+    // @@module:cli-npm-global
+    PATH = "${env.WORKSPACE}/.ci-tools/bin:${env.PATH}"
+    // @@end
+    // @@end
+  }
+  stages {
+    stage('Node') {
+      steps {
+        sh '''
+          command -v node >/dev/null || { echo "node not found on the agent (Node >= 20.19 required)"; exit 1; }
+          node -e "const v = process.versions.node.split('.').map(Number); if (v[0] < 20 || (v[0] === 20 && v[1] < 19)) { console.error('Node >= 20.19 required, found: ' + process.versions.node); process.exit(1); }"
+        '''
+      }
+    }
+    stage('PR title') {
+      when { changeRequest() }
+      steps {
+        withEnv(["PR_TITLE=${env.CHANGE_TITLE}"]) {
+          sh 'node scripts/check-pr-title.mjs'
+        }
+      }
+    }
+    // @@module:openspec|archgate
+    stage('Tooling CLIs') {
+      steps {
+        // @@module:cli-local
+        sh 'npm ci'
+        // @@end
+        // @@module:cli-npm-global
+        sh '''
+          # @@module:openspec
+          npm install -g --prefix "$WORKSPACE/.ci-tools" "@fission-ai/openspec@{{OPENSPEC_VERSION}}"
+          # @@end
+          # @@module:archgate
+          npm install -g --prefix "$WORKSPACE/.ci-tools" "archgate@{{ARCHGATE_VERSION}}"
+          # @@end
+        '''
+        // @@end
+      }
+    }
+    // @@end
+    // @@module:openspec
+    stage('OpenSpec validate') {
+      steps {
+        sh 'openspec validate --all --strict --no-interactive'
+      }
+    }
+    // @@end
+    // @@module:archgate
+    stage('Archgate check') {
+      steps {
+        sh 'archgate check --output console'
+      }
+    }
+    // @@end
+    stage('Project toolchain') {
+      steps {
+        sh 'sh scripts/jenkins-setup.sh'
+      }
+    }
+    stage('Project commands') {
+      steps {
+        sh 'node .bootstrap/run-checks.mjs'
+      }
+    }
+  }
+}

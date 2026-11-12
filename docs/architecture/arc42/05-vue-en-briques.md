@@ -15,6 +15,7 @@
 - `.claude/hooks/quality-gate.mjs` (modèle) : ajoute `node_modules/.bin` au `PATH` en mode `local`.
 - `.github/workflows/ci.yml` (modèle) : idem ; les versions viennent de `package.json` en `local`.
 - `skills/project-bootstrap/scripts/audit.mjs` : idem, et contrôle `--workstation`.
+- `skills/project-bootstrap/assets/modules/jenkins/templates{,.en}/Jenkinsfile`  (module `jenkins`) : en mode `local`, `npm ci` et `node_modules/.bin` en tête du `PATH` ; en `global` et `user`, `npm install -g --prefix "$WORKSPACE/.ci-tools"` à la version épinglée et `.ci-tools/bin` en tête du `PATH` (décision 6).
 
 Voir [ARCH-007](../adrs/ARCH-007-installation-des-cli-d-outillage.md).
 
@@ -76,3 +77,11 @@ Voir [ARCH-011](../adrs/ARCH-011-profils-d-agents-bornes-par-un-hook-unique.md),
 Voir [ARCH-013](../adrs/ARCH-013-chef-de-projet-comme-agent-principal-active-par-mainagent.md) et [ARCH-010](../adrs/ARCH-010-modules-auto-decrits.md).
 
 _Le reste de la section reste à rédiger._
+
+## Briques liées à Jenkins
+
+- Module `jenkins` (`requires: github`, `default: false`) : sans clé de configuration ni question de phase 0. Il apporte `skills/project-bootstrap/assets/modules/jenkins/templates{,.en}/Jenkinsfile`, `scripts/jenkins-setup.sh` (`owned`) et `docs/jenkins.md`.
+- `Jenkinsfile` : mêmes étapes dans le même ordre, mêmes blocs `@@module` et mêmes paramètres de version que `.github/workflows/ci.yml`, qui est la CI de référence ; `scripts/check-pr-title.mjs` (module `github`) est réutilisé. Sa chaîne d'outils vient de `scripts/jenkins-setup.sh`, fichier du projet.
+- `skills/project-bootstrap/assets/modules/jenkins/tests/jenkins.test.mjs` : exécute le script de l'étape `Node` et compare commandes et versions à `ci.yml` ; `tests/scaffold.test.mjs` couvre la génération, le conflit et `--update` ; `tests/matrix.test.mjs` les combinaisons `jenkins` et `jenkins-cli-local`.
+
+Voir [ARCH-007](../adrs/ARCH-007-installation-des-cli-d-outillage.md) et [ARCH-010](../adrs/ARCH-010-modules-auto-decrits.md).

@@ -468,7 +468,7 @@ for (const c of cases) {
 
   // catalogue réel
   const names = Object.keys(manifest.modules);
-  check("catalogue réel : 15 modules dont core, chacun avec une description", names.length === 15 && names[0] === "core" && names.every((n) => manifest.modules[n].description.length > 10));
+  check("catalogue réel : 16 modules dont core, chacun avec une description", names.length === 16 && names[0] === "core" && names.every((n) => manifest.modules[n].description.length > 10));
   check("catalogue réel : fichiers triés par chemin, propriétaire en tête de la condition de génération", manifest.files.every((f, i, a) => i === 0 || a[i - 1].path < f.path) && manifest.files.every((f) => f.when[0] === f.module));
   check("catalogue réel : langues disponibles fournies par core (en)", manifest.languages.join() === "en");
   const adrOwner = (rel) => manifest.files.find((f) => f.path === rel);
@@ -538,11 +538,11 @@ for (const c of cases) {
   // --list-modules et --catalog
   const list = spawnSync(process.execPath, [scaffold, "--list-modules"], { encoding: "utf8" });
   const listed = JSON.parse(list.stdout);
-  check("--list-modules : sans --target, JSON des 15 modules avec leurs champs et les langues", list.status === 0 && listed.modules.length === 15 && listed.modules.find((m) => m.name === "release").requires.join() === "github" && listed.modules.find((m) => m.name === "dependabot").default === false && listed.languages.join() === "fr,en", list.stderr);
+  check("--list-modules : sans --target, JSON des 16 modules avec leurs champs et les langues", list.status === 0 && listed.modules.length === 16 && listed.modules.find((m) => m.name === "release").requires.join() === "github" && listed.modules.find((m) => m.name === "dependabot").default === false && listed.languages.join() === "fr,en", list.stderr);
   const table = spawnSync(process.execPath, [scaffold, "--list-modules", "--format", "table"], { encoding: "utf8" });
   const apQuestions = listed.modules.find((m) => m.name === "agent-profiles")?.questions ?? [];
   check("--list-modules : agent-profiles déclare les questions de phase 0 sur mainAgent et sur profiles (défaut non / aucun), listées aussi dans le tableau", apQuestions.length === 3 && /regulatedDomain/.test(apQuestions[2]) && /Défaut : non/.test(apQuestions[2]) && /mainAgent/.test(apQuestions[0]) && /Défaut : non/.test(apQuestions[0]) && /profiles/.test(apQuestions[1]) && /Défaut : aucun/.test(apQuestions[1]) && /project-lead/.test(table.stdout.split("\n").find((l) => l.startsWith("| `agent-profiles`")) ?? ""));
-  check("--list-modules --format table : tableau markdown avec les questions de phase 0", table.status === 0 && /^\| Module \| Apporte \| Requiert \| Incompatible avec \| Par défaut \| Questions de phase 0 \|/.test(table.stdout) && table.stdout.split("\n").filter((l) => l.startsWith("| `")).length === 15);
+  check("--list-modules --format table : tableau markdown avec les questions de phase 0", table.status === 0 && /^\| Module \| Apporte \| Requiert \| Incompatible avec \| Par défaut \| Questions de phase 0 \|/.test(table.stdout) && table.stdout.split("\n").filter((l) => l.startsWith("| `")).length === 16);
   const badCatalog = spawnSync(process.execPath, [scaffold, "--list-modules", "--catalog", path.join(mkdtempSync(path.join(tmpdir(), "pb-vide-")), "rien")], { encoding: "utf8" });
   check("--catalog invalide : code 1 et message", badCatalog.status === 1 && /Catalogue introuvable/.test(badCatalog.stderr));
   const brokenDir = copy();
@@ -2444,6 +2444,59 @@ const d = mkdtempSync(path.join(tmpdir(), "pb-sonde-")); writeFileSync(path.join
   out = legacyProject(false);
   const cli = spawnSync(process.execPath, [path.join(root, "skills", "project-bootstrap", "scripts", "migrate.mjs"), "--target", out], { encoding: "utf8" });
   check("migrate.mjs : sans remote GitHub, les migrations de forge sont ignorées avec une note et la migration 0003 est proposée", cli.status === 0 && /0003-absorb-legacy-agents/.test(cli.stdout) && /dépôt GitHub introuvable/.test(cli.stdout), cli.stderr + cli.stdout.slice(0, 300));
+}
+
+// module jenkins : fichiers, refus sans github, conflit, ajout par --update, fichier propre au projet, documentation selon le contexte (#24)
+{
+  const gen = (modules, extra = {}, args = [], target) => run({ ...base, visibility: "private", modules, ...extra }, args, target);
+  const txt = (r, rel) => readFileSync(path.join(r.out, ...rel.split("/")), "utf8");
+  const has = (r, rel) => existsSync(path.join(r.out, ...rel.split("/")));
+  const JENKINS = ["Jenkinsfile", "scripts/jenkins-setup.sh", "docs/jenkins.md"];
+  const mods = ["claude", "github", "openspec", "archgate"];
+
+  const on = gen([...mods, "jenkins"]);
+  const off = gen(mods);
+  check("jenkins : trois fichiers générés, absents sans le module", on.res.status === 0 && JENKINS.every((f) => has(on, f)) && JENKINS.every((f) => !has(off, f)));
+  check("jenkins : settings.json identique à celui d'une génération sans le module", txt(on, ".claude/settings.json") === txt(off, ".claude/settings.json"));
+  check("jenkins : refusé sans github (code 1)", gen(["claude", "jenkins"]).res.status === 1);
+  check("jenkins : le tableau des contrôles de workflow.md cite le Jenkinsfile, pas sans le module", /`Jenkinsfile`/.test(txt(on, "docs/workflow.md")) && !/Jenkinsfile/.test(txt(off, "docs/workflow.md")));
+
+  // modes d'installation des CLI
+  const archOnly = gen(["claude", "github", "archgate", "jenkins"], { cliInstall: "local" });
+  const jfLocal = txt(archOnly, "Jenkinsfile");
+  check("jenkins : mode local avec archgate seul : npm ci, node_modules/.bin, ni openspec ni npm install -g", /npm ci/.test(jfLocal) && /node_modules\/\.bin/.test(jfLocal) && !/openspec/.test(jfLocal) && !/npm install -g/.test(jfLocal));
+  const jfUser = txt(gen([...mods, "jenkins"], { cliInstall: "user" }), "Jenkinsfile");
+  check("jenkins : mode user : installation dans le préfixe de l'espace de travail, pas npm ci", /--prefix "\$WORKSPACE\/\.ci-tools"/.test(jfUser) && !/npm ci/.test(jfUser));
+  const bare = txt(gen(["claude", "github", "jenkins"]), "Jenkinsfile");
+  check("jenkins : sans openspec ni archgate : ni CLI, ni étape d'installation, ni PATH ajouté", !/openspec|archgate|\.ci-tools|node_modules/.test(bare) && !/CLI d'outillage/.test(bare));
+
+  // conflit avec un Jenkinsfile existant, ajout par --update, fichier propre au projet
+  const existing = mkdtempSync(path.join(tmpdir(), "pb-jenkins-existing-"));
+  writeFileSync(path.join(existing, "Jenkinsfile"), "pipeline { agent none }\n");
+  const conflict = gen([...mods, "jenkins"], {}, [], existing);
+  check("jenkins : Jenkinsfile existant et divergent : conflit (code 3), fichier intact", conflict.res.status === 3 && conflict.report.conflicts.includes("Jenkinsfile") && readFileSync(path.join(existing, "Jenkinsfile"), "utf8") === "pipeline { agent none }\n");
+
+  const before = new Set(walk(off.out).map((f) => path.relative(off.out, f).split(path.sep).join("/")));
+  const added = gen([...mods, "jenkins"], {}, [], off.out);
+  const after = walk(off.out).map((f) => path.relative(off.out, f).split(path.sep).join("/"));
+  const created = after.filter((f) => !before.has(f) && !f.startsWith(".bootstrap/"));
+  check("jenkins : ajout à un projet existant : seuls ses trois fichiers sont créés", added.res.status === 0 && created.sort().join() === [...JENKINS].sort().join(), created.join());
+
+  writeFileSync(path.join(off.out, "scripts", "jenkins-setup.sh"), "#!/bin/sh\nnpm ci\n");
+  const upd = spawnSync(process.execPath, [scaffold, "--update", "--target", off.out], { encoding: "utf8" });
+  check("jenkins : --update laisse scripts/jenkins-setup.sh du projet intact", upd.status === 0 && readFileSync(path.join(off.out, "scripts", "jenkins-setup.sh"), "utf8") === "#!/bin/sh\nnpm ci\n", upd.stderr.slice(0, 200));
+
+  // documentation selon la visibilité, le mode et la langue
+  const priv = txt(on, "docs/jenkins.md");
+  const pub = txt(gen([...mods, "jenkins"], { visibility: "public" }), "docs/jenkins.md");
+  check("jenkins : docs/jenkins.md signale l'absence de protection de branche en dépôt privé seulement", /Dépôt privé/.test(priv) && !/Dépôt privé/.test(pub));
+  check("jenkins : docs/jenkins.md cite package-lock.json en mode local seulement", /package-lock\.json/.test(txt(archOnly, "docs/jenkins.md")) && !/package-lock\.json/.test(priv));
+  for (const lang of ["fr", "en"]) {
+    const d = txt(gen([...mods, "jenkins"], { docLanguage: lang }), "docs/jenkins.md");
+    const needles = ["GitHub Branch Source", lang === "fr" ? "multibranche" : "multibranch", lang === "fr" ? "identifiants" : "credentials", "webhook", "Trust: From users with Admin or Write permission", lang === "fr" ? "contrôles requis" : "required checks", lang === "fr" ? "linter déclaratif" : "declarative linter", "scripts/jenkins-setup.sh"];
+    check(`jenkins (${lang}) : docs/jenkins.md liste les étapes manuelles`, needles.every((n) => d.includes(n)), needles.filter((n) => !d.includes(n)).join(", "));
+    check(`jenkins (${lang}) : docs/jenkins.md liste les limites`, /ciOs/.test(d) && /ci\.yml/.test(d) && /forge-protection/.test(d));
+  }
 }
 
 console.log(failed ? `\n${failed} échec(s)` : "\nTous les tests passent");
