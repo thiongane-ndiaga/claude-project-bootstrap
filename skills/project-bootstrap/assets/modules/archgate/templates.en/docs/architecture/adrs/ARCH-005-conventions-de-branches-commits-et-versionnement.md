@@ -81,7 +81,12 @@ Identifiers are in English; the documentation is in the project's language.
 
 ## Compliance and Enforcement
 
+@@module:github
 The `pr-title` job of `ci.yml` checks the PR title. No Archgate rule: git history is not repository data that `archgate check` can read reliably.
+@@end
+@@module:gitlab
+The `PR title` stage of the `Jenkinsfile` checks the PR title (`scripts/check-pr-title.mjs`). No Archgate rule: git history is not repository data that `archgate check` can read reliably.
+@@end
 
 ## References
 

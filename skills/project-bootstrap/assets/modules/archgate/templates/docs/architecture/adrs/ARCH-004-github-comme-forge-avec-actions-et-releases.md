@@ -1,9 +1,20 @@
 ---
 id: ARCH-004
+@@module:github
 title: GitHub comme forge, avec Actions et Releases
+@@end
+@@module:gitlab
+title: GitLab comme forge d'hébergement, avec Jenkins
+@@end
 domain: architecture
+@@module:github
 rules: true
+@@end
+@@module:gitlab
+rules: false
+@@end
 ---
+@@module:github
 
 # GitHub comme forge, avec Actions et Releases
 
@@ -93,4 +104,64 @@ Le projet a besoin de tout le cycle — ticket, suivi, revue, CI, livraison — 
 - https://github.com/github/docs : `data/reusables/gated-features/protected-branches.md`, `repo-rules.md`
 @@module:release
 - https://github.com/googleapis/release-please-action
+@@end
+@@end
+@@module:gitlab
+# GitLab comme forge d'hébergement, avec Jenkins
+
+## Statut
+
+Proposé.
+
+## Context
+
+Le projet héberge son code sur GitLab. Le dépôt est {{VISIBILITY_LABEL}}. La CI, la qualité et les tickets relèvent d'autres outils (Jenkins, Sonar, Jira) : GitLab ne sert qu'à héberger le code, les issues et les merge requests.
+
+## Decision
+
+- **GitLab** héberge le code : issues (gabarits `.gitlab/issue_templates/`), merge requests en squash merge (gabarit `.gitlab/merge_request_templates/Default.md`).
+@@module:jenkins
+- **CI** : le `Jenkinsfile` (Jenkins), pas GitLab CI. Aucun `.gitlab-ci.yml` n'est généré.
+@@end
+- Aucune release automatique ni tableau de projet générés.
+- Aucune automatisation qui consomme des tokens d'API en CI sans accord explicite.
+- La branche `main` est protégée dans GitLab, avec « Pipelines must succeed » quand une CI existe.
+- Les commandes `glab` ne sont pas pré-approuvées : chacune demande une approbation.
+
+## Do's and Don'ts
+
+### Do
+
+@@module:githooks
+- Activer `git config core.hooksPath .githooks` dans chaque clone.
+@@end
+- Ne merger qu'une merge request dont les contrôles sont verts.
+
+### Don't
+
+- Ne pas ajouter de `.gitlab-ci.yml` : la CI est le `Jenkinsfile`.
+
+## Consequences
+
+### Positive
+
+- Hébergement sur GitLab sans changer le workflow du projet.
+- Traçabilité native : `Closes #N`.
+
+### Negative
+
+- Pas de version automatique : le module `release` est réservé à GitHub.
+- Les profils d'agents n'ont pas de commandes `glab`.
+
+### Risks
+
+- Aucun essai réel avec une instance GitLab ni un Jenkins.
+
+## Compliance and Enforcement
+
+Pas de règle Archgate pour cet ADR avec GitLab : le sujet est du contenu de gabarits. Le nom du fichier garde `github` (numéro et nom stables d'un projet à l'autre).
+
+## References
+
+- https://docs.gitlab.com/ee/user/project/merge_requests/
 @@end

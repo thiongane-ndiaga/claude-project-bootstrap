@@ -1,5 +1,11 @@
+// @@module:github
 // Jenkins pipeline: complements .github/workflows/ci.yml (GitHub Actions) without replacing it.
 // Same checks as ci.yml; manual steps and limits: docs/jenkins.md.
+// @@end
+// @@module:gitlab
+// Jenkins pipeline: CI of the project hosted on GitLab (no .gitlab-ci.yml).
+// Manual steps and limits: docs/jenkins.md.
+// @@end
 // Linux or macOS agents (sh steps). The stack toolchain is installed in scripts/jenkins-setup.sh.
 pipeline {
   agent any

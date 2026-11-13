@@ -1,6 +1,6 @@
 {
-  "description": "Jenkins : Jenkinsfile qui rejoue les contrôles de ci.yml (complément, pas remplacement), script de chaîne d'outils propre au projet et étapes manuelles documentées",
-  "requires": ["github"],
+  "description": "Jenkins : Jenkinsfile qui rejoue les contrôles de ci.yml avec github (complément) ou fait office de CI avec gitlab, script de chaîne d'outils propre au projet et étapes manuelles documentées",
+  "requiresAny": ["github", "gitlab"],
   "default": false,
   "files": [
     {"path": "Jenkinsfile"},

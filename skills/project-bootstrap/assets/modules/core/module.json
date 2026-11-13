@@ -6,6 +6,7 @@
     {"path": ".gitignore", "merge": "lines"},
     {"path": "CLAUDE.md"},
     {"path": "docs/workflow.md"},
+    {"path": "scripts/check-pr-title.mjs", "when": ["forge"]},
     {"path": ".bootstrap/checks.json", "owned": true},
     {"path": ".bootstrap/run-checks.mjs"}
   ]

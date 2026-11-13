@@ -205,3 +205,16 @@ Aucun de ces points n'a été observé avec une instance Jira : ils viennent de 
 - La phase 4 du skill (acceptation des ADR) suit la convention du mode : en `jira`, la branche est `docs/<CLE-N>-accept-tooling-adrs`.
 - `gh` ne lit pas Jira : en mode `jira`, `spec-review` et `spec-reviewer` demandent le texte du ticket à l'utilisateur.
 - Le `Jenkinsfile` du module `jenkins` ne contrôle pas la clé Jira.
+
+## Module gitlab (#25)
+
+Aucun de ces points n'a été observé avec une instance GitLab ni un Jenkins : ils viennent de la revue du changement et des essais de génération.
+
+- `gitlab` et `github` sont incompatibles : la génération sort en code 2 (conflit), alors qu'une dépendance manquante (`release`, `projects`, `dependabot` avec `gitlab`) sort en code 1.
+- Le catalogue refuse un chemin déclaré par deux modules, même exclusifs : `scripts/check-pr-title.mjs` appartient à `core` avec la condition `forge` (github ou gitlab), pas à chaque forge.
+- Le moteur de blocs n'a pas de négation : le complément de `gitlab` est le pseudo-module `not-gitlab`, comme `issue-source` complète `jira-source`. Un texte écrit sous `@@module:github` disparaît des projets sans forge.
+- Une variante insérée entre deux `@@end` peut tomber dans un bloc `github` englobant plus long que prévu : vérifier l'imbrication (`gitlab` doit être un voisin du bloc `github`, pas un enfant).
+- ARCH-004 généré garde son numéro et son nom de fichier (`github-comme-forge-…`) avec gitlab, dont le corps est une variante complète ; `rules:` vaut `true` avec `github` et `false` avec `gitlab`, sinon `archgate check` signale un `.rules.ts` manquant.
+- GitLab fait par défaut un commit de merge : régler le squash avec le titre de la MR, sinon le contrôle du titre ne protège rien. Une MR en brouillon (`Draft:`) échoue au contrôle.
+- Les profils d'agents n'ont pas de variante GitLab : leurs étapes `gh` sont absentes et `pr-readiness-review` n'est pas généré.
+- `gitlab` sans `jenkins` n'a aucune CI.

@@ -10,7 +10,12 @@ color: cyan
 
 You prepare an architecture decision; you do not make it and you write no file.
 
+@@module:not-gitlab
 Inputs: the question to settle (GitHub issue), the arc42 constraints (sections 1, 2, 10)
+@@end
+@@module:gitlab
+Inputs: the question to settle (GitLab issue), the arc42 constraints (sections 1, 2, 10)
+@@end
 and the existing ADRs in `docs/architecture/adrs/`.
 
 Method:

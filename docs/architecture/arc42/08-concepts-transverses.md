@@ -42,6 +42,19 @@ Source : changement OpenSpec `22-sonar-module` (issue #22). Voir [ARCH-004](../a
 
 Source : changement OpenSpec `23-jira-module` (issue #23). Voir [ARCH-017](../adrs/ARCH-017-source-du-besoin-github-ou-jira-au-choix-par-projet.md).
 
+## GitLab, hébergement seulement
+
+- GitLab n'héberge que le code : le module `gitlab`, exclusif de `github`, ne génère ni GitLab CI ni release ni tableau de projet, et aucun profil d'agent n'a de variante `glab`. Les modules `release`, `projects` et `dependabot` restent réservés à `github`.
+- CI : le `Jenkinsfile` du module `jenkins` est la seule CI d'un projet GitLab (il exige `github` ou `gitlab`, `requiresAny`). Il n'y est pas le « complément de `ci.yml` » décrit ci-dessus ; `gitlab` sans `jenkins` est accepté mais le projet n'a alors aucune CI, ce que `docs/gitlab.md` dit.
+- Variante par module plutôt que gabarits paramétrés : une variante GitLab s'écrit en bloc `@@module:gitlab` ou `@@module:forge`, pas en variable de vocabulaire PR/MR. Le moteur de blocs n'ayant pas de négation, le pseudo-module `not-gitlab` complète `gitlab`.
+- Table de lecture, substitut à la réécriture : les modèles gardent « PR » et « `gh` » ; `docs/gitlab.md` donne PR vers MR et `gh` vers `glab`. `Closes #N` s'écrit pareil sur GitLab, et `jiraSource: github` désigne les issues de la forge.
+- ADR de forge sous `forge` : ARCH-004 et ARCH-005 se génèrent avec `github` ou `gitlab` ; sous `gitlab`, ARCH-004 décrit GitLab et Jenkins, sans fichier de règles (`rules: false`).
+- Audit et reprise : les contrôles de forge de l'audit sont non vérifiables avec `gitlab` et les étapes de forge du skill sont manuelles (`phase2-gitlab`) ; l'acceptation des ADR par merge request (`phase4-adr`) s'applique aux deux forges.
+- Confiance des MR de fork : le `Jenkinsfile` d'une MR de fork s'exécute avec les identifiants du job ; `docs/jenkins.md` demande de régler la confiance dans GitLab Branch Source.
+- Le contrôle du titre refuse une MR en brouillon (`Draft:`) ; documenté dans `docs/gitlab.md`.
+
+Source : changement OpenSpec `25-gitlab-module` (issue #25). Voir [ARCH-018](../adrs/ARCH-018-gitlab-comme-forge-d-h-bergement-seulement.md) et [ARCH-004](../adrs/ARCH-004-github-comme-forge-avec-actions-et-releases.md).
+
 ## Internationalisation de la documentation générée
 
 - L'arborescence est le contrat : les noms de fichiers sont identiques dans toutes les langues, y compris les slugs français d'arc42 et des ADR.

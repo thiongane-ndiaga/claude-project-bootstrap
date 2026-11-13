@@ -1,0 +1,14 @@
+{
+  ".bootstrap/checks.json": "0653e67071e2464f552db4a37de960b06e64332c27ec4bb891b7357df508f0d7",
+  ".bootstrap/manifest.json": null,
+  ".bootstrap/run-checks.mjs": "469af1333ac019b6d573fe015119069be733baf2814f3cd34814f55bbad13456",
+  ".gitattributes": "380e0cc171b6bedcfaa42aec15cff80245e3adbbeb10bba6becdbef9143b7f37",
+  ".gitignore": "bbb7a6669f4e6557474827de0d4e0bb38586aea32f0a639aeb9f82a7cec7e717",
+  ".gitlab/issue_templates/bug.md": "107c8dd1ced22185ef03110ecf667fde65a25c530a0eecbaf3ac20fddea01e7d",
+  ".gitlab/issue_templates/feature.md": "4e79f73d9330e19d85f877cec9ee0912ca58ad2f49067574d489550e7c4ea5a7",
+  ".gitlab/merge_request_templates/Default.md": "7bdc7675f527b477d8848d1126be8b5821f1ffa64fb503368199e8d5214fb613",
+  "CLAUDE.md": "d118ecca3afe7a9be3f7a12a7d19222659ad8bce37bfb5a60d8b096c8ea4f5ee",
+  "docs/gitlab.md": "ed96a6fe1595ab2d998372c9a65fb1501a53ae4747e5cff4495aebb61dd821c2",
+  "docs/workflow.md": "d05a538a0f9232972d9254b8a1eefcc81543e05ced0e8f22fc109a37d1e224d0",
+  "scripts/check-pr-title.mjs": "6bd4d1a35fc2ad9c483c7ae09361b8061d8c3681e4c744528e219f9f2f61c401"
+}

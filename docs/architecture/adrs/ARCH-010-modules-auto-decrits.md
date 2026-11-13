@@ -18,12 +18,13 @@ Un module du plugin (claude, openspec, github, release…) est décrit à quatre
 
 ## Decision
 
-1. **Un module est un dossier** `assets/modules/<nom>/` : `module.json` (description, `requires`, `default`, `conflicts`, `questions` de phase 0, liste `files`), ses modèles dans `templates/` et `templates.<lang>/`, ses tests dans `tests/*.test.mjs`. Le dossier `core` est obligatoire.
+1. **Un module est un dossier** `assets/modules/<nom>/` : `module.json` (description, `requires`, `requiresAny` (au moins un module de la liste), `default`, `conflicts`, `questions` de phase 0, liste `files`), ses modèles dans `templates/` et `templates.<lang>/`, ses tests dans `tests/*.test.mjs`. Le dossier `core` est obligatoire.
 2. **Propriété des fichiers** : un fichier appartient au module qui le déclare ; `when` ne liste que les modules **supplémentaires** nécessaires. Les ADR d'outillage ARCH-001 à ARCH-005 (et leurs règles) appartiennent à `archgate`, les formulaires d'issues à `github`, les fichiers transverses (`CLAUDE.md`, `docs/workflow.md`) à `core`.
 3. **Un chargeur** (`scripts/catalog.mjs`) découvre les dossiers, valide les descripteurs et assemble le catalogue ; `scaffold.mjs`, les tests et la matrice l'utilisent. Le tableau des modules n'est plus recopié : `scaffold.mjs --list-modules` le produit.
 4. **Chemins réservés au générateur** : `.claude/settings.json`, `package.json`, `.bootstrap/manifest.json`, `.bootstrap/base/**`, `.bootstrap/local/**` et `.git/**` sont écrits par le générateur ou par `state.mjs` et ne peuvent pas être déclarés par un module.
 5. **Langues** : une langue est disponible si le module `core` a son dossier `templates.<lang>/` ; un module sans version localisée retombe sur son `templates/`. Un `templates.<lang>` absent de `core` est refusé, et `templates.fr` n'existe pas (ARCH-008).
 6. **Sortie inchangée** : la condition de génération d'un fichier est le module propriétaire et tous ses `when`, donc la même que celle du catalogue central ; les instantanés de la matrice le prouvent.
+7. **Condition « l'un ou l'autre »** : un fichier utile à plusieurs modules exclusifs (ex. `github` ou `gitlab`) a un seul propriétaire et un pseudo-module OU dans `when` (`forge`), jamais le même chemin déclaré deux fois.
 
 ## Do's and Don'ts
 

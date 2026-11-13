@@ -41,10 +41,11 @@ export const STEPS = [
   { id: "phase2-agent-teams", title: "Agent teams activés (settings.local.json)", needs: ["agent-teams"], proof: "agentTeams" },
   { id: "phase2-quality-gate", title: "Contrôle qualité (quality-gate.mjs) à 0", needs: ["claude"] },
   { id: "phase2-github", title: "Dépôt GitHub, labels, permissions, Project", needs: ["github"] },
+  { id: "phase2-gitlab", title: "Dépôt GitLab et protection de main (docs/gitlab.md)", needs: ["gitlab"] },
   { id: "phase2-restart", title: "Redémarrage de Claude Code dans le dépôt" },
   { id: "phase3-verify", title: "Vérification de bout en bout (references/verification.md)" },
   { id: "phase3-audit", title: "Audit du projet (audit.mjs)" },
-  { id: "phase4-adr", title: "ADR d'outillage acceptés (issue et PR)", all: ["archgate", "github"] },
+  { id: "phase4-adr", title: "ADR d'outillage acceptés (issue et PR ou MR)", needs: ["github", "gitlab"], all: ["archgate"] },
 ];
 const stepIds = new Set(STEPS.map((s) => s.id));
 

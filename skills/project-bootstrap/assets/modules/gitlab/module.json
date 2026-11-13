@@ -1,0 +1,12 @@
+{
+  "description": "GitLab pour héberger le code : gabarits de merge request et d'issues, étapes manuelles documentées. Exclusif de github ; la CI est le Jenkinsfile du module jenkins (ni .gitlab-ci.yml, ni release automatique)",
+  "conflicts": ["github"],
+  "default": false,
+  "files": [
+    {"path": ".gitlab/merge_request_templates/Default.md"},
+    {"path": ".gitlab/issue_templates/feature.md"},
+    {"path": ".gitlab/issue_templates/bug.md"},
+    {"path": ".gitlab/issue_templates/architecture-decision.md", "when": ["archgate"]},
+    {"path": "docs/gitlab.md"}
+  ]
+}

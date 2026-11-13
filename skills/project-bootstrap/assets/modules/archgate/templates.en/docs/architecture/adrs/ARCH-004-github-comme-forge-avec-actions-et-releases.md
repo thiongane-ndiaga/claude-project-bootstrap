@@ -1,9 +1,20 @@
 ---
 id: ARCH-004
+@@module:github
 title: GitHub as the forge, with Actions and Releases
+@@end
+@@module:gitlab
+title: GitLab as the code host, with Jenkins
+@@end
 domain: architecture
+@@module:github
 rules: true
+@@end
+@@module:gitlab
+rules: false
+@@end
 ---
+@@module:github
 
 # GitHub as the forge, with Actions and Releases
 
@@ -93,4 +104,64 @@ The project needs the whole cycle — ticket, tracking, review, CI, delivery —
 - https://github.com/github/docs : `data/reusables/gated-features/protected-branches.md`, `repo-rules.md`
 @@module:release
 - https://github.com/googleapis/release-please-action
+@@end
+@@end
+@@module:gitlab
+# GitLab as the code host, with Jenkins
+
+## Status
+
+Proposed.
+
+## Context
+
+The project hosts its code on GitLab. The repository is {{VISIBILITY_LABEL}}. CI, quality and tickets belong to other tools (Jenkins, Sonar, Jira): GitLab only hosts the code, the issues and the merge requests.
+
+## Decision
+
+- **GitLab** hosts the code: issues (`.gitlab/issue_templates/` templates), merge requests with squash merge (`.gitlab/merge_request_templates/Default.md` template).
+@@module:jenkins
+- **CI**: the `Jenkinsfile` (Jenkins), not GitLab CI. No `.gitlab-ci.yml` is generated.
+@@end
+- No automatic release and no project board generated.
+- No automation that consumes API tokens in CI without explicit agreement.
+- The `main` branch is protected in GitLab, with "Pipelines must succeed" when a CI exists.
+- `glab` commands are not pre-approved: each one asks for approval.
+
+## Do's and Don'ts
+
+### Do
+
+@@module:githooks
+- Enable `git config core.hooksPath .githooks` in every clone.
+@@end
+- Only merge a merge request whose checks are green.
+
+### Don't
+
+- Do not add a `.gitlab-ci.yml`: CI is the `Jenkinsfile`.
+
+## Consequences
+
+### Positive
+
+- GitLab hosting without changing the project workflow.
+- Native traceability: `Closes #N`.
+
+### Negative
+
+- No automatic version: the `release` module is reserved to GitHub.
+- Agent profiles have no `glab` commands.
+
+### Risks
+
+- No real trial with a GitLab instance or Jenkins.
+
+## Compliance and Enforcement
+
+No Archgate rule for this ADR with GitLab: the subject is template content. The file name keeps `github` (stable number and name across projects).
+
+## References
+
+- https://docs.gitlab.com/ee/user/project/merge_requests/
 @@end

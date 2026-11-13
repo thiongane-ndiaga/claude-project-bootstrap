@@ -21,7 +21,7 @@ Voir [ARCH-007](../adrs/ARCH-007-installation-des-cli-d-outillage.md).
 
 ## Briques liées aux modules
 
-- `skills/project-bootstrap/assets/modules/<nom>/` : un module ; `module.json` (description, `requires`, `default`, `conflicts`, `questions`, `files`), `templates/`, `templates.<lang>/`, `tests/*.test.mjs`. Le dossier `core` est obligatoire.
+- `skills/project-bootstrap/assets/modules/<nom>/` : un module ; `module.json` (description, `requires`, `requiresAny`, `default`, `conflicts`, `questions`, `files`), `templates/`, `templates.<lang>/`, `tests/*.test.mjs`. Le dossier `core` est obligatoire.
 - `skills/project-bootstrap/scripts/catalog.mjs` : découvre les dossiers, valide les descripteurs (messages qui nomment le fichier fautif) et assemble le catalogue.
 - `skills/project-bootstrap/scripts/scaffold.mjs` : utilise le chargeur ; `--list-modules` produit le tableau des modules.
 - `tests/modules.test.mjs` : lance les tests de chaque module ; `tests/scaffold.test.mjs` valide le chargeur et `tests/matrix.test.mjs` la matrice.
@@ -80,8 +80,8 @@ _Le reste de la section reste à rédiger._
 
 ## Briques liées à Jenkins
 
-- Module `jenkins` (`requires: github`, `default: false`) : sans clé de configuration ni question de phase 0. Il apporte `skills/project-bootstrap/assets/modules/jenkins/templates{,.en}/Jenkinsfile`, `scripts/jenkins-setup.sh` (`owned`) et `docs/jenkins.md`.
-- `Jenkinsfile` : mêmes étapes dans le même ordre, mêmes blocs `@@module` et mêmes paramètres de version que `.github/workflows/ci.yml`, qui est la CI de référence ; `scripts/check-pr-title.mjs` (module `github`) est réutilisé. Sa chaîne d'outils vient de `scripts/jenkins-setup.sh`, fichier du projet.
+- Module `jenkins` (`requiresAny: ["github", "gitlab"]`, `default: false`) : sans clé de configuration ni question de phase 0. Il apporte `skills/project-bootstrap/assets/modules/jenkins/templates{,.en}/Jenkinsfile`, `scripts/jenkins-setup.sh` (`owned`) et `docs/jenkins.md`.
+- `Jenkinsfile` : mêmes étapes dans le même ordre, mêmes blocs `@@module` et mêmes paramètres de version que `.github/workflows/ci.yml`, qui est la CI de référence ; `scripts/check-pr-title.mjs` (module `core`) est réutilisé. Sa chaîne d'outils vient de `scripts/jenkins-setup.sh`, fichier du projet.
 - `skills/project-bootstrap/assets/modules/jenkins/tests/jenkins.test.mjs` : exécute le script de l'étape `Node` et compare commandes et versions à `ci.yml` ; `tests/scaffold.test.mjs` couvre la génération, le conflit et `--update` ; `tests/matrix.test.mjs` les combinaisons `jenkins` et `jenkins-cli-local`.
 
 Voir [ARCH-007](../adrs/ARCH-007-installation-des-cli-d-outillage.md) et [ARCH-010](../adrs/ARCH-010-modules-auto-decrits.md).
@@ -101,8 +101,23 @@ Voir [ARCH-004](../adrs/ARCH-004-github-comme-forge-avec-actions-et-releases.md)
 - Module `jira` (`requires: github`, `default: false`) : apporte `scripts/check-jira-key.mjs`, `docs/jira.md` (avec la table de lecture) et le champ facultatif « Clé Jira » des formulaires d'issues. Le Jira lui-même est externe.
 - Deux clés de configuration, refusées sans le module `jira`, héritées du manifeste par `--update` et retirées par `null` (la reprise de session les conserve, `state.mjs`) : `jira` (clé de projet) et `jiraSource` (`github` ou `jira` ; absente, `github`).
 - Deux pseudo-modules complémentaires, déclarés dans `catalog.mjs` : `jira-source` (actif quand `jiraSource` vaut `jira`) et `issue-source` (actif sinon, y compris sans le module, ce qui laisse les textes `Closes #N` inchangés). Ils portent les paramètres `JIRA_KEY_RE` et `JIRA_KEY_EXAMPLE`.
-- `scripts/check-jira-key.mjs` : étape du job `pr-title` de `.github/workflows/ci.yml`, après `scripts/check-pr-title.mjs` (module `github`).
+- `scripts/check-jira-key.mjs` : étape du job `pr-title` de `.github/workflows/ci.yml`, après `scripts/check-pr-title.mjs` (module `core`).
 - Fichiers à variantes `jira-source` / `issue-source` : gabarit de PR, formulaires d'issues, `docs/workflow.md`, `CLAUDE.md`, `traceability-checker`, skills `pr-readiness-review` et `spec-review`, agent `spec-reviewer`, `openspec-config.md`, ADR générés ARCH-002, ARCH-003 et ARCH-005.
 - Tests : tests du module dans `skills/project-bootstrap/assets/modules/jira/tests/` ; refus des clés, `--update` et reprise dans `tests/scaffold.test.mjs` et `tests/state.test.mjs` ; combinaisons de la matrice dans `tests/matrix.test.mjs`.
 
 Voir [ARCH-017](../adrs/ARCH-017-source-du-besoin-github-ou-jira-au-choix-par-projet.md), [ARCH-005](../adrs/ARCH-005-conventions-de-branches-commits-et-versionnement.md) et [ARCH-010](../adrs/ARCH-010-modules-auto-decrits.md).
+
+## Briques liées à GitLab
+
+- Module `gitlab` (`default: false`, `conflicts: ["github"]`) : hébergement du code seulement. Il apporte le gabarit de merge request et les gabarits d'issues sous `.gitlab/`, et `docs/gitlab.md` (table de lecture PR vers MR, étapes manuelles, limites). Il ne génère ni `.gitlab-ci.yml` ni fichier `.github/`. Avec `github`, `scaffold.mjs` sort en code 2 ; `release`, `projects` et `dependabot` exigent `github` et sont refusés (code 1).
+- Clé de descripteur `requiresAny` (`catalog.mjs`) : liste non vide de modules dont un au moins est sélectionné. Sont refusés au chargement une liste vide, un nom inconnu, l'auto-référence, un module aussi cité dans `conflicts` et un pseudo-module. `--list-modules` l'affiche. `jenkins` en dépend (`github` ou `gitlab`) ; `sonar` et `jira` gardent `requires: github`.
+- Pseudo-modules `forge` (actif avec `github` ou `gitlab`) et `not-gitlab` (complément de `gitlab`), déclarés dans `catalog.mjs`, cités dans les `when` et les blocs `@@module`.
+- Propriété de `scripts/check-pr-title.mjs` : le fichier passe de `github` à `core` avec `when: ["forge"]` (un chemin n'a qu'un propriétaire, le catalogue refuse un chemin déclaré par deux modules) ; la sortie pour `github` est inchangée.
+- Module `archgate` : ARCH-004 et ARCH-005 générés sous `forge` ; `ARCH-004.rules.ts` sous `github` seulement. Le frontmatter d'ARCH-004 porte `rules: true` sous `github` et `rules: false` sous `gitlab`, dont le corps décrit GitLab et Jenkins (même numéro et même nom de fichier).
+- Module `core` : `CLAUDE.md` et `docs/workflow.md` portent des blocs `forge` (étapes valables pour toute forge) et `gitlab` (équivalents : gabarits `.gitlab/`, `Jenkinsfile`, `scripts/jenkins-setup.sh`) ; les passages propres à GitHub restent sous `github`.
+- Module `jenkins` : `docs/jenkins.md` a une variante GitLab (GitLab Branch Source, webhook, jeton d'accès, confiance des MR de fork, option « Pipelines must succeed »).
+- `skills/project-bootstrap/scripts/audit.mjs` : avec `gitlab`, aucun appel `gh` (même avec `--repo`), contrôle de forge `non-verifiable`, versions lues dans le `Jenkinsfile` en l'absence de `ci.yml`.
+- `skills/project-bootstrap/scripts/state.mjs` : étape manuelle `phase2-gitlab` (liste `docs/gitlab.md`) ; `phase2-github` reste réservée à `github` ; `phase4-adr` s'applique avec `github` ou `gitlab`. `SKILL.md` retire `github`, `release` et `projects` des défauts avec `gitlab` et ne lance pas `gh`.
+- Tests : `skills/project-bootstrap/assets/modules/gitlab/tests/gitlab.test.mjs`, tests du catalogue pour `requiresAny` et `forge`, combinaisons de la matrice (`tests/matrix.test.mjs`).
+
+Voir [ARCH-018](../adrs/ARCH-018-gitlab-comme-forge-d-h-bergement-seulement.md) et [ARCH-010](../adrs/ARCH-010-modules-auto-decrits.md).
