@@ -13,6 +13,14 @@ Stages, in the order of `ci.yml`: Node check, PR title (pull requests only), too
 @@module:gitlab
 Stages: Node check, merge request title (merge requests only), tooling CLI installation, `openspec validate`, `archgate check`, project toolchain (`scripts/jenkins-setup.sh`), then `node .bootstrap/run-checks.mjs`.
 @@end
+@@module:gitlab
+@@module:jira
+`Jira key` stage (`jira` module): runs `scripts/check-jira-key.mjs` on merge requests.
+@@end
+@@module:sonar
+`Sonar` stage (`sonar` module): runs `sonar-scanner` if the `SONAR_ENABLED` environment variable is `true` (see `docs/sonar.md`). The pipeline's 10-minute timeout also covers the analysis.
+@@end
+@@end
 
 ## Manual steps
 

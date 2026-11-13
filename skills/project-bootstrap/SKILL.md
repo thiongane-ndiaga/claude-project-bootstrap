@@ -61,8 +61,8 @@ Sans `agent-profiles`, les agents générés dépendent des modules : `spec-revi
    - **rappel après compaction** (module `compact-recall`, qui exige `claude`) : module facultatif sans clé, défaut non. Ajoute un hook `SessionStart` à matcher `compact` qui rappelle la branche et l'avancement des changements OpenSpec lus sur le disque. Son effet sur un teammate n'est pas établi (#114).
    - **GitLab** (module `gitlab`, exclusif de `github`) : hébergement seul, CI = `jenkins` ; retire `github`, `release`, `projects`, `dependabot` (`docs/gitlab.md`).
    - **Jenkins** (module `jenkins`, qui exige `github` ou `gitlab`) : défaut non. Ajoute un `Jenkinsfile`, `scripts/jenkins-setup.sh` (chaîne d'outils du projet, jamais écrasé) et `docs/jenkins.md`. Tout le côté Jenkins est à faire à la main (`docs/jenkins.md`).
-   - **Sonar** (module `sonar`, exige `github`), clé `sonar` : `cloud` (défaut) ou `server`. Job inactif sans le secret `SONAR_TOKEN` (`docs/sonar.md`).
-   - **Jira** (module `jira`, exige `github`), clés `jira` (projet) et `jiraSource` (`github` ou `jira`) : propose de désactiver `projects` (`docs/jira.md`).
+   - **Sonar** (module `sonar`, exige `github` ou `jenkins`), clé `sonar` : `cloud` (défaut) ou `server`. Inactif sans jeton (`docs/sonar.md`).
+   - **Jira** (module `jira`, exige `github` ou `jenkins`), clés `jira` (projet) et `jiraSource` (`github` ou `jira`) : `projects` à désactiver (`docs/jira.md`).
    - langue de la documentation, parmi les langues disponibles (`languages` de `scaffold.mjs --list-modules` ou `--detect` : `fr` et `en` aujourd'hui), clé `docLanguage` (omise pour `fr`) ; ne propose pas une langue sans modèles : indique `fr` ou `en` et, pour en ajouter une, la procédure de `CONTRIBUTING.md` (ajouter un dossier `templates.<code>/` à chaque module qui a du texte, traduire, lancer les tests) ;
    - Windows natif ou WSL (recommandé : natif ; jamais un même clone partagé entre les deux).
 3. Relève les versions : `claude --version`, `node --version` (≥ 20.19), `git --version`, avec `github` : `gh --version`, `gh auth status` (scope `project` si projects).

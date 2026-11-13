@@ -88,7 +88,7 @@ Voir [ARCH-007](../adrs/ARCH-007-installation-des-cli-d-outillage.md) et [ARCH-0
 
 ## Briques liées à Sonar
 
-- Module `sonar` (`requires: github`, `default: false`) : apporte `sonar-project.properties` (`owned`), `docs/sonar.md` et le bloc `@@module:sonar` de `.github/workflows/ci.yml` (job `sonar` sur `ubuntu-latest`, action `SonarSource/sonarqube-scan-action`). Le service (SonarCloud ou serveur) est externe.
+- Module `sonar` (`requiresAny: ["github", "jenkins"]`, `default: false`) : apporte `sonar-project.properties` (`owned`), `docs/sonar.md` (variante GitLab) et, avec `github`, le bloc `@@module:sonar` de `.github/workflows/ci.yml` (job `sonar` sur `ubuntu-latest`, action `SonarSource/sonarqube-scan-action`). Avec `gitlab`, l'analyse est l'étape `Sonar` du `Jenkinsfile` (voir « Briques liées à GitLab »). Le service (SonarCloud ou serveur) est externe.
 - Clé de configuration `sonar` (`cloud` ou `server`) : absente, `cloud` (non consignée) ; toute autre valeur, ou la clé sans le module `sonar`, fait échouer `scaffold.mjs`. Elle est héritée du manifeste par `--update` ; `sonar: null` la retire.
 - Pseudo-modules `sonar-cloud` et `sonar-server`, dérivés de cette clé et cités dans les blocs `@@module` de `ci.yml` et de `sonar-project.properties` (`sonar.organization` en `cloud`, `SONAR_HOST_URL` et analyse limitée à `push` en `server`).
 - Épinglage : `resolve-versions.mjs` résout et consigne toujours `actions.sonarScan` comme les autres actions ; sans elle dans la configuration, la génération échoue quand `sonar` est actif.
@@ -98,10 +98,10 @@ Voir [ARCH-004](../adrs/ARCH-004-github-comme-forge-avec-actions-et-releases.md)
 
 ## Briques liées à Jira
 
-- Module `jira` (`requires: github`, `default: false`) : apporte `scripts/check-jira-key.mjs`, `docs/jira.md` (avec la table de lecture) et le champ facultatif « Clé Jira » des formulaires d'issues. Le Jira lui-même est externe.
+- Module `jira` (`requiresAny: ["github", "jenkins"]`, `default: false`) : apporte `scripts/check-jira-key.mjs`, `docs/jira.md` (avec la table de lecture ; variante GitLab) et le champ facultatif « Clé Jira » des formulaires d'issues (`.github/` ou `.gitlab/issue_templates/`). Le Jira lui-même est externe.
 - Deux clés de configuration, refusées sans le module `jira`, héritées du manifeste par `--update` et retirées par `null` (la reprise de session les conserve, `state.mjs`) : `jira` (clé de projet) et `jiraSource` (`github` ou `jira` ; absente, `github`).
 - Deux pseudo-modules complémentaires, déclarés dans `catalog.mjs` : `jira-source` (actif quand `jiraSource` vaut `jira`) et `issue-source` (actif sinon, y compris sans le module, ce qui laisse les textes `Closes #N` inchangés). Ils portent les paramètres `JIRA_KEY_RE` et `JIRA_KEY_EXAMPLE`.
-- `scripts/check-jira-key.mjs` : étape du job `pr-title` de `.github/workflows/ci.yml`, après `scripts/check-pr-title.mjs` (module `core`).
+- `scripts/check-jira-key.mjs` : étape du job `pr-title` de `.github/workflows/ci.yml` (avec `github`), après `scripts/check-pr-title.mjs` (module `core`) ; avec `gitlab`, étape `Clé Jira` du `Jenkinsfile`.
 - Fichiers à variantes `jira-source` / `issue-source` : gabarit de PR, formulaires d'issues, `docs/workflow.md`, `CLAUDE.md`, `traceability-checker`, skills `pr-readiness-review` et `spec-review`, agent `spec-reviewer`, `openspec-config.md`, ADR générés ARCH-002, ARCH-003 et ARCH-005.
 - Tests : tests du module dans `skills/project-bootstrap/assets/modules/jira/tests/` ; refus des clés, `--update` et reprise dans `tests/scaffold.test.mjs` et `tests/state.test.mjs` ; combinaisons de la matrice dans `tests/matrix.test.mjs`.
 
@@ -110,14 +110,16 @@ Voir [ARCH-017](../adrs/ARCH-017-source-du-besoin-github-ou-jira-au-choix-par-pr
 ## Briques liées à GitLab
 
 - Module `gitlab` (`default: false`, `conflicts: ["github"]`) : hébergement du code seulement. Il apporte le gabarit de merge request et les gabarits d'issues sous `.gitlab/`, et `docs/gitlab.md` (table de lecture PR vers MR, étapes manuelles, limites). Il ne génère ni `.gitlab-ci.yml` ni fichier `.github/`. Avec `github`, `scaffold.mjs` sort en code 2 ; `release`, `projects` et `dependabot` exigent `github` et sont refusés (code 1).
-- Clé de descripteur `requiresAny` (`catalog.mjs`) : liste non vide de modules dont un au moins est sélectionné. Sont refusés au chargement une liste vide, un nom inconnu, l'auto-référence, un module aussi cité dans `conflicts` et un pseudo-module. `--list-modules` l'affiche. `jenkins` en dépend (`github` ou `gitlab`) ; `sonar` et `jira` gardent `requires: github`.
+- Clé de descripteur `requiresAny` (`catalog.mjs`) : liste non vide de modules dont un au moins est sélectionné. Sont refusés au chargement une liste vide, un nom inconnu, l'auto-référence, un module aussi cité dans `conflicts` et un pseudo-module. `--list-modules` l'affiche. `jenkins` en dépend (`github` ou `gitlab`) ; `sonar` et `jira` aussi (`github` ou `jenkins`) : avec `jenkins` seul, leurs fichiers sont générés mais les blocs de `ci.yml` n'existent que si `github` l'est.
 - Pseudo-modules `forge` (actif avec `github` ou `gitlab`) et `not-gitlab` (complément de `gitlab`), déclarés dans `catalog.mjs`, cités dans les `when` et les blocs `@@module`.
 - Propriété de `scripts/check-pr-title.mjs` : le fichier passe de `github` à `core` avec `when: ["forge"]` (un chemin n'a qu'un propriétaire, le catalogue refuse un chemin déclaré par deux modules) ; la sortie pour `github` est inchangée.
 - Module `archgate` : ARCH-004 et ARCH-005 générés sous `forge` ; `ARCH-004.rules.ts` sous `github` seulement. Le frontmatter d'ARCH-004 porte `rules: true` sous `github` et `rules: false` sous `gitlab`, dont le corps décrit GitLab et Jenkins (même numéro et même nom de fichier).
 - Module `core` : `CLAUDE.md` et `docs/workflow.md` portent des blocs `forge` (étapes valables pour toute forge) et `gitlab` (équivalents : gabarits `.gitlab/`, `Jenkinsfile`, `scripts/jenkins-setup.sh`) ; les passages propres à GitHub restent sous `github`.
-- Module `jenkins` : `docs/jenkins.md` a une variante GitLab (GitLab Branch Source, webhook, jeton d'accès, confiance des MR de fork, option « Pipelines must succeed »).
+- Module `jenkins` : `docs/jenkins.md` a une variante GitLab (GitLab Branch Source, webhook, jeton d'accès, confiance des MR de fork, option « Pipelines must succeed »), complétée avec `sonar` et `jira`.
+- `Jenkinsfile` avec `gitlab` seulement (bloc `@@module:gitlab` autour du bloc du module) : étape `Clé Jira` (module `jira`, après `Titre de PR`, sur les merge requests, exécute `scripts/check-jira-key.mjs`) et étape `Sonar` (module `sonar`, après `Commandes du projet`, conditionnée par `SONAR_ENABLED`, forks exclus par `CHANGE_FORK`, jeton `SONAR_TOKEN` par `withCredentials` ; en `server`, `main` seulement et refus sans `SONAR_HOST_URL`). Avec `github`, le `Jenkinsfile` ne change pas : `ci.yml` porte déjà ces contrôles.
+- Variantes GitLab du lot Sonar et Jira : `docs/sonar.md`, `docs/jira.md`, gabarits `.gitlab/` (champ « Clé Jira » en mode `issue-source`), `CLAUDE.md` et `docs/workflow.md` de `core`, skill `spec-review` et agent `spec-reviewer`, ARCH-004 généré (accord Sonar côté GitLab).
 - `skills/project-bootstrap/scripts/audit.mjs` : avec `gitlab`, aucun appel `gh` (même avec `--repo`), contrôle de forge `non-verifiable`, versions lues dans le `Jenkinsfile` en l'absence de `ci.yml`.
 - `skills/project-bootstrap/scripts/state.mjs` : étape manuelle `phase2-gitlab` (liste `docs/gitlab.md`) ; `phase2-github` reste réservée à `github` ; `phase4-adr` s'applique avec `github` ou `gitlab`. `SKILL.md` retire `github`, `release` et `projects` des défauts avec `gitlab` et ne lance pas `gh`.
 - Tests : `skills/project-bootstrap/assets/modules/gitlab/tests/gitlab.test.mjs`, tests du catalogue pour `requiresAny` et `forge`, combinaisons de la matrice (`tests/matrix.test.mjs`).
 
-Voir [ARCH-018](../adrs/ARCH-018-gitlab-comme-forge-d-h-bergement-seulement.md) et [ARCH-010](../adrs/ARCH-010-modules-auto-decrits.md).
+Voir [ARCH-018](../adrs/ARCH-018-gitlab-comme-forge-d-h-bergement-seulement.md), [ARCH-017](../adrs/ARCH-017-source-du-besoin-github-ou-jira-au-choix-par-projet.md) et [ARCH-010](../adrs/ARCH-010-modules-auto-decrits.md).

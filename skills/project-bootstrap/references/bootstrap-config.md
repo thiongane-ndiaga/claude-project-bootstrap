@@ -40,10 +40,10 @@ Entrée de `scripts/scaffold.mjs`. Fusionne la sortie de `scripts/resolve-versio
 | `actionsCreditNote` | archgate + github + privé | chiffres **relevés dans la doc du jour**, jamais de mémoire |
 | `versions.openspec` | openspec | épinglage CI et doc |
 | `versions.archgate` | archgate | épinglage CI et doc |
-| `actions.*` | github / release / sonar | `uses: owner/action@<sha> # <tag>` (`sonarScan` pour le module `sonar`, toujours résolue par `resolve-versions.mjs`) |
+| `actions.*` | github / release / sonar avec github | `uses: owner/action@<sha> # <tag>` (`sonarScan` pour le module `sonar` avec `github`, toujours résolue par `resolve-versions.mjs` ; inutile avec `gitlab`) |
 | `sonar` | — | service d'analyse du module `sonar` : `cloud` (défaut, clé à omettre) ou `server` (variable `SONAR_HOST_URL`, analyse des pushes seulement) ; refusée sans le module `sonar`. Consignée seulement si présente, héritée par `--update` ; `null` la retire (ni héritée ni consignée) ; retirer le module alors que la clé est héritée échoue, passer aussi `sonar: null` |
 | `jira` | — | clé de projet Jira du module `jira` (`[A-Z][A-Z0-9]{1,9}`, ex. `ABC`), facultative : sans elle le contrôle accepte toute clé `XXX-N`. Refusée sans le module `jira`. Consignée seulement si présente, héritée par `--update` et par la reprise de session ; `null` la retire ; retirer le module alors que la clé est héritée échoue |
-| `jiraSource` | — | source du besoin du module `jira` : `github` (défaut, les issues restent la source) ou `jira` (le ticket remplace l'issue : branche `<type>/<CLE-N>-<slug>`, id OpenSpec en minuscules, `Ticket: CLE-N`, `Refs CLE-N`). Mêmes règles que `jira` ; une valeur donnée, même `github`, est consignée |
+| `jiraSource` | — | source du besoin du module `jira` : `github` (défaut, les issues de la forge restent la source : GitHub ou GitLab) ou `jira` (le ticket remplace l'issue : branche `<type>/<CLE-N>-<slug>`, id OpenSpec en minuscules, `Ticket: CLE-N`, `Refs CLE-N`). Mêmes règles que `jira` ; une valeur donnée, même `github`, est consignée |
 
 Un paramètre manquant fait échouer le script en nommant le fichier et le paramètre.
 

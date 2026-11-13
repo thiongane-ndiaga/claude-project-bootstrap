@@ -4,7 +4,12 @@ name: spec-reviewer
 description: Critical review of an OpenSpec change (proposal, specs, design, tasks) against its GitHub issue, the ADRs and arc42. Use before /opsx:apply, or in a team for an adversarial review. Read-only.
 @@end
 @@module:gitlab
+@@module:issue-source
 description: Critical review of an OpenSpec change (proposal, specs, design, tasks) against its GitLab issue, the ADRs and arc42. Use before /opsx:apply, or in a team for an adversarial review. Read-only.
+@@end
+@@module:jira-source
+description: Critical review of an OpenSpec change (proposal, specs, design, tasks) against its Jira ticket, the ADRs and arc42. Use before /opsx:apply, or in a team for an adversarial review. Read-only.
+@@end
 @@end
 tools: Read, Glob, Grep, Bash
 model: opus
@@ -28,6 +33,14 @@ Method:
 @@module:github
 @@module:issue-source
 2. Read the linked issue (`Issue: #N` at the top of `proposal.md`) with `gh issue view N`.
+@@end
+@@module:jira-source
+2. Read the linked ticket (`Ticket: <KEY-N>` at the top of `proposal.md`): `gh` cannot read Jira, ask the user for its text or read what `proposal.md` copies.
+@@end
+@@end
+@@module:gitlab
+@@module:issue-source
+2. Read the linked issue (`Issue: #N` at the top of `proposal.md`) in GitLab (the interface, or `glab issue view N`, not pre-approved).
 @@end
 @@module:jira-source
 2. Read the linked ticket (`Ticket: <KEY-N>` at the top of `proposal.md`): `gh` cannot read Jira, ask the user for its text or read what `proposal.md` copies.

@@ -1,10 +1,23 @@
 <!-- MR title: Conventional Commit in English, e.g. "feat(auth): add password reset" (without the Draft: prefix to merge) -->
 
+@@module:issue-source
 Closes #
+@@module:jira
+Jira: 
+@@end
+@@end
+@@module:jira-source
+Refs {{JIRA_KEY_EXAMPLE}}
+@@end
 @@module:openspec
 
 ## OpenSpec change
+@@module:issue-source
 `openspec/changes/<issue>-<slug>/` (archived under `openspec/changes/archive/` before the merge)
+@@end
+@@module:jira-source
+`openspec/changes/<cle-n>-<slug>/` (archived under `openspec/changes/archive/` before the merge)
+@@end
 @@end
 @@module:archgate
 

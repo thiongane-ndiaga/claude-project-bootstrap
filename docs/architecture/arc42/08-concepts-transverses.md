@@ -53,7 +53,12 @@ Source : changement OpenSpec `23-jira-module` (issue #23). Voir [ARCH-017](../ad
 - Confiance des MR de fork : le `Jenkinsfile` d'une MR de fork s'exécute avec les identifiants du job ; `docs/jenkins.md` demande de régler la confiance dans GitLab Branch Source.
 - Le contrôle du titre refuse une MR en brouillon (`Draft:`) ; documenté dans `docs/gitlab.md`.
 
-Source : changement OpenSpec `25-gitlab-module` (issue #25). Voir [ARCH-018](../adrs/ARCH-018-gitlab-comme-forge-d-h-bergement-seulement.md) et [ARCH-004](../adrs/ARCH-004-github-comme-forge-avec-actions-et-releases.md).
+- Jira et Sonar sur Jenkins avec GitLab : `sonar` et `jira` exigent `github` ou `jenkins` (`requiresAny`). Avec `gitlab`, le `Jenkinsfile` gagne les étapes `Clé Jira` et `Sonar` ; avec `github`, il ne change pas, car `ci.yml` porte déjà ces contrôles et les doubler produirait deux analyses concurrentes et consommerait le quota.
+- Étape `Sonar` : conditionnée par `SONAR_ENABLED` (inactive sans la variable), exclue pour les merge requests de fork (`CHANGE_FORK`) car le code du fork s'exécute avant l'étape, qui détient le jeton. Le jeton est lu par `withCredentials` (identifiant `SONAR_TOKEN`) et `sh` entre guillemets simples, sans interpolation Groovy. En `server`, analyse de `main` seulement et refus de lancer `sonar-scanner` sans `SONAR_HOST_URL`, pour qu'un jeton de serveur interne ne parte pas vers SonarCloud.
+- `SONAR_ENABLED` est une convention du plugin, pas un réglage natif de Jenkins ; elle et `SONAR_HOST_URL` se posent dans l'environnement global ou du dossier. Leur création et celle de l'identifiant valent accord explicite au sens d'ARCH-004, comme le secret `SONAR_TOKEN` avec GitHub.
+- Avec `gitlab`, le lien Jira passe par l'intégration Jira de GitLab (réglage du projet, manuel) ; le plugin ne synchronise rien.
+
+Sources : changements OpenSpec `25-gitlab-module` (premier lot) et `25-gitlab-sonar-jira` (second lot), issue #25. Voir [ARCH-018](../adrs/ARCH-018-gitlab-comme-forge-d-h-bergement-seulement.md), [ARCH-017](../adrs/ARCH-017-source-du-besoin-github-ou-jira-au-choix-par-projet.md) et [ARCH-004](../adrs/ARCH-004-github-comme-forge-avec-actions-et-releases.md).
 
 ## Internationalisation de la documentation générée
 

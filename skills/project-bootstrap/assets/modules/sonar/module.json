@@ -1,9 +1,9 @@
 {
-  "description": "SonarQube / SonarCloud : job d'analyse dans ci.yml (inactif tant que le secret SONAR_TOKEN n'existe pas, sans quality gate bloquante), sonar-project.properties propre au projet et étapes manuelles documentées",
-  "requires": ["github"],
+  "description": "SonarQube / SonarCloud : analyse de qualité (job de ci.yml avec github, étape du Jenkinsfile avec gitlab), inactive tant que le jeton n'existe pas et sans quality gate bloquante, sonar-project.properties propre au projet et étapes manuelles documentées",
+  "requiresAny": ["github", "jenkins"],
   "default": false,
   "questions": [
-    "Quel service d'analyse (clé sonar) ? « cloud » : SonarCloud (défaut, la clé est omise) ; « server » : serveur SonarQube auto-hébergé (variable de dépôt SONAR_HOST_URL, analyse des pushes seulement). Le secret SONAR_TOKEN et le projet Sonar sont créés par l'utilisateur, jamais par le plugin."
+    "Quel service d'analyse (clé sonar) ? « cloud » : SonarCloud (défaut, la clé est omise) ; « server » : serveur SonarQube auto-hébergé (SONAR_HOST_URL : variable de dépôt avec github, variable d'environnement Jenkins avec gitlab ; branche main seulement). Le jeton (secret SONAR_TOKEN avec github, identifiant Jenkins et SONAR_ENABLED avec gitlab) et le projet Sonar sont créés par l'utilisateur, jamais par le plugin."
   ],
   "files": [
     {"path": "sonar-project.properties", "owned": true},

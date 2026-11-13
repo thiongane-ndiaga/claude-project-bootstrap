@@ -1,10 +1,10 @@
 {
-  "description": "Jira : clé Jira dans la branche et le titre de PR (contrôle du job pr-title), source du besoin au choix (issues GitHub ou tickets Jira), étapes manuelles de l'intégration documentées",
-  "requires": ["github"],
+  "description": "Jira : clé Jira dans la branche et le titre de PR (contrôle du job pr-title de ci.yml avec github, de l'étape Clé Jira du Jenkinsfile avec gitlab), source du besoin au choix (issues GitHub ou tickets Jira), étapes manuelles de l'intégration documentées",
+  "requiresAny": ["github", "jenkins"],
   "default": false,
   "questions": [
-    "Quelle est la clé du projet Jira (clé jira, ex. ABC : majuscules et chiffres, 2 à 10 caractères) ? Facultative, mais sans elle le contrôle accepte toute clé de la forme XXX-N, ce qui laisse passer des faux positifs comme UTF-8. Le module projects fait double emploi avec un tableau Jira : propose de le désactiver, sans l'imposer.",
-    "Quelle est la source du besoin (clé jiraSource) ? « github » (défaut) : les issues GitHub restent la source et la clé Jira est un lien en plus ; « jira » : le ticket Jira est la source (branche <type>/<CLE-N>-<slug>, id OpenSpec en minuscules, Refs CLE-N au lieu de Closes #N)."
+    "Quelle est la clé du projet Jira (clé jira, ex. ABC : majuscules et chiffres, 2 à 10 caractères) ? Facultative, mais sans elle le contrôle accepte toute clé de la forme XXX-N, ce qui laisse passer des faux positifs comme UTF-8. Avec github, le module projects fait double emploi avec un tableau Jira : propose de le désactiver, sans l'imposer (il n'existe pas avec gitlab).",
+    "Quelle est la source du besoin (clé jiraSource) ? « github » (défaut) : les issues de la forge (GitHub ou GitLab) restent la source et la clé Jira est un lien en plus ; « jira » : le ticket Jira est la source (branche <type>/<CLE-N>-<slug>, id OpenSpec en minuscules, Refs CLE-N au lieu de Closes #N)."
   ],
   "files": [
     {"path": "scripts/check-jira-key.mjs"},

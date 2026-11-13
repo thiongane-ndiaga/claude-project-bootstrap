@@ -15,6 +15,14 @@ description: Relire un changement OpenSpec (proposal, specs, design, tasks) face
 - Lis le ticket lié (`Ticket: <CLE-N>` en tête de `proposal.md`) : `gh` ne lit pas Jira, demande son texte à l'utilisateur ou lis ce qu'en recopie `proposal.md`.
 @@end
 @@end
+@@module:gitlab
+@@module:issue-source
+- Lis l'issue liée (`Issue: #N` en tête de `proposal.md`) dans GitLab (l'interface, ou `glab issue view N`, non pré-approuvé).
+@@end
+@@module:jira-source
+- Lis le ticket lié (`Ticket: <CLE-N>` en tête de `proposal.md`) : `gh` ne lit pas Jira, demande son texte à l'utilisateur ou lis ce qu'en recopie `proposal.md`.
+@@end
+@@end
 @@module:archgate
 - Lis les ADR cités et ceux dont le sujet recoupe le changement (`archgate adr list`).
 @@end

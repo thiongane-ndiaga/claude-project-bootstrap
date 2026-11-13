@@ -8,3 +8,10 @@
 ## Options pressenties
 
 ## Ce que la décision débloque
+@@module:jira
+@@module:issue-source
+
+## Clé Jira
+<!-- Ticket Jira lié, s'il existe (ex. ABC-123). -->
+@@end
+@@end

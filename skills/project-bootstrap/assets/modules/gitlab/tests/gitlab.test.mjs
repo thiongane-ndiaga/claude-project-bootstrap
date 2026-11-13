@@ -97,6 +97,43 @@ for (const lang of ["fr", "en"]) {
   check(`gitlab (${lang}) : aucun marqueur ni paramètre non résolu`, !files.some((f) => unresolved(g.read(f))), files.filter((f) => unresolved(g.read(f))).join(", "));
 }
 
+// --- Sonar et Jira avec GitLab (second lot de #25)
+const stageNames = (jf) => [...jf.matchAll(/stage\(['"]([^'"]+)['"]\)/g)].map((m) => m[1]);
+const GLSJ = [...GL, "jira", "sonar"];
+const glsj = run({ modules: GLSJ, jira: "ABC", jiraSource: "jira" });
+check("gitlab + jenkins + jira + sonar : génération réussie sans actions.sonarScan ni ci.yml", (() => { const r = run({ modules: GLSJ, actions: { checkout: pin("a"), setupNode: pin("b"), releasePlease: pin("c") } }); return r.res.status === 0 && !r.has(".github/workflows/ci.yml") && r.has("sonar-project.properties") && r.has("scripts/check-jira-key.mjs"); })(), glsj.res.stderr.slice(0, 200));
+check("jira et sonar avec gitlab sans jenkins : refusés (code 1, l'un de github, jenkins)", ["jira", "sonar"].every((m) => { const r = run({ modules: ["claude", "gitlab", m] }); return r.res.status === 1 && r.res.stderr.includes("github, jenkins"); }));
+check("jira et sonar avec github sans jenkins : acceptés", ["jira", "sonar"].every((m) => run({ modules: ["claude", "github", m] }).res.status === 0));
+for (const lang of ["fr", "en"]) {
+  const jira = lang === "fr" ? "Clé Jira" : "Jira key";
+  const title = lang === "fr" ? "Titre de PR" : "PR title";
+  const g = run({ modules: GLSJ, docLanguage: lang, jira: "ABC", jiraSource: "jira" });
+  const jf = g.read("Jenkinsfile");
+  const names = stageNames(jf);
+  check(`Jenkinsfile (${lang}) gitlab : l'étape ${jira} suit ${title}, Sonar suit les commandes du projet`, names.indexOf(jira) === names.indexOf(title) + 1 && names[names.length - 1] === "Sonar" && names[names.length - 2] === (lang === "fr" ? "Commandes du projet" : "Project commands"), names.join(" > "));
+  check(`Jenkinsfile (${lang}) gitlab : titre et branche seulement dans withEnv, sh entre guillemets simples`, jf.includes('withEnv(["PR_TITLE=${env.CHANGE_TITLE}", "HEAD_REF=${env.CHANGE_BRANCH ?: ' + "''" + '}"])') && jf.includes("sh 'node scripts/check-jira-key.mjs'") && jf.split("CHANGE_TITLE").length === 3 && jf.split("CHANGE_BRANCH").length === 2);
+  const sonar = jf.slice(jf.indexOf("stage('Sonar')"));
+  check(`Jenkinsfile (${lang}) gitlab : Sonar conditionné par SONAR_ENABLED, jeton par withCredentials, aucune interpolation du jeton`, sonar.includes("environment name: 'SONAR_ENABLED', value: 'true'") && sonar.includes("withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')])") && sonar.includes("SONAR_HOST_URL=https://sonarcloud.io sonar-scanner") && !/sonar\.token|\$\{?SONAR_TOKEN|env\.SONAR/.test(sonar) && !sonar.includes("branch 'main'"));
+  const srv = run({ modules: GLSJ, docLanguage: lang, sonar: "server" }).read("Jenkinsfile");
+  check(`Jenkinsfile (${lang}) gitlab + sonar server : seulement sur main, sans URL SonarCloud`, srv.includes("branch 'main'") && !srv.includes("sonarcloud.io") && srv.includes("sh 'sonar-scanner'"));
+  check(`Jenkinsfile (${lang}) gitlab : l'étape Sonar exclut les merge requests de fork (CHANGE_FORK), cloud comme serveur`, jf.slice(jf.indexOf("stage('Sonar')")).includes("expression { env.CHANGE_FORK == null }") && srv.slice(srv.indexOf("stage('Sonar')")).includes("expression { env.CHANGE_FORK == null }"));
+  check(`Jenkinsfile (${lang}) gitlab + sonar server : refuse de lancer sonar-scanner sans SONAR_HOST_URL (le jeton ne part pas vers SonarCloud), sh entre guillemets simples`, srv.includes("sh 'test -n \"$SONAR_HOST_URL\" ||") && srv.indexOf("test -n") < srv.indexOf("sh 'sonar-scanner'") && !jf.includes("test -n"));
+  const d = g.read("docs/sonar.md");
+  check(`sonar docs (${lang}) gitlab : identifiant Jenkins, SONAR_ENABLED, sonar-scanner ; sans gh secret set ni ci.yml`, d.includes("SONAR_ENABLED") && d.includes("sonar-scanner") && d.includes("sonar.projectKey") && !d.includes("gh secret set") && !ciYml(d) && !d.includes("Dependabot"), d.slice(0, 80));
+  const jd = g.read("docs/jira.md");
+  check(`jira docs (${lang}) gitlab : intégration Jira de GitLab et étape du Jenkinsfile, sans l'app GitHub ni ci.yml`, jd.includes("GitLab") && jd.includes("Jenkinsfile") && !jd.includes("Jira Cloud") && !ciYml(jd), jd.slice(0, 80));
+  const files = ["Jenkinsfile", "docs/sonar.md", "docs/jira.md", "docs/jenkins.md", "sonar-project.properties", ".gitlab/merge_request_templates/Default.md", ".gitlab/issue_templates/feature.md", "CLAUDE.md", "docs/workflow.md"];
+  check(`gitlab + sonar + jira (${lang}) : aucun marqueur ni paramètre non résolu`, !files.some((f) => unresolved(g.read(f))), files.filter((f) => unresolved(g.read(f))).join(", "));
+}
+check("sonar-project.properties : .gitlab/** exclu avec gitlab, .github/** avec github", glsj.read("sonar-project.properties").includes(".gitlab/**") && !glsj.read("sonar-project.properties").includes(".github/**") && run({ modules: ["claude", "github", "sonar"] }).read("sonar-project.properties").includes(".github/**"));
+const jenkinsGh = (extra) => run({ modules: ["claude", "github", "jenkins", "openspec", "archgate", ...extra] }).read("Jenkinsfile");
+check("Jenkinsfile avec github : identique avec ou sans jira et sonar (pas de double contrôle)", jenkinsGh([]) === jenkinsGh(["jira", "sonar"]) && !jenkinsGh(["jira", "sonar"]).includes("Sonar"));
+const mrJira = run({ modules: [...GL, "jira"], jira: "ABC", jiraSource: "jira" });
+const mrGh = run({ modules: [...GL, "jira"], jira: "ABC" });
+check("MR avec jira en mode jira : Refs ABC-123, sans Closes #, id <cle-n>-<slug> ; ticket Jira dans CLAUDE.md et workflow.md", (() => { const m = mrJira.read(".gitlab/merge_request_templates/Default.md"); const c = mrJira.read("CLAUDE.md"); const w = mrJira.read("docs/workflow.md"); return m.includes("Refs ABC-123") && !m.includes("Closes #") && m.includes("<cle-n>-<slug>") && c.includes("ticket Jira") && c.includes("tickets Jira") && !c.includes("issue GitLab") && w.includes("Refs <CLE-N>") && w.includes("ticket se ferme dans Jira"); })());
+check("MR avec jira en mode github : Closes # et ligne Jira, champ Clé Jira des gabarits d'issues ; absents sans jira", (() => { const m = mrGh.read(".gitlab/merge_request_templates/Default.md"); const i = mrGh.read(".gitlab/issue_templates/feature.md"); const nj = on.read(".gitlab/merge_request_templates/Default.md"); return m.includes("Closes #") && m.includes("Jira : ") && i.includes("## Clé Jira") && !nj.includes("Jira") && !on.read(".gitlab/issue_templates/feature.md").includes("Jira"); })());
+check("workflow.md avec gitlab + jira : contrôles du Jenkinsfile (étape Clé Jira) et double encodage", (() => { const w = mrJira.read("docs/workflow.md"); return w.includes("étape `Clé Jira` du `Jenkinsfile`") && w.includes("`scripts/check-jira-key.mjs`, lancé par le `Jenkinsfile`") && w.includes("`scripts/check-pr-title.mjs`, lancé par le `Jenkinsfile`") && !w.includes(".github"); })());
+
 // --- audit sans GitHub : aucun appel à gh, versions lues dans le Jenkinsfile
 const { runAudit } = await import(pathToFileURL(path.join(scripts, "audit.mjs")).href);
 const calls = [];
