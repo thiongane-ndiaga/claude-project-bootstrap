@@ -89,10 +89,10 @@ Each layer has a role:
 @@end
 @@end
 @@module:issue-source
-- **Squash merge**: the PR title becomes the commit on `main`; the issue closes.
+- **Squash merge**: the PR title becomes the commit on `main` (repository squash setting: title only, never a `Closes #N` in a commit); the issue closes.
 @@end
 @@module:jira-source
-- **Squash merge**: the PR title becomes the commit on `main`; the ticket closes in Jira (`Refs` closes nothing).
+- **Squash merge**: the PR title becomes the commit on `main` (repository squash setting: title only, so the Jira key must appear in the PR title for the commit to carry it); the ticket closes in Jira (`Refs` closes nothing).
 @@end
 @@module:dependabot
 @@module:issue-source

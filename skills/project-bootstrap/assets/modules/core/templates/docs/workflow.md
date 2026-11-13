@@ -89,10 +89,10 @@ Chaque couche a un rôle :
 @@end
 @@end
 @@module:issue-source
-- **Squash merge** : le titre de PR devient le commit sur `main` ; l'issue se ferme.
+- **Squash merge** : le titre de PR devient le commit sur `main` (réglage de squash du dépôt : titre seul, jamais de `Closes #N` dans un commit) ; l'issue se ferme.
 @@end
 @@module:jira-source
-- **Squash merge** : le titre de PR devient le commit sur `main` ; le ticket se ferme dans Jira (`Refs` ne ferme rien).
+- **Squash merge** : le titre de PR devient le commit sur `main` (réglage de squash du dépôt : titre seul, donc la clé Jira doit figurer dans le titre de la PR pour que le commit la porte) ; le ticket se ferme dans Jira (`Refs` ne ferme rien).
 @@end
 @@module:dependabot
 @@module:issue-source

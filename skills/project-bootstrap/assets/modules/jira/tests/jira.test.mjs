@@ -108,6 +108,7 @@ check("mode jira : gabarit de PR avec Refs ABC-123, sans Closes #, id <cle-n>-<s
 const jw = js.read("docs/workflow.md");
 const jc = js.read("CLAUDE.md");
 check("mode jira : workflow.md et CLAUDE.md parlent de ticket, de Refs et de la branche <type>/<CLE-N>-<slug>", jw.includes("Ticket: <CLE-N>") && jw.includes("Refs <CLE-N>") && jw.includes("scripts/check-jira-key.mjs") && !jw.includes("`Closes #N`") && jc.includes("<type>/<CLE-N>-<slug>") && jc.includes("Refs <CLE-N>") && jc.includes("docs/jira.md") && !jc.includes("Closes #"));
+check("mode jira : workflow.md dit que la clé doit figurer dans le titre de la PR (squash au titre seul), mode github non", jw.includes("la clé Jira doit figurer dans le titre de la PR") && !gh.read("docs/workflow.md").includes("la clé Jira doit figurer dans le titre de la PR") && gh.read("docs/workflow.md").includes("titre seul, jamais de `Closes #N` dans un commit"));
 check("mode github : workflow.md et CLAUDE.md gardent Closes #N et Issue: #N", gh.read("docs/workflow.md").includes("`Closes #N`") && gh.read("docs/workflow.md").includes("Issue: #N") && gh.read("CLAUDE.md").includes("Closes #<issue>"));
 const jAdr5 = js.read("docs/architecture/adrs/ARCH-005-conventions-de-branches-commits-et-versionnement.md");
 const jAdr2 = js.read("docs/architecture/adrs/ARCH-002-workflow-spec-driven-avec-openspec.md");

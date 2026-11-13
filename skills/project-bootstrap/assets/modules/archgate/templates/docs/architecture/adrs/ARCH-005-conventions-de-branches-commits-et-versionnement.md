@@ -42,6 +42,9 @@ La langue des identifiants est l'anglais, celle de la documentation est la langu
 - **Exception** : les PR de Dependabot (branche `dependabot/…`, titre `ci(deps): …`) n'ont ni issue ni `Refs <CLE-N>`.
 @@end
 @@end
+@@module:github
+- **Squash** : le dépôt garde le titre de la PR seul comme commit de squash (`squash_merge_commit_title=PR_TITLE`, `squash_merge_commit_message=BLANK`). Aucun `Closes #N` dans un commit : release-please le recopierait dans sa PR de release, que GitHub compterait comme une seconde PR fermante.
+@@end
 @@module:release
 - **Versionnement** : [SemVer](https://semver.org), calculé par release-please à partir des commits. Avant 1.0.0, `feat` incrémente le patch et un changement cassant (`!`) le mineur ; première version `0.0.1`.
 - **Tags** : `vX.Y.Z`, créés par release-please au merge de sa PR de release ; changelog dans `CHANGELOG.md`.
@@ -59,6 +62,9 @@ La langue des identifiants est l'anglais, celle de la documentation est la langu
 @@module:release
 - Ne pas créer de tag ni de release à la main.
 - Ne pas éditer `CHANGELOG.md` ni `.release-please-manifest.json`.
+@@end
+@@module:github
+- Ne pas écrire `Closes #N` dans un message de commit (il va dans le corps de la PR).
 @@end
 - Ne pas committer directement sur `main`.
 

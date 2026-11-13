@@ -42,6 +42,9 @@ Identifiers are in English; the documentation is in the project's language.
 - **Exception**: Dependabot PRs (branch `dependabot/…`, title `ci(deps): …`) have neither an issue nor `Refs <KEY-N>`.
 @@end
 @@end
+@@module:github
+- **Squash**: the repository keeps only the PR title as the squash commit (`squash_merge_commit_title=PR_TITLE`, `squash_merge_commit_message=BLANK`). No `Closes #N` in a commit: release-please would copy it into its release PR, which GitHub would count as a second closing PR.
+@@end
 @@module:release
 - **Versioning**: [SemVer](https://semver.org), computed by release-please from the commits. Before 1.0.0, `feat` bumps the patch and a breaking change (`!`) the minor; first version `0.0.1`.
 - **Tags**: `vX.Y.Z`, created by release-please when its release PR is merged; changelog in `CHANGELOG.md`.
@@ -59,6 +62,9 @@ Identifiers are in English; the documentation is in the project's language.
 @@module:release
 - Do not create a tag or a release by hand.
 - Do not edit `CHANGELOG.md` or `.release-please-manifest.json`.
+@@end
+@@module:github
+- Do not write `Closes #N` in a commit message (it goes in the PR body).
 @@end
 - Do not commit directly to `main`.
 
