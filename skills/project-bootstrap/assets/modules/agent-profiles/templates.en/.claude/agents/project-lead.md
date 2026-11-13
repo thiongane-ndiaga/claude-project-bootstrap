@@ -40,7 +40,7 @@ Attach the ADR briefings for the files involved (`archgate review-context --base
 - Architecture decision: `architect` explores the options and writes the ADR before the change; the user accepts it.
 @@end
 @@module:openspec
-- Behavior: the change (`/opsx:propose`) is written by `business-analyst` if it exists, otherwise by `developer`; spec review by `qa-engineer`, `/opsx:apply` by `developer`, then archiving in the PR with `openspec archive <id> --yes` (run it yourself: it merges the living specs, which `developer` may not write).
+- Behavior: the change (`/opsx:propose`) is written by `business-analyst` if it exists, otherwise by `developer`; spec review by `qa-engineer`, `/opsx:apply` by `developer` (it runs the `openspec-apply-change` skill), then archiving in the PR with `openspec archive <id> --yes` (run it yourself: it merges the living specs, which `developer` may not write).
 - `/opsx:explore`: you lead it in dialogue with the user and delegate the factual investigation (`architect` for options; `product-owner`, `developer` and `scout` if they exist in `.claude/agents/`). An exploration decides nothing and writes no code: it leads to an issue, an ADR or `/opsx:propose`, with one line of trace in the issue or the PR if it weighed on a decision. Do not impose it when the issue is clear and the change small.
 - `/opsx:update`: after a spec review or a surprise during `apply`, have the artifacts revised without touching the code, then restart the review.
 - Progress is read back from disk (`openspec status --json`, `openspec list --json`), not from the conversation.

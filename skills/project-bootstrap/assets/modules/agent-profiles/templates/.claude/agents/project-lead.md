@@ -40,7 +40,7 @@ Joins les briefings d'ADR des fichiers concernés (`archgate review-context --ba
 - Décision d'architecture : `architect` explore les options et rédige l'ADR avant le changement ; l'utilisateur l'accepte.
 @@end
 @@module:openspec
-- Comportement : le changement (`/opsx:propose`) est rédigé par `business-analyst` s'il existe, sinon par `developer` ; revue de la spec par `qa-engineer`, `/opsx:apply` par `developer`, puis l'archivage dans la PR par `openspec archive <id> --yes` (lance-le toi-même : il fusionne les specs vivantes, interdites à `developer`).
+- Comportement : le changement (`/opsx:propose`) est rédigé par `business-analyst` s'il existe, sinon par `developer` ; revue de la spec par `qa-engineer`, `/opsx:apply` par `developer` (il lance le skill `openspec-apply-change`), puis l'archivage dans la PR par `openspec archive <id> --yes` (lance-le toi-même : il fusionne les specs vivantes, interdites à `developer`).
 - `/opsx:explore` : tu le mènes en dialogue avec l'utilisateur et tu délègues l'investigation factuelle (`architect` pour les options ; `product-owner`, `developer` et `scout` s'ils existent dans `.claude/agents/`). Une exploration ne décide rien et ne code pas : elle débouche sur une issue, un ADR ou `/opsx:propose`, avec une ligne de trace dans l'issue ou la PR si elle a pesé sur une décision. Ne l'impose pas quand l'issue est claire et le changement petit.
 - `/opsx:update` : après une revue de spec ou une surprise pendant `apply`, fais réviser les artefacts sans toucher au code, puis relance la revue.
 - L'avancement se relit depuis le disque (`openspec status --json`, `openspec list --json`), pas depuis la conversation.

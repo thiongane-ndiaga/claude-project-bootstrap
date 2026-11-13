@@ -101,6 +101,10 @@ check("agent d'un autre profil refusé (qa-engineer ne lance pas arc42-keeper)",
 check("agent nommé ou d'équipe refusé même s'il est permis", launch("architect", { subagent_type: "arc42-keeper", name: "k" }).code === 2 && launch("qa-engineer", { subagent_type: "spec-reviewer", team_name: "t" }).code === 2);
 check("noms hérités d'Object.prototype refusés comme agents", launch("architect", { subagent_type: "constructor" }).code === 2 && launch("architect", { subagent_type: "toString" }).code === 2);
 check("architect : archgate:adr-author permis", skill("architect", "archgate:adr-author").code === 0);
+check("architect : archgate:cli-reference permis, archgate:planner et archgate:reviewer refusés", skill("architect", "archgate:cli-reference").code === 0 && skill("architect", "archgate:planner").code === 2 && skill("architect", "archgate:reviewer").code === 2);
+check("developer : skills d'apply permis (openspec-apply-change et opsx:apply)", skill("developer", "openspec-apply-change").code === 0 && skill("developer", "opsx:apply").code === 0);
+check("developer : autres skills refusés (reviewer, adr-author, cli-reference, opsx:archive, opsx:sync, opsx:propose, openspec-propose, sans nom)", ["archgate:reviewer", "archgate:adr-author", "archgate:cli-reference", "opsx:archive", "opsx:sync", "opsx:propose", "openspec-propose", "openspec-apply-change-bis", ""].every((n) => skill("developer", n).code === 2));
+check("developer : agent refusé même avec le skill permis", launch("developer", { subagent_type: "general-purpose" }).code === 2 && launch("developer", { subagent_type: "architect" }).code === 2);
 check("architect : adr-options-comparison et arc42-update permis, spec-review et pr-readiness-review refusés", skill("architect", "adr-options-comparison").code === 0 && skill("architect", "arc42-update").code === 0 && skill("architect", "spec-review").code === 2 && skill("architect", "pr-readiness-review").code === 2);
 check("qa-engineer : spec-review et pr-readiness-review permis, arc42-update, adr-options-comparison et la forme /spec-review refusés", skill("qa-engineer", "spec-review").code === 0 && skill("qa-engineer", "pr-readiness-review").code === 0 && skill("qa-engineer", "arc42-update").code === 2 && skill("qa-engineer", "adr-options-comparison").code === 2 && skill("qa-engineer", "/spec-review").code === 2);
 check("skills non permis refusés (reviewer, onboard, sans nom, autre profil)", skill("architect", "archgate:onboard").code === 2 && skill("qa-engineer", "archgate:reviewer").code === 2 && skill("qa-engineer", "archgate:adr-author").code === 2 && run({ agent_type: "architect", tool_name: "Skill", tool_input: {} }).code === 2);
@@ -124,7 +128,7 @@ check("developer : le refus nomme le dossier de gouvernance", dg.code === 2 && /
 check("developer : contournements de casse et de points finals refusés", [".CLAUDE/settings.json", ".Claude/settings.json", "DOCS/Architecture/x.md", ".claude./settings.json", ".claude /settings.json", "docs/architecture./x.md", "OpenSpec/Specs/x.md"].every((f) => write("developer", f).code === 2));
 check("developer : dossier voisin de gouvernance permis (docs/architecture-old/, openspec/changes/)", write("developer", "docs/architecture-old/x.md").code === 0 && write("developer", ".github-notes/x.md").code === 0);
 check("developer : chemin hors du projet refusé", write("developer", path.resolve(project, "..", "ailleurs.txt")).code === 2 && write("developer", "../x.js").code === 2);
-check("developer : shell non borné, mais ni agent ni skill", shell("developer", "npm test").code === 0 && shell("developer", "rm -rf build").code === 0 && launch("developer", { subagent_type: "general-purpose" }).code === 2 && skill("developer", "archgate:adr-author").code === 2);
+check("developer : shell non borné, aucun agent, seuls les skills d'apply", shell("developer", "npm test").code === 0 && shell("developer", "rm -rf build").code === 0 && launch("developer", { subagent_type: "general-purpose" }).code === 2 && skill("developer", "archgate:adr-author").code === 2);
 const governance2 = ["CLAUDE.md", "claude.md", "AGENTS.md", ".git/hooks/pre-commit", ".git/config", ".githooks/pre-push", "docs/workflow.md", "openspec/config.yml", "openspec/changes/archive/2026-01-01-x/tasks.md", "release-please-config.json", ".release-please-manifest.json"];
 check("developer : fichiers de gouvernance et de livraison refusés (CLAUDE.md, .git, .githooks, workflow, archive, release)", governance2.every((f) => write("developer", f).code === 2), governance2.filter((f) => write("developer", f).code !== 2).join(", "));
 check("developer : un fichier exact n'en bloque pas un voisin (CLAUDE.md.bak, claude.mdx, docs/workflow.md.old)", ["CLAUDE.md.bak", "claude.mdx", "docs/workflow.md.old", "openspec/config.yaml.bak"].every((f) => write("developer", f).code === 0));
@@ -277,6 +281,12 @@ check("skills isolés : un profil à liste est contrôlé aussi, ses skills ordi
   const refused = skill("qa-engineer", "spec-review").code === 2;
   rmSync(path.join(project, ".claude", "skills", "spec-review"), { recursive: true });
   return refused && skill("qa-engineer", "spec-review").code === 0 && skill("qa-engineer", "forky").code === 2;
+})());
+check("skills isolés : developer, skill d'apply à contexte isolé refusé", (() => {
+  putSkill(path.join(project, ".claude", "skills", "openspec-apply-change", "SKILL.md"), header(["name: openspec-apply-change", "context: fork"]));
+  const refused = skill("developer", "openspec-apply-change").code === 2;
+  rmSync(path.join(project, ".claude", "skills", "openspec-apply-change"), { recursive: true });
+  return refused && skill("developer", "openspec-apply-change").code === 0;
 })());
 check("skills isolés : agent hors de la table non borné", skill("writer", "forky").code === 0);
 check("skills isolés : registre des plugins illisible, racine inconnue : refus", (() => {

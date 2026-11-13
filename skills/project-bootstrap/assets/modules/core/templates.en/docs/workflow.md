@@ -63,7 +63,7 @@ Each layer has a role:
 - **Revision** `/opsx:update`: after a review or a surprise, revises the planning artifacts (proposal, specs, design, tasks) and keeps them consistent with each other, never the code.
 - **Execution** `/opsx:apply`; atomic commits in Conventional Commits (English).
 @@module:agent-profiles
-- **Who executes**: `developer` implements (`/opsx:apply`); `project-lead` archives with `openspec archive <id> --yes`, because the living specs are off limits to `developer`.
+- **Who executes**: `developer` implements by running the `openspec-apply-change` skill (`/opsx:apply`); `project-lead` archives with `openspec archive <id> --yes`, because the living specs are off limits to `developer`.
 @@end
 - **Synchronization** `/opsx:sync`: carries a change's spec deltas over to the specs in force without archiving it; `/opsx:archive` does it too when archiving.
 - **Archiving** `/opsx:archive` **in the PR, before the merge**: the living specs (`openspec/specs/`) are up to date at merge time.

@@ -138,7 +138,7 @@ Constatés lors de la mise en place de référence (Claude Code 2.1.31x, OpenSpe
 
 ## Document de workflow (#38)
 - `docs/workflow.md` contient une table « Double encodage » : une ligne par puce de `## Règles` du `CLAUDE.md` généré, avec son garde-fou ou « consigne seulement ». Ajouter une règle à `CLAUDE.md` sans sa ligne fait échouer le test ; ajouter un garde-fou à une règle « consigne seulement » oblige à corriger la ligne. Le test vérifie que les fichiers cités existent, pas qu'ils protègent.
-- La table « Qui fait quoi » reprend à la main les droits de la table `PROFILES` de `profile-guard.mjs` : la modifier avec elle.
+- La table « Qui fait quoi » reprend à la main les droits de la table `PROFILES` de `profile-guard.mjs`, et la ligne « Qui exécute » le skill d'apply de `developer` : les modifier avec elle.
 - Les agents historiques (`spec-reviewer`, `traceability-checker`, `arc42-keeper`, `architecture-explorer`) n'existent que sans `agent-profiles` et ne sont décrits nulle part dans `workflow.md` (ARCH-016).
 - `docs/workflow.md` de ce dépôt n'est pas régénéré par ce changement : il n'a pas le module `agent-profiles` et se met à jour avec `--update` lors d'une adoption.
 

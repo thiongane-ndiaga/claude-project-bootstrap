@@ -63,7 +63,7 @@ Chaque couche a un rôle :
 - **Révision** `/opsx:update` : après une revue ou une surprise, révise les artefacts de planification (proposition, specs, conception, tâches) et les garde cohérents entre eux, jamais le code.
 - **Exécution** `/opsx:apply` ; commits atomiques en Conventional Commits (anglais).
 @@module:agent-profiles
-- **Qui exécute** : `developer` implémente (`/opsx:apply`) ; `project-lead` archive par `openspec archive <id> --yes`, car les specs vivantes sont interdites à `developer`.
+- **Qui exécute** : `developer` implémente en lançant le skill `openspec-apply-change` (`/opsx:apply`) ; `project-lead` archive par `openspec archive <id> --yes`, car les specs vivantes sont interdites à `developer`.
 @@end
 - **Synchronisation** `/opsx:sync` : reporte les deltas de specs d'un changement vers les specs en vigueur sans l'archiver ; `/opsx:archive` le fait aussi à l'archivage.
 - **Archivage** `/opsx:archive` **dans la PR, avant le merge** : les specs vivantes (`openspec/specs/`) sont à jour au moment du merge.

@@ -26,12 +26,14 @@ Les profils de `agent-profiles` (ARCH-011) sont bornés par un hook unique qui l
 1. **La liste des agents et des skills lançables vit dans la table `PROFILES` du hook** (champs `agents` et `skills`), pas dans `Agent(<types>)`. Liste vide ou absente : tout est refusé. Le hook couvre `Agent`, `Task` (ancien nom) et `Skill`, et refuse à tout profil de la table un skill invalide ou à `context: fork` (introuvable : permis ; illisible : refusé).
 2. **Un profil ne lance que des sous-agents sans nom**, sauf les types de sa liste `namedAgents`, avec un `name` égal au `subagent_type` (ARCH-011) : tout autre nom est refusé. Un `subagent_type` absent ou vide vaut `general-purpose` et est refusé.
 3. **Seul `project-lead` lance des agents** (ARCH-013) : les listes `agents` des autres profils sont vides. Le mécanisme reste pour un agent qu'un projet ajoute à la table avec ses propres bornes. Les profils lancent les skills de leur ligne du tableau.
-4. **`archgate:reviewer` n'est lancé par personne** (ses agents `general-purpose` sont refusés) ; la vérification ADR passe par `qa-engineer` ; `archgate:adr-author` est permis à `architect`, qui s'en sert pour cadrer l'ADR et le crée avec `archgate adr create`.
-5. **Tableau des droits** (source : la table du hook) :
+4. **`archgate:reviewer` et l'agent `archgate:planner` ne sont lancés par personne** : le premier lance des agents `general-purpose` que le hook refuse, le second n'a pas de `tools:` et porte donc tous les outils (`Agent` et `Write` compris), sa lecture seule ne tenant qu'à son texte. La vérification ADR passe par `qa-engineer` (`archgate review-context`), la planification par `architect`. `archgate:adr-author` et `archgate:cli-reference` sont permis à `architect` : le premier cadre l'ADR, qu'il crée avec `archgate adr create`, le second donne les commandes d'`archgate` et l'API des règles `.rules.ts`.
+5. **`developer` lance le skill d'apply d'OpenSpec**, `openspec-apply-change` ou `opsx:apply`, et aucun autre : il ne lance pas d'agent et son shell est déjà non borné, de sorte que le skill, qui n'a pas `context: fork` et n'en lance aucun, n'élargit pas ses droits réels. `opsx:sync` et `opsx:archive` restent à `project-lead` (`openspec archive <id> --yes`), car ils déplacent des fichiers interdits à `developer`.
+6. **Tableau des droits** (source : la table du hook) :
 
 | Profil ou agent | Écriture | Shell en plus de la lecture seule | Agents lançables | Skills |
 |---|---|---|---|---|
-| `architect` | `docs/architecture/` | `archgate adr create --title "…" --domain …`, `archgate adr domain list` | aucun | `archgate:adr-author`, `adr-options-comparison`, `arc42-update` |
+| `architect` | `docs/architecture/` | `archgate adr create --title "…" --domain …`, `archgate adr domain list` | aucun | `archgate:adr-author`, `archgate:cli-reference`, `adr-options-comparison`, `arc42-update` |
+| `developer` | tout sauf les dossiers de gouvernance | non borné | aucun | `openspec-apply-change`, `opsx:apply` |
 | `qa-engineer` | `tests/`, `test/` | `node .claude/hooks/quality-gate.mjs`, `node .bootstrap/run-checks.mjs`, `archgate review-context` (options `--staged`, `--run-checks`, `--verbose`, `--strict`, `--base [réf]`, `--domain <d>`) | aucun | `spec-review`, `pr-readiness-review` |
 | `project-lead` | aucune | `openspec archive <id> --yes`, contrôles de `qa-engineer`, `gh issue` ou `gh pr` d'écriture bornés (spec `agent-profiles`) | profils nommés comme leur type (hors `second-opinion`) | tous |
 
@@ -40,7 +42,7 @@ Les profils de `agent-profiles` (ARCH-011) sont bornés par un hook unique qui l
 ### Do
 
 - Ajouter un agent lançable à la table avec ses bornes avant de le lister dans `agents`.
-- Revoir un skill de la table à chaque mise à jour de son plugin : un skill qui lance un agent sort de la table.
+- Revoir un skill de la table à chaque mise à jour de son plugin ou d'OpenSpec : un skill qui lance un agent ou passe à `context: fork` sort de la table.
 
 ### Don't
 
