@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.19](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.18...v0.1.19) (2026-11-13)
+
+
+### Features
+
+* **skill:** set the squash commit to the PR title only and audit it ([#156](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/156)) ([#157](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/157)) ([0e8585c](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/0e8585c4078ab6c3f18b986deedb8cec6d7ea43d))
+
 ## [0.1.18](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.17...v0.1.18) (2026-11-13)
 
 
