@@ -19,7 +19,7 @@ Des projets hébergent leur code sur GitLab et gardent Jenkins pour la CI, Sonar
 ## Decision
 
 1. Le module optionnel `gitlab` (`default: false`) est **exclusif** de `github` (code 2) et ne couvre que l'**hébergement** : gabarit de merge request, gabarits d'issues, documentation des étapes manuelles. Il ne génère ni `.gitlab-ci.yml` ni fichier `.github/`.
-2. La CI d'un projet GitLab est le `Jenkinsfile` du module `jenkins`, qui exige `github` **ou** `gitlab` (`requiresAny`).
+2. La CI d'un projet GitLab est le `Jenkinsfile` du module `jenkins`, qui exige `github` **ou** `gitlab` (`requiresAny`). Avec `gitlab`, les modules `jira` et `sonar` (qui exigent `github` ou `jenkins`) ajoutent leurs étapes `Clé Jira` et `Sonar` au `Jenkinsfile` (l'étape `Sonar` exclut les merge requests de fork, qui exécuteraient leur code avant l'étape qui détient le jeton) ; avec `github`, `ci.yml` les porte déjà et le `Jenkinsfile` ne change pas.
 3. Le contrôle du titre de PR et les ADR de forge (ARCH-004, ARCH-005 générés) se génèrent avec l'un ou l'autre : la condition est le pseudo-module `forge`, actif avec `github` ou `gitlab`. `scripts/check-pr-title.mjs` a un seul propriétaire, `core`.
 4. Les modules `release`, `projects` et `dependabot` restent réservés à `github`. L'audit de la forge et les commandes `gh` du skill ne s'appliquent qu'à GitHub ; avec `gitlab`, les contrôles de forge sont non vérifiables et les étapes sont manuelles.
 5. Le vocabulaire PR/MR n'est pas paramétré : les modèles gardent « PR » et `docs/gitlab.md` donne la table de lecture (PR → MR, `gh` → `glab`).

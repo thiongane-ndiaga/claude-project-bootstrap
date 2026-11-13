@@ -218,3 +218,14 @@ Aucun de ces points n'a été observé avec une instance GitLab ni un Jenkins : 
 - GitLab fait par défaut un commit de merge : régler le squash avec le titre de la MR, sinon le contrôle du titre ne protège rien. Une MR en brouillon (`Draft:`) échoue au contrôle.
 - Les profils d'agents n'ont pas de variante GitLab : leurs étapes `gh` sont absentes et `pr-readiness-review` n'est pas généré.
 - `gitlab` sans `jenkins` n'a aucune CI.
+
+## Sonar et Jira avec gitlab (#25)
+
+Non observé avec un vrai GitLab, Jenkins, Jira ou Sonar : ces points viennent de la revue du changement.
+
+- Une MR de fork exécute son code (`scripts/jenkins-setup.sh`, `.bootstrap/run-checks.mjs`, binaires en tête du `PATH`) avant l'étape `Sonar`, qui détient le jeton : l'étape exclut les forks par `env.CHANGE_FORK == null`. La confiance de GitLab Branch Source ne protège que le choix du `Jenkinsfile`.
+- En mode `server`, une `SONAR_HOST_URL` absente ferait partir le jeton vers SonarCloud (valeur par défaut des versions récentes de `sonar-scanner`, à vérifier) : l'étape refuse de lancer `sonar-scanner` sans elle.
+- `SONAR_ENABLED` est une convention du plugin, pas un réglage Jenkins : variable d'environnement globale ou du dossier. Le délai de 10 minutes du pipeline couvre aussi l'analyse.
+- `CHANGE_BRANCH` peut manquer : `HEAD_REF` vaut alors une chaîne vide (sinon la chaîne `null` produirait un message trompeur en mode `jira`).
+- Un bloc `gitlab` posé dans un bloc `github` plus long que prévu disparaît : vérifier l'imbrication avant de conclure qu'une variante manque.
+- Avec `github`, le `Jenkinsfile` ne reçoit ni l'étape Jira ni l'étape Sonar : `ci.yml` les porte déjà, sans double analyse.

@@ -25,7 +25,12 @@ Le détail est dans `docs/workflow.md`.
 @@end
 @@end
 @@module:gitlab
+@@module:issue-source
 - Besoin → issue GitLab (gabarit).
+@@end
+@@module:jira-source
+- Besoin → ticket Jira (table de lecture : `docs/jira.md`).
+@@end
 @@end
 @@module:archgate
 - Décision d'architecture → ADR créé avec Archgate, avant le changement.
@@ -69,7 +74,12 @@ Le détail est dans `docs/workflow.md`.
 @@end
 @@end
 @@module:gitlab
+@@module:issue-source
 - Besoin : issues GitLab.
+@@end
+@@module:jira-source
+- Besoin : tickets Jira.
+@@end
 @@end
 @@module:arc42
 - Pourquoi et contraintes : `docs/architecture/arc42/`.

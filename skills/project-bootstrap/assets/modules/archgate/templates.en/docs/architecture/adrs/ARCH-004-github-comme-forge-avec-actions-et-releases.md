@@ -124,6 +124,9 @@ The project hosts its code on GitLab. The repository is {{VISIBILITY_LABEL}}. CI
 - **CI**: the `Jenkinsfile` (Jenkins), not GitLab CI. No `.gitlab-ci.yml` is generated.
 @@end
 - No automatic release and no project board generated.
+@@module:sonar
+- **Quality analysis** (`Sonar` stage of the `Jenkinsfile`) through `sonar-scanner` to an external service; inactive until the Jenkins credential `SONAR_TOKEN` and the `SONAR_ENABLED` variable exist, which counts as explicit agreement for this analysis.
+@@end
 - No automation that consumes API tokens in CI without explicit agreement.
 - The `main` branch is protected in GitLab, with "Pipelines must succeed" when a CI exists.
 - `glab` commands are not pre-approved: each one asks for approval.

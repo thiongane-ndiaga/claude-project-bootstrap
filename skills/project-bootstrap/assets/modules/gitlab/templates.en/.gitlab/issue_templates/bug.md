@@ -8,3 +8,10 @@
 ## Observed behavior
 
 ## Version or commit
+@@module:jira
+@@module:issue-source
+
+## Jira key
+<!-- Linked Jira ticket, if any (e.g. ABC-123). -->
+@@end
+@@end

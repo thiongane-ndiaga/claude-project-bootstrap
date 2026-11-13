@@ -13,6 +13,14 @@ Le `Jenkinsfile` à la racine est la **CI du projet** : GitLab héberge le code,
 @@module:gitlab
 Étapes : vérification de Node, titre de la merge request (merge request seulement), installation des CLI d'outillage, `openspec validate`, `archgate check`, chaîne d'outils du projet (`scripts/jenkins-setup.sh`), puis `node .bootstrap/run-checks.mjs`.
 @@end
+@@module:gitlab
+@@module:jira
+Étape `Clé Jira` (module `jira`) : exécute `scripts/check-jira-key.mjs` sur les merge requests.
+@@end
+@@module:sonar
+Étape `Sonar` (module `sonar`) : lance `sonar-scanner` si la variable d'environnement `SONAR_ENABLED` vaut `true` (voir `docs/sonar.md`). Le délai de 10 minutes du pipeline couvre aussi l'analyse.
+@@end
+@@end
 
 ## Étapes manuelles
 

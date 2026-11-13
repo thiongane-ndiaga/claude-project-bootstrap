@@ -15,6 +15,14 @@ Run it before `/opsx:apply`, on `openspec/changes/<id>/`. You do not modify the 
 - Read the linked ticket (`Ticket: <KEY-N>` at the top of `proposal.md`): `gh` cannot read Jira, ask the user for its text or read what `proposal.md` copies.
 @@end
 @@end
+@@module:gitlab
+@@module:issue-source
+- Read the linked issue (`Issue: #N` at the top of `proposal.md`) in GitLab (the interface, or `glab issue view N`, not pre-approved).
+@@end
+@@module:jira-source
+- Read the linked ticket (`Ticket: <KEY-N>` at the top of `proposal.md`): `gh` cannot read Jira, ask the user for its text or read what `proposal.md` copies.
+@@end
+@@end
 @@module:archgate
 - Read the cited ADRs and those whose subject overlaps the change (`archgate adr list`).
 @@end

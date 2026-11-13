@@ -13,3 +13,10 @@
 ## Architecture decision
 - [ ] This need probably involves a technical choice or a cross-cutting constraint (ADR required, see docs/workflow.md)
 @@end
+@@module:jira
+@@module:issue-source
+
+## Jira key
+<!-- Linked Jira ticket, if any (e.g. ABC-123). -->
+@@end
+@@end

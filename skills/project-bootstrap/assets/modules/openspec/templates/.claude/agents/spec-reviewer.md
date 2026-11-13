@@ -4,7 +4,12 @@ name: spec-reviewer
 description: Revue critique d'un changement OpenSpec (proposal, specs, design, tasks) face à son issue GitHub, aux ADR et à arc42. À utiliser avant /opsx:apply, ou en équipe pour une revue contradictoire. Lecture seule.
 @@end
 @@module:gitlab
+@@module:issue-source
 description: Revue critique d'un changement OpenSpec (proposal, specs, design, tasks) face à son issue GitLab, aux ADR et à arc42. À utiliser avant /opsx:apply, ou en équipe pour une revue contradictoire. Lecture seule.
+@@end
+@@module:jira-source
+description: Revue critique d'un changement OpenSpec (proposal, specs, design, tasks) face à son ticket Jira, aux ADR et à arc42. À utiliser avant /opsx:apply, ou en équipe pour une revue contradictoire. Lecture seule.
+@@end
 @@end
 tools: Read, Glob, Grep, Bash
 model: opus
@@ -28,6 +33,14 @@ Méthode :
 @@module:github
 @@module:issue-source
 2. Lis l'issue liée (`Issue: #N` en tête de `proposal.md`) avec `gh issue view N`.
+@@end
+@@module:jira-source
+2. Lis le ticket lié (`Ticket: <CLE-N>` en tête de `proposal.md`) : `gh` ne lit pas Jira, demande son texte à l'utilisateur ou lis ce qu'en recopie `proposal.md`.
+@@end
+@@end
+@@module:gitlab
+@@module:issue-source
+2. Lis l'issue liée (`Issue: #N` en tête de `proposal.md`) dans GitLab (l'interface, ou `glab issue view N`, non pré-approuvé).
 @@end
 @@module:jira-source
 2. Lis le ticket lié (`Ticket: <CLE-N>` en tête de `proposal.md`) : `gh` ne lit pas Jira, demande son texte à l'utilisateur ou lis ce qu'en recopie `proposal.md`.

@@ -104,8 +104,14 @@ Each layer has a role:
 @@end
 @@end
 @@module:gitlab
+@@module:issue-source
 - **MR**: Conventional Commit title, body with `Closes #N`, checked by `scripts/check-pr-title.mjs` (`PR title` stage of the `Jenkinsfile`). Manual review before the merge: no traceability agent with GitLab.
 - **Squash merge**: the MR title becomes the commit on `main`; the issue closes.
+@@end
+@@module:jira-source
+- **MR**: Conventional Commit title, body with `Refs <KEY-N>`, checked by `scripts/check-pr-title.mjs` (`PR title` stage of the `Jenkinsfile`). Manual review before the merge: no traceability agent with GitLab.
+- **Squash merge**: the MR title becomes the commit on `main`; the ticket closes in Jira (`Refs` closes nothing).
+@@end
 @@end
 @@module:arc42
 @@module:legacy-agents
@@ -229,6 +235,9 @@ Before 1.0.0: `feat` → patch, `feat!` → minor.
 @@end
 @@module:gitlab
 | `Jenkinsfile` (the project's CI, manual steps in `docs/jenkins.md`) | project checks + MR title | per "Pipelines must succeed" in the GitLab merge settings |
+@@module:jira
+| Jira key | `Jira key` stage of the `Jenkinsfile` | same as the `Jenkinsfile` row |
+@@end
 @@end
 @@end
 @@module:release
@@ -284,6 +293,14 @@ A rule written in `CLAUDE.md` is only an instruction as long as nothing prevents
 | A PR title is a Conventional Commit. | `scripts/check-pr-title.mjs`, run by `.github/workflows/ci.yml` |
 @@module:jira
 | The Jira key appears in a PR title or branch. | `scripts/check-jira-key.mjs`, run by `.github/workflows/ci.yml` |
+@@end
+@@end
+@@module:gitlab
+@@module:jenkins
+| An MR title is a Conventional Commit. | `scripts/check-pr-title.mjs`, run by the `Jenkinsfile` |
+@@module:jira
+| The Jira key appears in an MR title or branch. | `scripts/check-jira-key.mjs`, run by the `Jenkinsfile` |
+@@end
 @@end
 @@end
 @@module:agent-profiles

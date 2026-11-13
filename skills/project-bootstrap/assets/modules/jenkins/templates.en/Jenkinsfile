@@ -43,6 +43,18 @@ pipeline {
         }
       }
     }
+    // @@module:gitlab
+    // @@module:jira
+    stage('Jira key') {
+      when { changeRequest() }
+      steps {
+        withEnv(["PR_TITLE=${env.CHANGE_TITLE}", "HEAD_REF=${env.CHANGE_BRANCH ?: ''}"]) {
+          sh 'node scripts/check-jira-key.mjs'
+        }
+      }
+    }
+    // @@end
+    // @@end
     // @@module:openspec|archgate
     stage('Tooling CLIs') {
       steps {
@@ -86,5 +98,31 @@ pipeline {
         sh 'node .bootstrap/run-checks.mjs'
       }
     }
+    // @@module:gitlab
+    // @@module:sonar
+    stage('Sonar') {
+      when {
+        allOf {
+          environment name: 'SONAR_ENABLED', value: 'true'
+          expression { env.CHANGE_FORK == null }
+          // @@module:sonar-server
+          branch 'main'
+          // @@end
+        }
+      }
+      steps {
+        withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
+          // @@module:sonar-cloud
+          sh 'SONAR_HOST_URL=https://sonarcloud.io sonar-scanner'
+          // @@end
+          // @@module:sonar-server
+          sh 'test -n "$SONAR_HOST_URL" || { echo "SONAR_HOST_URL missing"; exit 1; }'
+          sh 'sonar-scanner'
+          // @@end
+        }
+      }
+    }
+    // @@end
+    // @@end
   }
 }

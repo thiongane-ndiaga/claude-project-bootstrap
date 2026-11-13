@@ -104,8 +104,14 @@ Chaque couche a un rôle :
 @@end
 @@end
 @@module:gitlab
+@@module:issue-source
 - **MR** : titre Conventional Commit, corps avec `Closes #N`, vérifié par `scripts/check-pr-title.mjs` (étape `Titre de PR` du `Jenkinsfile`). Relecture manuelle avant le merge : aucun agent de traçabilité avec GitLab.
 - **Squash merge** : le titre de la MR devient le commit sur `main` ; l'issue se ferme.
+@@end
+@@module:jira-source
+- **MR** : titre Conventional Commit, corps avec `Refs <CLE-N>`, vérifié par `scripts/check-pr-title.mjs` (étape `Titre de PR` du `Jenkinsfile`). Relecture manuelle avant le merge : aucun agent de traçabilité avec GitLab.
+- **Squash merge** : le titre de la MR devient le commit sur `main` ; le ticket se ferme dans Jira (`Refs` ne ferme rien).
+@@end
 @@end
 @@module:arc42
 @@module:legacy-agents
@@ -229,6 +235,9 @@ Avant 1.0.0 : `feat` → patch, `feat!` → minor.
 @@end
 @@module:gitlab
 | `Jenkinsfile` (CI du projet, étapes manuelles dans `docs/jenkins.md`) | contrôles du projet + titre de la MR | selon « Pipelines must succeed » dans les réglages de fusion GitLab |
+@@module:jira
+| Clé Jira | étape `Clé Jira` du `Jenkinsfile` | comme la ligne `Jenkinsfile` |
+@@end
 @@end
 @@end
 @@module:release
@@ -284,6 +293,14 @@ Une règle écrite dans `CLAUDE.md` n'est une consigne que tant que rien ne l'em
 | Le titre d'une PR est un Conventional Commit. | `scripts/check-pr-title.mjs`, lancé par `.github/workflows/ci.yml` |
 @@module:jira
 | La clé Jira figure dans le titre ou la branche d'une PR. | `scripts/check-jira-key.mjs`, lancé par `.github/workflows/ci.yml` |
+@@end
+@@end
+@@module:gitlab
+@@module:jenkins
+| Le titre d'une MR est un Conventional Commit. | `scripts/check-pr-title.mjs`, lancé par le `Jenkinsfile` |
+@@module:jira
+| La clé Jira figure dans le titre ou la branche d'une MR. | `scripts/check-jira-key.mjs`, lancé par le `Jenkinsfile` |
+@@end
 @@end
 @@end
 @@module:agent-profiles

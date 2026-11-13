@@ -32,18 +32,26 @@ Le catalogue SHALL contenir un module `gitlab`, `default: false`, incompatible a
 - **THEN** ARCH-004 nomme GitLab, ne contient ni `release-please` ni `ci.yml`, aucun `.rules.ts` d'ARCH-004 n'existe et `archgate check` ne signale aucune incohérence de règles
 
 ### Requirement: Gabarits de merge request et d'issues
-Le gabarit de merge request SHALL reprendre les rubriques du gabarit de PR de `github` (`Closes #`, changement OpenSpec, ADR, résumé, liste de contrôle, selon les modules actifs), et les gabarits d'issues SHALL reprendre les rubriques des formulaires de `github`.
+Le gabarit de merge request SHALL reprendre les rubriques du gabarit de PR de `github` (`Closes #` ou `Refs` en mode `jira`, changement OpenSpec, ADR, résumé, liste de contrôle, selon les modules actifs), et les gabarits d'issues SHALL reprendre les rubriques des formulaires de `github`.
 
 #### Scenario: Rubriques selon les modules
 - **WHEN** un projet est généré avec `gitlab` et `openspec`
 - **THEN** le gabarit de merge request contient `Closes #` et la rubrique du changement OpenSpec
 
+#### Scenario: Mode jira
+- **WHEN** un projet est généré avec `gitlab` et `jiraSource: jira`
+- **THEN** le gabarit de merge request contient `Refs` et pas `Closes #`
+
 ### Requirement: Workflow sans GitHub
-Avec `gitlab`, `CLAUDE.md` et `docs/workflow.md` SHALL garder les étapes du besoin par issue, de la PR et de la traçabilité, et poser les équivalents GitLab (gabarits `.gitlab/`, `Jenkinsfile`) à la place des passages propres à GitHub (formulaires, `ci.yml`, protection de branche, runners). Aucun lien vers `.github/` n'y subsiste.
+Avec `gitlab`, `CLAUDE.md` et `docs/workflow.md` SHALL garder les étapes du besoin (issue, ou ticket Jira en mode `jira`), de la PR et de la traçabilité, et poser les équivalents GitLab (gabarits `.gitlab/`, `Jenkinsfile`) à la place des passages propres à GitHub (formulaires, `ci.yml`, protection de branche, runners). Aucun lien vers `.github/` n'y subsiste.
 
 #### Scenario: Étapes conservées
 - **WHEN** un projet est généré avec `gitlab`
 - **THEN** `CLAUDE.md` et `docs/workflow.md` contiennent l'étape de la PR avec `Closes #N` et le contrôle du titre, et aucun `.github/` ni `ci.yml`
+
+#### Scenario: Mode jira
+- **WHEN** un projet est généré avec `gitlab`, `jira` et `jiraSource: jira`
+- **THEN** ces fichiers parlent de ticket Jira et de `Refs <CLE-N>`, sans `Closes #N`
 
 ### Requirement: Documentation des étapes manuelles
 `docs/gitlab.md` (français et anglais) SHALL lister les étapes manuelles (dépôt, protection de `main` avec « les pipelines doivent réussir », méthode de merge en squash avec le titre de la MR, labels, jeton et webhook pour Jenkins), la table de lecture PR → MR et `gh` → `glab`, et les limites (aucune CI sans `jenkins`, aucune release automatique, étapes `gh` absentes des profils d'agents, MR en brouillon refusée par le contrôle du titre, nom d'ARCH-004, aucun essai réel).

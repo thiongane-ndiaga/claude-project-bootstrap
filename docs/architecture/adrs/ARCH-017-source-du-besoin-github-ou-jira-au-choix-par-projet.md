@@ -20,10 +20,10 @@ OpenSpec n'accepte que des id en minuscules (`^[a-z0-9]+(-[a-z0-9]+)*$`), alors 
 
 ## Decision
 
-1. Le module optionnel `jira` (`requires: github`, `default: false`) offre deux sources du besoin, choisies par projet avec la clé `jiraSource` : `github` (défaut) ou `jira`.
+1. Le module optionnel `jira` (`requiresAny: github` ou `jenkins`, `default: false`) offre deux sources du besoin, choisies par projet avec la clé `jiraSource` : `github` (défaut) ou `jira`.
 2. `github` : les issues restent la source, la clé Jira est un lien en plus (champ des formulaires, ligne du gabarit de PR).
 3. `jira` : le ticket remplace l'issue. Branche `<type>/<CLE-N>-<slug>`, id OpenSpec en minuscules `<cle-n>-<slug>`, en-tête `Ticket: CLE-N`, corps de PR `Refs CLE-N` au lieu de `Closes #N`.
-4. Dans les deux modes, `scripts/check-jira-key.mjs` exige la clé dans le titre de la PR ou le nom de la branche, par le job `pr-title` de `ci.yml`.
+4. Dans les deux modes, `scripts/check-jira-key.mjs` exige la clé dans le titre de la PR ou le nom de la branche, par le job `pr-title` de `ci.yml` avec `github`, par l'étape `Clé Jira` du `Jenkinsfile` avec `gitlab`.
 5. Les textes qui disent « issue » sans variante se lisent « ticket » d'après la table de `docs/jira.md` ; le plugin n'écrit rien dans Jira.
 
 ## Do's and Don'ts
