@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.1.18](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.17...v0.1.18) (2026-11-13)
+
+
+### Features
+
+* **skill:** add the optional gitlab module for code hosting ([#25](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/25)) ([#154](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/154)) ([fa670fd](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/fa670fdb178d36a02dc16f379f2a83e85bcd8f1b))
+* **skill:** add the optional jira module ([#23](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/23)) ([#153](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/153)) ([6b0c6e5](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/6b0c6e5ca7ead40854c6ae1f672fc6b5bd53ec7a))
+* **skill:** add the optional sonar module ([#22](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/22)) ([#152](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/152)) ([70a1752](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/70a17528dc182605b25b2362641e4ad55e7aeb99))
+* **skill:** recognize the jenkins module in the project audit ([#147](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/147)) ([#150](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/150)) ([03cbb99](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/03cbb990da11a1cc648b0e3f382ed6f8d214a877))
+* **skill:** run sonar and jira on jenkins with gitlab ([#25](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/25)) ([#155](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/155)) ([1014cc7](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/1014cc7e8f41778611d2bf5e0ab4efd9d6d86317))
+
 ## [0.1.17](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.16...v0.1.17) (2026-11-12)
 
 
