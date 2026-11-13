@@ -24,6 +24,9 @@ The details are in `docs/workflow.md`.
 - Need → Jira ticket (reading table: `docs/jira.md`).
 @@end
 @@end
+@@module:gitlab
+- Need → GitLab issue (template).
+@@end
 @@module:archgate
 - Architecture decision → ADR created with Archgate, before the change.
 @@end
@@ -44,7 +47,7 @@ The details are in `docs/workflow.md`.
 - With `agent-profiles`, `project-lead` archives with `openspec archive <id> --yes` (its hook refuses `/opsx:archive`).
 @@end
 @@end
-@@module:github
+@@module:forge
 @@module:issue-source
 - PR (`Closes #<issue>`) + CI → squash merge.
 @@end
@@ -64,6 +67,9 @@ The details are in `docs/workflow.md`.
 @@module:jira-source
 - Need: Jira tickets.
 @@end
+@@end
+@@module:gitlab
+- Need: GitLab issues.
 @@end
 @@module:arc42
 - Why and constraints: `docs/architecture/arc42/`.

@@ -140,7 +140,10 @@ const errors = [];
 for (const m of selected) {
   const def = manifest.modules[m];
   if (!def) errors.push(`Module inconnu : ${m}`);
-  else for (const r of def.requires) if (!selected.has(r)) errors.push(`Le module ${m} requiert ${r}`);
+  else {
+    for (const r of def.requires) if (!selected.has(r)) errors.push(`Le module ${m} requiert ${r}`);
+    if (def.requiresAny?.length && !def.requiresAny.some((r) => selected.has(r))) errors.push(`Le module ${m} requiert l'un de : ${def.requiresAny.join(", ")}`);
+  }
 }
 if (!["private", "public"].includes(config.visibility)) errors.push("visibility doit valoir private ou public");
 const availableLanguages = ["fr", ...languageDirs()].sort();
@@ -189,7 +192,7 @@ if (incompatible.size) {
 }
 // pseudo-modules utilisés par les blocs conditionnels
 const cliMode = config.cliInstall ?? "global";
-const active = new Set([...selected, ...(selected.has("agent-profiles") ? [] : ["legacy-agents"]), ...(config.advisor === true ? ["advisor-on"] : []), ...(selected.has("sonar") ? [config.sonar === "server" ? "sonar-server" : "sonar-cloud"] : []), config.jiraSource === "jira" && selected.has("jira") ? "jira-source" : "issue-source", ...(Array.isArray(config.profiles) ? config.profiles.map((p) => `profile-${p}`) : []), `visibility-${config.visibility}`, config.stack ? "stack-chosen" : "stack-open", ...(cliMode === "local" ? ["cli-local"] : ["cli-npm-global"]), ...(cliMode === "user" ? ["cli-user"] : []), ...(cliMode === "global" ? ["cli-default"] : [])]);
+const active = new Set([...selected, ...(selected.has("github") || selected.has("gitlab") ? ["forge"] : []), ...(selected.has("gitlab") ? [] : ["not-gitlab"]), ...(selected.has("agent-profiles") ? [] : ["legacy-agents"]), ...(config.advisor === true ? ["advisor-on"] : []), ...(selected.has("sonar") ? [config.sonar === "server" ? "sonar-server" : "sonar-cloud"] : []), config.jiraSource === "jira" && selected.has("jira") ? "jira-source" : "issue-source", ...(Array.isArray(config.profiles) ? config.profiles.map((p) => `profile-${p}`) : []), `visibility-${config.visibility}`, config.stack ? "stack-chosen" : "stack-open", ...(cliMode === "local" ? ["cli-local"] : ["cli-npm-global"]), ...(cliMode === "user" ? ["cli-user"] : []), ...(cliMode === "global" ? ["cli-default"] : [])]);
 
 // --- paramètres ---
 const ref = (a) => (a ? `${a.sha} # ${a.tag}` : undefined);

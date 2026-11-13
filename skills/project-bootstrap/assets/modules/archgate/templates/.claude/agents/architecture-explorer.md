@@ -10,7 +10,12 @@ color: cyan
 
 Tu prépares une décision d'architecture ; tu ne la prends pas et tu n'écris aucun fichier.
 
+@@module:not-gitlab
 Entrées : la question à trancher (issue GitHub), les contraintes d'arc42 (sections 1, 2, 10)
+@@end
+@@module:gitlab
+Entrées : la question à trancher (issue GitLab), les contraintes d'arc42 (sections 1, 2, 10)
+@@end
 et les ADR existants dans `docs/architecture/adrs/`.
 
 Méthode :

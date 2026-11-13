@@ -45,10 +45,14 @@ const ENGLISH = { docLanguage: "en", docLanguageName: undefined, actionsCreditNo
 // --- combinaisons déduites du catalogue --------------------------------------------------------------------------------------
 export function combinations(modulesCatalog) {
   const names = Object.keys(modulesCatalog).filter((m) => m !== "core");
+  // gitlab est exclusif de github : les combinaisons complètes prennent github
+  const fullNames = names.filter((m) => m !== "gitlab");
   const closure = (m, seen = new Set()) => {
     if (seen.has(m)) return seen;
     seen.add(m);
     for (const r of modulesCatalog[m].requires) closure(r, seen);
+    // dépendance alternative : le premier module de la liste
+    if (modulesCatalog[m].requiresAny?.length) closure(modulesCatalog[m].requiresAny[0], seen);
     return seen;
   };
   const defaults = names.filter((m) => modulesCatalog[m].default);
@@ -66,10 +70,11 @@ export function combinations(modulesCatalog) {
     { name: "jenkins-cli-local", modules: [...new Set([...closure("jenkins"), "openspec", "archgate"])].filter((x) => x !== "core"), config: { cliInstall: "local" }, single: null },
     { name: "sonar-server", modules: [...closure("sonar")].filter((x) => x !== "core"), config: { sonar: "server" }, single: null },
     { name: "jira-source", modules: [...new Set([...closure("jira"), "openspec", "archgate"])].filter((x) => x !== "core"), config: { jira: "ABC", jiraSource: "jira" }, single: null },
-    { name: "full", modules: names, single: null },
-    { name: "full-en", modules: names, config: { ...ENGLISH, profiles: ["acceptance-tester", "business-analyst", "compliance-reviewer", "devops-engineer", "product-owner", "scout", "second-opinion"], regulatedDomain: "GDPR, payment (EU)" }, single: null },
-    { name: "full-public", modules: names, config: { visibility: "public" }, single: null },
-    { name: "full-legacy", modules: names.filter((x) => x !== "agent-profiles" && x !== "advisor"), single: null },
+    { name: "gitlab-jenkins", modules: ["claude", "gitlab", "jenkins", "openspec", "archgate", "githooks"], single: null },
+    { name: "full", modules: fullNames, single: null },
+    { name: "full-en", modules: fullNames, config: { ...ENGLISH, profiles: ["acceptance-tester", "business-analyst", "compliance-reviewer", "devops-engineer", "product-owner", "scout", "second-opinion"], regulatedDomain: "GDPR, payment (EU)" }, single: null },
+    { name: "full-public", modules: fullNames, config: { visibility: "public" }, single: null },
+    { name: "full-legacy", modules: fullNames.filter((x) => x !== "agent-profiles" && x !== "advisor"), single: null },
   ];
 }
 
@@ -169,7 +174,7 @@ const combos = combinations(catalog.modules);
 const covered = new Set(combos.filter((c) => c.single).map((c) => c.single));
 const uncovered = Object.keys(catalog.modules).filter((m) => m !== "core" && !covered.has(m));
 check("matrice : chaque module du catalogue a sa combinaison", uncovered.length === 0, `modules sans combinaison : ${uncovered.join(", ")}`);
-check("matrice : core seul, un module par combinaison, défaut, défaut avec stack, modes user et local, Jenkins en mode local, Sonar en mode serveur, Jira comme source, anglais, agent principal, profils optionnels, advisor activé, complet, complet en public, complet sans agent-profiles", combos.length === Object.keys(catalog.modules).length - 1 + 16 && combos.some((c) => c.name === "core" && c.modules.length === 0) && ["default", "default-stack", "default-cli-user", "default-cli-local", "default-en", "agent-profiles-main", "agent-profiles-optional", "advisor-on", "jenkins-cli-local", "full", "full-public", "full-en"].every((n) => combos.some((c) => c.name === n)));
+check("matrice : core seul, un module par combinaison, défaut, défaut avec stack, modes user et local, Jenkins en mode local, Sonar en mode serveur, Jira comme source, GitLab avec Jenkins, anglais, agent principal, profils optionnels, advisor activé, complet, complet en public, complet sans agent-profiles", combos.length === Object.keys(catalog.modules).length - 1 + 17 && combos.some((c) => c.name === "core" && c.modules.length === 0) && ["default", "default-stack", "default-cli-user", "default-cli-local", "default-en", "agent-profiles-main", "agent-profiles-optional", "advisor-on", "jenkins-cli-local", "full", "full-public", "full-en"].every((n) => combos.some((c) => c.name === n)));
 {
   // instantané orphelin : module retiré ou renommé ; la mise à jour supprime les orphelins
   const orphans = existsSync(SNAPSHOTS) ? readdirSync(SNAPSHOTS).filter((f) => f.endsWith(".json") && !combos.some((c) => `${c.name}.json` === f)) : [];

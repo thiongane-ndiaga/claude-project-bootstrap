@@ -78,7 +78,7 @@ function walk(dir) {
   });
 }
 
-const allModules = Object.keys(manifest.modules).filter((m) => m !== "core");
+const allModules = Object.keys(manifest.modules).filter((m) => m !== "core" && m !== "gitlab");
 const cases = [
   { name: "tous les modules, privé", visibility: "private", modules: allModules },
   { name: "tous les modules, public", visibility: "public", modules: allModules },
@@ -95,7 +95,7 @@ for (const c of cases) {
   const files = walk(out);
   const leftovers = files.filter((f) => /@@module|@@end|\{\{[A-Z0-9_]+\}\}/.test(readFileSync(f, "utf8")));
   check(`${c.name} : aucun marqueur ni paramètre restant`, leftovers.length === 0, leftovers.join(", "));
-  const active = new Set(["core", ...c.modules, ...(c.modules.includes("agent-profiles") ? [] : ["legacy-agents"])]);
+  const active = new Set(["core", ...c.modules, ...(c.modules.includes("github") || c.modules.includes("gitlab") ? ["forge"] : []), ...(c.modules.includes("agent-profiles") ? [] : ["legacy-agents"])]);
   const expected = manifest.files.filter((f) => f.when.every((m) => active.has(m))).length + (active.has("claude") ? 1 : 0);
   check(`${c.name} : ${expected} fichiers`, report.created.length === expected, `${report.created.length} créés`);
   if (active.has("claude")) {
@@ -468,7 +468,7 @@ for (const c of cases) {
 
   // catalogue réel
   const names = Object.keys(manifest.modules);
-  check("catalogue réel : 18 modules dont core, chacun avec une description", names.length === 18 && names[0] === "core" && names.every((n) => manifest.modules[n].description.length > 10));
+  check("catalogue réel : 19 modules dont core, chacun avec une description", names.length === 19 && names[0] === "core" && names.every((n) => manifest.modules[n].description.length > 10));
   check("catalogue réel : fichiers triés par chemin, propriétaire en tête de la condition de génération", manifest.files.every((f, i, a) => i === 0 || a[i - 1].path < f.path) && manifest.files.every((f) => f.when[0] === f.module));
   check("catalogue réel : langues disponibles fournies par core (en)", manifest.languages.join() === "en");
   const adrOwner = (rel) => manifest.files.find((f) => f.path === rel);
@@ -483,6 +483,12 @@ for (const c of cases) {
   refused("pseudo-module dans requires", (d) => rewrite(d, "github", (m) => (m.requires = ["cli-local"])), /« requires » cite le module inconnu cli-local/);
   refused("conflicts avec soi-même", (d) => rewrite(d, "github", (m) => (m.conflicts = ["github"])), /ne peut pas être incompatible avec github/);
   refused("conflicts avec un module requis", (d) => rewrite(d, "release", (m) => (m.conflicts = ["github"])), /ne peut pas être incompatible avec github/);
+  refused("requiresAny vide", (d) => rewrite(d, "jenkins", (m) => (m.requiresAny = [])), /« requiresAny » ne peut pas être vide/);
+  refused("requiresAny qui n'est pas une liste de textes", (d) => rewrite(d, "jenkins", (m) => (m.requiresAny = "github")), /« requiresAny » doit être un tableau de textes/);
+  refused("requiresAny vers un module inconnu", (d) => rewrite(d, "jenkins", (m) => (m.requiresAny = ["zzz"])), /« requiresAny » cite le module inconnu zzz/);
+  refused("pseudo-module dans requiresAny", (d) => rewrite(d, "jenkins", (m) => (m.requiresAny = ["forge"])), /« requiresAny » cite le pseudo-module forge/);
+  refused("requiresAny avec soi-même", (d) => rewrite(d, "jenkins", (m) => (m.requiresAny = ["jenkins"])), /ne peut pas se requérir lui-même/);
+  refused("requiresAny avec un module incompatible", (d) => rewrite(d, "jenkins", (m) => (m.conflicts = ["gitlab"])), /ne peut pas être incompatible avec gitlab, qu'il peut requérir/);
   refused("modèle manquant", (d) => rewrite(d, "github", (m) => m.files.push({ path: "NOUVEAU.md" })), /modèle manquant.*NOUVEAU\.md/);
   refused("modèle non déclaré", (d) => writeFileSync(path.join(d, "github", "templates", "ORPHELIN.md"), "x\n"), /ORPHELIN\.md.*non déclaré/);
   refused("chemin déclaré par deux modules", (d) => rewrite(d, "release", (m) => m.files.push({ path: ".github/labels.json" })), /Chemin déclaré deux fois : \.github\/labels\.json \(modules github et release\)/);
@@ -538,11 +544,12 @@ for (const c of cases) {
   // --list-modules et --catalog
   const list = spawnSync(process.execPath, [scaffold, "--list-modules"], { encoding: "utf8" });
   const listed = JSON.parse(list.stdout);
-  check("--list-modules : sans --target, JSON des 18 modules avec leurs champs et les langues", list.status === 0 && listed.modules.length === 18 && listed.modules.find((m) => m.name === "release").requires.join() === "github" && listed.modules.find((m) => m.name === "dependabot").default === false && listed.languages.join() === "fr,en", list.stderr);
+  check("--list-modules : sans --target, JSON des 19 modules avec leurs champs et les langues", list.status === 0 && listed.modules.length === 19 && listed.modules.find((m) => m.name === "release").requires.join() === "github" && listed.modules.find((m) => m.name === "dependabot").default === false && listed.languages.join() === "fr,en", list.stderr);
   const table = spawnSync(process.execPath, [scaffold, "--list-modules", "--format", "table"], { encoding: "utf8" });
   const apQuestions = listed.modules.find((m) => m.name === "agent-profiles")?.questions ?? [];
   check("--list-modules : agent-profiles déclare les questions de phase 0 sur mainAgent et sur profiles (défaut non / aucun), listées aussi dans le tableau", apQuestions.length === 3 && /regulatedDomain/.test(apQuestions[2]) && /Défaut : non/.test(apQuestions[2]) && /mainAgent/.test(apQuestions[0]) && /Défaut : non/.test(apQuestions[0]) && /profiles/.test(apQuestions[1]) && /Défaut : aucun/.test(apQuestions[1]) && /project-lead/.test(table.stdout.split("\n").find((l) => l.startsWith("| `agent-profiles`")) ?? ""));
-  check("--list-modules --format table : tableau markdown avec les questions de phase 0", table.status === 0 && /^\| Module \| Apporte \| Requiert \| Incompatible avec \| Par défaut \| Questions de phase 0 \|/.test(table.stdout) && table.stdout.split("\n").filter((l) => l.startsWith("| `")).length === 18);
+  check("--list-modules --format table : tableau markdown avec les questions de phase 0", table.status === 0 && /^\| Module \| Apporte \| Requiert \| Incompatible avec \| Par défaut \| Questions de phase 0 \|/.test(table.stdout) && table.stdout.split("\n").filter((l) => l.startsWith("| `")).length === 19);
+  check("--list-modules : requiresAny de jenkins affiché en JSON (github, gitlab) et dans la colonne Requiert, gitlab incompatible avec github", JSON.stringify(listed.modules.find((m) => m.name === "jenkins").requiresAny) === JSON.stringify(["github", "gitlab"]) && listed.modules.find((m) => m.name === "jenkins").requires.length === 0 && (table.stdout.split("\n").find((l) => l.startsWith("| `jenkins`")) ?? "").includes("l'un de github / gitlab") && listed.modules.find((m) => m.name === "gitlab").conflicts.join() === "github");
   const badCatalog = spawnSync(process.execPath, [scaffold, "--list-modules", "--catalog", path.join(mkdtempSync(path.join(tmpdir(), "pb-vide-")), "rien")], { encoding: "utf8" });
   check("--catalog invalide : code 1 et message", badCatalog.status === 1 && /Catalogue introuvable/.test(badCatalog.stderr));
   const brokenDir = copy();

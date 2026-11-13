@@ -1,6 +1,11 @@
 ---
 name: spec-reviewer
+@@module:not-gitlab
 description: Revue critique d'un changement OpenSpec (proposal, specs, design, tasks) face à son issue GitHub, aux ADR et à arc42. À utiliser avant /opsx:apply, ou en équipe pour une revue contradictoire. Lecture seule.
+@@end
+@@module:gitlab
+description: Revue critique d'un changement OpenSpec (proposal, specs, design, tasks) face à son issue GitLab, aux ADR et à arc42. À utiliser avant /opsx:apply, ou en équipe pour une revue contradictoire. Lecture seule.
+@@end
 tools: Read, Glob, Grep, Bash
 model: opus
 effort: high

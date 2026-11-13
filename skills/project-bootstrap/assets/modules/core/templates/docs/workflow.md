@@ -1,7 +1,7 @@
 # Workflow du dépôt
 
 Chaque couche a un rôle :
-@@module:github
+@@module:forge
 **issue** = le besoin,
 @@end
 @@module:arc42
@@ -14,7 +14,7 @@ Chaque couche a un rôle :
 **changement OpenSpec** = le comportement attendu,
 @@end
 **Claude Code** = l'exécution,
-@@module:github
+@@module:forge
 **PR + CI** = la validation,
 @@end
 @@module:release
@@ -25,6 +25,9 @@ Chaque couche a un rôle :
 
 @@module:github
 - **Issue** via un formulaire : *Fonctionnalité*, *Bug* ou *Décision d'architecture* (label posé par le template : `bug`, `enhancement` ou `adr`).
+@@end
+@@module:gitlab
+- **Issue** via un gabarit : *Fonctionnalité*, *Bug* ou *Décision d'architecture* (label posé par le gabarit : `bug`, `enhancement` ou `adr`).
 @@end
 @@module:projects
   Elle arrive dans le Project en *Todo* (auto-add) ; la carte passe en *In Progress* à la création de la branche, en *In Review* à l'ouverture de la PR.
@@ -100,6 +103,10 @@ Chaque couche a un rôle :
 @@end
 @@end
 @@end
+@@module:gitlab
+- **MR** : titre Conventional Commit, corps avec `Closes #N`, vérifié par `scripts/check-pr-title.mjs` (étape `Titre de PR` du `Jenkinsfile`). Relecture manuelle avant le merge : aucun agent de traçabilité avec GitLab.
+- **Squash merge** : le titre de la MR devient le commit sur `main` ; l'issue se ferme.
+@@end
 @@module:arc42
 @@module:legacy-agents
 - **arc42** : la PR met à jour les sections impactées (agent `arc42-keeper`) ; la section 9 ne fait que pointer vers les ADR.
@@ -171,7 +178,7 @@ Une décision courante est consignée dans le message de livraison (PR ou commit
 
 | Élément | Format | Exemple |
 |---|---|---|
-@@module:github
+@@module:forge
 @@module:issue-source
 | Issue | `#N` | `#12` |
 @@end
@@ -217,7 +224,12 @@ Avant 1.0.0 : `feat` → patch, `feat!` → minor.
 @@end
 @@end
 @@module:jenkins
+@@module:github
 | `Jenkinsfile` (complément de `ci.yml`, étapes manuelles dans `docs/jenkins.md`) | mêmes contrôles + titre de PR | selon le contrôle requis dans la protection de `main` |
+@@end
+@@module:gitlab
+| `Jenkinsfile` (CI du projet, étapes manuelles dans `docs/jenkins.md`) | contrôles du projet + titre de la MR | selon « Pipelines must succeed » dans les réglages de fusion GitLab |
+@@end
 @@end
 @@module:release
 | PR de release-please | la CI attend une approbation (*Approve and run*) car déclenchée par le bot `github-actions` | — |
@@ -232,8 +244,15 @@ Les commandes propres à la stack se déclarent **à un seul endroit**, `.bootst
 ```
 
 - `os` (facultatif) restreint la commande à certains systèmes ; `blocking: false` la signale sans bloquer.
+@@module:not-gitlab
 - `ciOs` fixe les systèmes de la matrice de la CI (noms de runners GitHub).
+@@end
+@@module:not-gitlab
 - Pour les commandes qui exigent une chaîne d'outils (langage, dépendances), ajouter l'étape d'installation dans `.github/actions/project-setup/action.yml` (action propre au projet, appelée par `ci.yml` avant l'étape « Commandes du projet ») : `ci.yml` reste géré par le plugin.
+@@end
+@@module:gitlab
+- Pour les commandes qui exigent une chaîne d'outils (langage, dépendances), ajouter l'installation dans `scripts/jenkins-setup.sh` (propre au projet, appelé par le `Jenkinsfile`).
+@@end
 - Ce fichier est propre au projet : une mise à jour du plugin ne doit pas l'écraser.
 
 @@module:github

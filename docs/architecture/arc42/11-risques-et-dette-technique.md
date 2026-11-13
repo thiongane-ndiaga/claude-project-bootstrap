@@ -56,6 +56,11 @@
 | Module `jira` sans clé de projet configurée : le contrôle accepte toute clé `[A-Z][A-Z0-9]+-N`, donc des faux positifs (`UTF-8`, `SHA-256`) | Moyenne | Faible | `docs/jira.md` recommande de fixer la clé (changement `23-jira-module`) |
 | Module `jira` : la prose « issue » reste dans des textes en mode `jira` (profils, ARCH-004), lue par la table de lecture | Haute | Faible | Table de lecture de `docs/jira.md`, renvoyée par `CLAUDE.md` ; prose non réécrite (changement `23-jira-module`) |
 | Module `jira` avec `jenkins` : le `Jenkinsfile` n'exécute pas `check-jira-key.mjs` (le contrôle ne tourne que dans `ci.yml`) | Moyenne | Faible | Hors périmètre du changement ; à ajouter au `Jenkinsfile` à la main (changement `23-jira-module`) |
+| Module `gitlab` : aucun essai réel avec GitLab ni Jenkins ; seule la génération est testée | Moyenne | Moyen | Documenté comme non observé ; à essayer sur un projet réel (changement `25-gitlab-module`, [ARCH-018](../adrs/ARCH-018-gitlab-comme-forge-d-h-bergement-seulement.md)) |
+| Module `gitlab` : les profils d'agents n'ont pas de variante GitLab (étapes `gh` absentes, `pr-readiness-review` non généré, pas de `glab`) | Haute | Faible | Accepté ; table de lecture de `docs/gitlab.md` ([ARCH-018](../adrs/ARCH-018-gitlab-comme-forge-d-h-bergement-seulement.md)) |
+| Module `gitlab` : pas de release automatique (`release` exige `github`), donc pas de version ni de changelog automatiques | Haute | Moyen | Accepté ; version et changelog à la charge du projet ([ARCH-018](../adrs/ARCH-018-gitlab-comme-forge-d-h-bergement-seulement.md)) |
+| Module `gitlab` : une MR en brouillon (`Draft:`) échoue au contrôle du titre | Moyenne | Faible | Documenté dans `docs/gitlab.md` (changement `25-gitlab-module`) |
+| Module `gitlab` sans `jenkins` : le projet n'a aucune CI | Moyenne | Moyen | `docs/gitlab.md` le dit et recommande `jenkins` ([ARCH-018](../adrs/ARCH-018-gitlab-comme-forge-d-h-bergement-seulement.md)) |
 
 - Quels risques pèsent sur les objectifs de qualité ?
 - Quelle dette est acceptée consciemment, et jusqu'à quand ?

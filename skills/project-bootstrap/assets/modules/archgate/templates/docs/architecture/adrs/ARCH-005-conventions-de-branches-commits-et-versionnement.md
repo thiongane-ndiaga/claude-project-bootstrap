@@ -81,7 +81,12 @@ La langue des identifiants est l'anglais, celle de la documentation est la langu
 
 ## Compliance and Enforcement
 
+@@module:github
 Le job `pr-title` de `ci.yml` vérifie le titre de PR. Pas de règle Archgate : l'historique git n'est pas une donnée du dépôt que `archgate check` peut lire de façon fiable.
+@@end
+@@module:gitlab
+L'étape `Titre de PR` du `Jenkinsfile` vérifie le titre de PR (`scripts/check-pr-title.mjs`). Pas de règle Archgate : l'historique git n'est pas une donnée du dépôt que `archgate check` peut lire de façon fiable.
+@@end
 
 ## References
 

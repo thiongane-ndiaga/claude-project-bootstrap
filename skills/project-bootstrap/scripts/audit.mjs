@@ -272,7 +272,8 @@ function probe(ctx, cli) {
 function checkVersions(ctx) {
   const mode = cliMode(ctx);
   const ci = path.join(ctx.target, ".github", "workflows", "ci.yml");
-  if (mode !== "local" && !existsSync(ci)) return [];
+  const jenkinsfile = path.join(ctx.target, "Jenkinsfile");
+  if (mode !== "local" && !existsSync(ci) && !(ctx.modules?.has("jenkins") && existsSync(jenkinsfile))) return [];
   const text = existsSync(ci) ? readText(ci) : "";
   let devDeps = {};
   if (mode === "local") {
@@ -306,7 +307,7 @@ function checkVersions(ctx) {
     const fixInstall = mode === "local" ? `npm install --save-dev --save-exact ${pkg}@${wanted ?? "<version>"}` : mode === "user" ? `npm install -g --prefix ~/.local ${pkg}@${wanted}` : `npm install -g ${pkg}@${wanted}`;
     const fix = inJenkins && wanted && inJenkins !== wanted ? `${fixInstall} ; aligner la version du Jenkinsfile sur ${wanted}` : fixInstall;
     if (mode === "local" && !inCi) results.push(ecart(`version-${tool}`, `${tool} absent des devDependencies de package.json`, fix));
-    else if (!inCi && !inManifest) results.push(nv(`version-${tool}`, "version épinglée introuvable dans ci.yml et le manifeste"));
+    else if (!inCi && !inJenkins && !inManifest) results.push(nv(`version-${tool}`, "version épinglée introuvable dans ci.yml, le Jenkinsfile et le manifeste"));
     else if (values.size > 1) results.push(ecart(`version-${tool}`, `${tool} : ${Object.entries(sources).map(([k, v]) => `${k} ${v}`).join(", ")}`, fix));
     else results.push(ok(`version-${tool}`, `${tool} ${[...values][0]}${installed ? "" : " (CLI du poste non vérifiée)"}`));
   }
@@ -563,7 +564,9 @@ export async function runAudit({ target, forge = false, workstation = false, rep
       results.push(nv(id, err.message));
     }
   }
-  if (forge) {
+  if (forge && ctx.modules?.has("gitlab")) {
+    results.push(nv("forge", "forge GitLab : les contrôles de forge (labels, protection, Project) passent par gh et ne s'appliquent qu'à GitHub"));
+  } else if (forge) {
     const slug = repoOf(ctx, repo);
     if (!slug) results.push(nv("forge", "dépôt GitHub introuvable : passer --repo propriétaire/nom ou configurer le remote origin"));
     else {

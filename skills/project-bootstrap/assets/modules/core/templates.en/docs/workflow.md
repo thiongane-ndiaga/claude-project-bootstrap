@@ -1,7 +1,7 @@
 # Repository workflow
 
 Each layer has a role:
-@@module:github
+@@module:forge
 **issue** = the need,
 @@end
 @@module:arc42
@@ -14,7 +14,7 @@ Each layer has a role:
 **OpenSpec change** = the expected behavior,
 @@end
 **Claude Code** = the execution,
-@@module:github
+@@module:forge
 **PR + CI** = the validation,
 @@end
 @@module:release
@@ -25,6 +25,9 @@ Each layer has a role:
 
 @@module:github
 - **Issue** through a form: *Feature*, *Bug* or *Architecture decision* (label set by the template: `bug`, `enhancement` or `adr`).
+@@end
+@@module:gitlab
+- **Issue** through a template: *Feature*, *Bug* or *Architecture decision* (label set by the template: `bug`, `enhancement` or `adr`).
 @@end
 @@module:projects
   It lands in the Project in *Todo* (auto-add); the card moves to *In Progress* when the branch is created, to *In Review* when the PR is opened.
@@ -100,6 +103,10 @@ Each layer has a role:
 @@end
 @@end
 @@end
+@@module:gitlab
+- **MR**: Conventional Commit title, body with `Closes #N`, checked by `scripts/check-pr-title.mjs` (`PR title` stage of the `Jenkinsfile`). Manual review before the merge: no traceability agent with GitLab.
+- **Squash merge**: the MR title becomes the commit on `main`; the issue closes.
+@@end
 @@module:arc42
 @@module:legacy-agents
 - **arc42**: the PR updates the impacted sections (`arc42-keeper` agent); section 9 only points to the ADRs.
@@ -171,7 +178,7 @@ A current decision is recorded in the delivery message (PR or commit).
 
 | Item | Format | Example |
 |---|---|---|
-@@module:github
+@@module:forge
 @@module:issue-source
 | Issue | `#N` | `#12` |
 @@end
@@ -217,7 +224,12 @@ Before 1.0.0: `feat` → patch, `feat!` → minor.
 @@end
 @@end
 @@module:jenkins
+@@module:github
 | `Jenkinsfile` (complements `ci.yml`, manual steps in `docs/jenkins.md`) | same checks + PR title | depends on the required check in the `main` protection |
+@@end
+@@module:gitlab
+| `Jenkinsfile` (the project's CI, manual steps in `docs/jenkins.md`) | project checks + MR title | per "Pipelines must succeed" in the GitLab merge settings |
+@@end
 @@end
 @@module:release
 | release-please PR | the CI waits for an approval (*Approve and run*) because it is triggered by the `github-actions` bot | — |
@@ -232,8 +244,15 @@ Commands specific to the stack are declared **in a single place**, `.bootstrap/c
 ```
 
 - `os` (optional) restricts the command to some systems; `blocking: false` reports it without blocking.
+@@module:not-gitlab
 - `ciOs` sets the systems of the CI matrix (GitHub runner names).
+@@end
+@@module:not-gitlab
 - For commands that need a toolchain (language, dependencies), add the installation step in `.github/actions/project-setup/action.yml` (project-owned action, called by `ci.yml` before the "Project commands" step): `ci.yml` stays managed by the plugin.
+@@end
+@@module:gitlab
+- For commands that need a toolchain (language, dependencies), add the installation in `scripts/jenkins-setup.sh` (project-owned, called by the `Jenkinsfile`).
+@@end
 - This file belongs to the project: a plugin update must not overwrite it.
 
 @@module:github

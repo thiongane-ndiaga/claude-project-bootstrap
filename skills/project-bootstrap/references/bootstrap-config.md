@@ -25,7 +25,7 @@ Entrée de `scripts/scaffold.mjs`. Fusionne la sortie de `scripts/resolve-versio
 | Champ | Requis si | Rôle |
 |---|---|---|
 | `projectName`, `description`, `visibility` | toujours | titre de CLAUDE.md, ADR ARCH-004, matrice CI (`public` → ubuntu + windows) |
-| `modules` | toujours | `core` est ajouté d'office ; dépendances vérifiées |
+| `modules` | toujours | `core` est ajouté d'office ; dépendances vérifiées ; `gitlab` est exclusif de `github` (code 2) et refuse `release`, `projects`, `dependabot` (qui exigent `github`, code 1) ; `jenkins` exige `github` ou `gitlab` |
 | `docLanguage` | — | langue de la documentation générée : `fr` (défaut, clé à omettre) ou le code d'un dossier `templates.<code>` du module `core` (`en`) ; une langue indisponible est refusée (code 1). Consignée au manifeste seulement si présente et reprise par `--update` |
 | `docLanguageName` | — | libellé affiché de la langue (défaut : « Français », « English » selon `docLanguage`) ; à omettre sauf libellé voulu (« English (US) »), car une valeur explicite l'emporte |
 | `stack` | — | stack déjà connue, en une ligne ; absente, `CLAUDE.md` dit que la stack n'est pas choisie |

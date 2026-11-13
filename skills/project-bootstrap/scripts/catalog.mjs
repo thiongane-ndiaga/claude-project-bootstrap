@@ -21,11 +21,11 @@ export class CatalogError extends Error {
 export const OPTIONAL_PROFILES = ["acceptance-tester", "business-analyst", "compliance-reviewer", "devops-engineer", "product-owner", "scout", "second-opinion"];
 // domaine réglementé (clé regulatedDomain) : texte libre injecté dans le corps du modèle de compliance-reviewer, d'où la liste blanche
 export const REGULATED_DOMAIN_RE = /^(?=.*[\p{L}\p{N}])[\p{L}\p{M}\p{N} ,.;:'’()\/&_-]{1,120}$/u;
-export const PSEUDO_MODULES = ["visibility-private", "visibility-public", "stack-chosen", "stack-open", "cli-npm-global", "cli-default", "cli-user", "cli-local", "advisor-on", "sonar-cloud", "sonar-server", "jira-source", "issue-source", "legacy-agents", ...OPTIONAL_PROFILES.map((p) => `profile-${p}`)];
+export const PSEUDO_MODULES = ["visibility-private", "visibility-public", "stack-chosen", "stack-open", "cli-npm-global", "cli-default", "cli-user", "cli-local", "advisor-on", "sonar-cloud", "sonar-server", "jira-source", "issue-source", "forge", "not-gitlab", "legacy-agents", ...OPTIONAL_PROFILES.map((p) => `profile-${p}`)];
 // chemins écrits par le générateur ou par state.mjs : aucun module ne peut les déclarer
 export const RESERVED_PATHS = [".claude/settings.json", "package.json", ".bootstrap/manifest.json"];
 export const RESERVED_PREFIXES = [".bootstrap/base/", ".bootstrap/local/", ".git/"];
-const MODULE_KEYS = ["description", "requires", "default", "conflicts", "questions", "files"];
+const MODULE_KEYS = ["description", "requires", "requiresAny", "default", "conflicts", "questions", "files"];
 const FILE_KEYS = ["path", "when", "merge", "owned"];
 const MERGES = ["lines", "json"];
 const NAME = /^[a-z][a-z0-9-]*$/;
@@ -101,7 +101,7 @@ export function loadCatalog(modulesDir) {
     }
     for (const k of Object.keys(data)) if (!MODULE_KEYS.includes(k)) problems.push(`${file} : clé inconnue « ${k} » (clés : ${MODULE_KEYS.join(", ")})`);
     if (typeof data.description !== "string" || !data.description.trim()) problems.push(`${file} : « description » est obligatoire`);
-    for (const k of ["requires", "conflicts", "questions"]) if (data[k] !== undefined && !isStringArray(data[k])) problems.push(`${file} : « ${k} » doit être un tableau de textes`);
+    for (const k of ["requires", "requiresAny", "conflicts", "questions"]) if (data[k] !== undefined && !isStringArray(data[k])) problems.push(`${file} : « ${k} » doit être un tableau de textes`);
     if (data.default !== undefined && typeof data.default !== "boolean") problems.push(`${file} : « default » doit être un booléen`);
     if (data.files !== undefined && !Array.isArray(data.files)) problems.push(`${file} : « files » doit être un tableau`);
     raw[name] = { data, dir, file };
@@ -119,12 +119,20 @@ export function loadCatalog(modulesDir) {
     const { data, dir, file } = entry;
     const requires = data.requires ?? [];
     const conflicts = data.conflicts ?? [];
+    const requiresAny = Array.isArray(data.requiresAny) ? data.requiresAny : [];
+    if (Array.isArray(data.requiresAny) && data.requiresAny.length === 0) problems.push(`${file} : « requiresAny » ne peut pas être vide`);
+    for (const r of requiresAny) {
+      if (PSEUDO_MODULES.includes(r)) problems.push(`${file} : « requiresAny » cite le pseudo-module ${r}`);
+      else if (!known.has(r)) problems.push(`${file} : « requiresAny » cite le module inconnu ${r}`);
+      else if (r === name) problems.push(`${file} : ${name} ne peut pas se requérir lui-même dans « requiresAny »`);
+      else if (conflicts.includes(r)) problems.push(`${file} : ${name} ne peut pas être incompatible avec ${r}, qu'il peut requérir`);
+    }
     for (const r of requires) if (!known.has(r)) problems.push(`${file} : « requires » cite le module inconnu ${r}`);
     for (const c of conflicts) {
       if (!known.has(c)) problems.push(`${file} : « conflicts » cite le module inconnu ${c}`);
       else if (c === name || requires.includes(c)) problems.push(`${file} : ${name} ne peut pas être incompatible avec ${c}`);
     }
-    modules[name] = { requires, default: data.default === true, description: data.description ?? "", ...(conflicts.length ? { conflicts } : {}), ...(data.questions?.length ? { questions: data.questions } : {}), dir };
+    modules[name] = { requires, ...(requiresAny.length ? { requiresAny } : {}), default: data.default === true, description: data.description ?? "", ...(conflicts.length ? { conflicts } : {}), ...(data.questions?.length ? { questions: data.questions } : {}), dir };
 
     const declared = new Set();
     for (const [i, f] of (Array.isArray(data.files) ? data.files : []).entries()) {
@@ -208,6 +216,7 @@ export function describeModules(catalog) {
     name,
     description: m.description,
     requires: m.requires,
+    requiresAny: m.requiresAny ?? [],
     conflicts: m.conflicts ?? [],
     default: m.default,
     questions: m.questions ?? [],
@@ -216,6 +225,6 @@ export function describeModules(catalog) {
 }
 
 export function modulesTable(catalog) {
-  const rows = describeModules(catalog).map((m) => `| \`${m.name}\`${m.name === "core" ? " (toujours)" : ""} | ${m.description} | ${m.requires.join(", ") || "—"} | ${m.conflicts.join(", ") || "—"} | ${m.default ? "oui" : "non"} | ${m.questions.join(" ; ") || "—"} |`);
+  const rows = describeModules(catalog).map((m) => `| \`${m.name}\`${m.name === "core" ? " (toujours)" : ""} | ${m.description} | ${[...m.requires, ...(m.requiresAny.length ? [`l'un de ${m.requiresAny.join(" / ")}`] : [])].join(", ") || "—"} | ${m.conflicts.join(", ") || "—"} | ${m.default ? "oui" : "non"} | ${m.questions.join(" ; ") || "—"} |`);
   return ["| Module | Apporte | Requiert | Incompatible avec | Par défaut | Questions de phase 0 |", "|---|---|---|---|---|---|", ...rows].join("\n");
 }
