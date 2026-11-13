@@ -8,7 +8,12 @@ description: Review an OpenSpec change (proposal, specs, design, tasks) against 
 Run it before `/opsx:apply`, on `openspec/changes/<id>/`. You do not modify the change.
 
 @@module:github
+@@module:issue-source
 - Read the linked issue (`Issue: #N` at the top of `proposal.md`) with `gh issue view N`.
+@@end
+@@module:jira-source
+- Read the linked ticket (`Ticket: <KEY-N>` at the top of `proposal.md`): `gh` cannot read Jira, ask the user for its text or read what `proposal.md` copies.
+@@end
 @@end
 @@module:archgate
 - Read the cited ADRs and those whose subject overlaps the change (`archgate adr list`).

@@ -104,6 +104,14 @@ jobs:
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: node scripts/check-pr-title.mjs
+      # @@module:jira
+      - name: Jira key
+        if: ${{ !cancelled() }}
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: node scripts/check-jira-key.mjs
+      # @@end
   # @@module:sonar
 
   sonar:

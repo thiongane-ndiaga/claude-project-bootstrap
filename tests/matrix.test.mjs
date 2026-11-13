@@ -65,6 +65,7 @@ export function combinations(modulesCatalog) {
     { name: "advisor-on", modules: [...new Set([...closure("advisor"), "github", "openspec", "archgate"])].filter((x) => x !== "core"), config: { advisor: true, profiles: ["acceptance-tester", "business-analyst", "compliance-reviewer", "devops-engineer", "product-owner", "scout", "second-opinion"], regulatedDomain: "RGPD, paiement (UE)" }, single: null },
     { name: "jenkins-cli-local", modules: [...new Set([...closure("jenkins"), "openspec", "archgate"])].filter((x) => x !== "core"), config: { cliInstall: "local" }, single: null },
     { name: "sonar-server", modules: [...closure("sonar")].filter((x) => x !== "core"), config: { sonar: "server" }, single: null },
+    { name: "jira-source", modules: [...new Set([...closure("jira"), "openspec", "archgate"])].filter((x) => x !== "core"), config: { jira: "ABC", jiraSource: "jira" }, single: null },
     { name: "full", modules: names, single: null },
     { name: "full-en", modules: names, config: { ...ENGLISH, profiles: ["acceptance-tester", "business-analyst", "compliance-reviewer", "devops-engineer", "product-owner", "scout", "second-opinion"], regulatedDomain: "GDPR, payment (EU)" }, single: null },
     { name: "full-public", modules: names, config: { visibility: "public" }, single: null },
@@ -168,7 +169,7 @@ const combos = combinations(catalog.modules);
 const covered = new Set(combos.filter((c) => c.single).map((c) => c.single));
 const uncovered = Object.keys(catalog.modules).filter((m) => m !== "core" && !covered.has(m));
 check("matrice : chaque module du catalogue a sa combinaison", uncovered.length === 0, `modules sans combinaison : ${uncovered.join(", ")}`);
-check("matrice : core seul, un module par combinaison, défaut, défaut avec stack, modes user et local, Jenkins en mode local, Sonar en mode serveur, anglais, agent principal, profils optionnels, advisor activé, complet, complet en public, complet sans agent-profiles", combos.length === Object.keys(catalog.modules).length - 1 + 15 && combos.some((c) => c.name === "core" && c.modules.length === 0) && ["default", "default-stack", "default-cli-user", "default-cli-local", "default-en", "agent-profiles-main", "agent-profiles-optional", "advisor-on", "jenkins-cli-local", "full", "full-public", "full-en"].every((n) => combos.some((c) => c.name === n)));
+check("matrice : core seul, un module par combinaison, défaut, défaut avec stack, modes user et local, Jenkins en mode local, Sonar en mode serveur, Jira comme source, anglais, agent principal, profils optionnels, advisor activé, complet, complet en public, complet sans agent-profiles", combos.length === Object.keys(catalog.modules).length - 1 + 16 && combos.some((c) => c.name === "core" && c.modules.length === 0) && ["default", "default-stack", "default-cli-user", "default-cli-local", "default-en", "agent-profiles-main", "agent-profiles-optional", "advisor-on", "jenkins-cli-local", "full", "full-public", "full-en"].every((n) => combos.some((c) => c.name === n)));
 {
   // instantané orphelin : module retiré ou renommé ; la mise à jour supprime les orphelins
   const orphans = existsSync(SNAPSHOTS) ? readdirSync(SNAPSHOTS).filter((f) => f.endsWith(".json") && !combos.some((c) => `${c.name}.json` === f)) : [];

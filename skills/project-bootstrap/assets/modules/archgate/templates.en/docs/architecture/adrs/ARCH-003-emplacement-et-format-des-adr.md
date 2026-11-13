@@ -28,7 +28,12 @@ Archgate stores its ADRs in `.archgate/adrs/` by default. The project wants its 
 ### Do
 
 - Check that `rules:` matches the presence of the `.rules.ts` after an `adr create --rules`.
+@@module:issue-source
 - Name in `## Status` the issue that carries the decision.
+@@end
+@@module:jira-source
+- Name in `## Status` the Jira ticket that carries the decision.
+@@end
 
 ### Don't
 

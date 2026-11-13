@@ -28,7 +28,12 @@ Archgate range par défaut ses ADR dans `.archgate/adrs/`. Le projet veut une do
 ### Do
 
 - Vérifier que `rules:` concorde avec la présence du `.rules.ts` après un `adr create --rules`.
+@@module:issue-source
 - Indiquer dans `## Statut` l'issue qui porte la décision.
+@@end
+@@module:jira-source
+- Indiquer dans `## Statut` le ticket Jira qui porte la décision.
+@@end
 
 ### Don't
 

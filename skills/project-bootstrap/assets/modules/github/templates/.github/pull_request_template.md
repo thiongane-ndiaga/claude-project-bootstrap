@@ -1,10 +1,23 @@
 <!-- Titre de la PR : Conventional Commit en anglais, ex. "feat(auth): add password reset" -->
 
+@@module:issue-source
 Closes #
+@@module:jira
+Jira : 
+@@end
+@@end
+@@module:jira-source
+Refs {{JIRA_KEY_EXAMPLE}}
+@@end
 @@module:openspec
 
 ## Changement OpenSpec
+@@module:issue-source
 `openspec/changes/<issue>-<slug>/` (archivé sous `openspec/changes/archive/` avant le merge)
+@@end
+@@module:jira-source
+`openspec/changes/<cle-n>-<slug>/` (archivé sous `openspec/changes/archive/` avant le merge)
+@@end
 @@end
 @@module:archgate
 

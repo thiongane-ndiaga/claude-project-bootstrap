@@ -95,6 +95,11 @@ const MODULE_SETS = {
   const target2 = repo();
   run(["init", "--target", target2, "--config", cfg2]);
   check("init : regulatedDomain fait partie du schéma de réponses et est conservée pour la reprise", ANSWER_KEYS.includes("regulatedDomain") && stateOf(target2).answers.regulatedDomain === "RGPD, paiement" && stateOf(target2).answers.profiles.join() === "compliance-reviewer");
+  const cfg3 = path.join(t, "bootstrap3.json");
+  writeFileSync(cfg3, JSON.stringify({ projectName: "Test", modules: ["claude", "github", "jira", "sonar"], jira: "ABC", jiraSource: "jira", sonar: "server" }));
+  const target3 = repo();
+  run(["init", "--target", target3, "--config", cfg3]);
+  check("init : jira, jiraSource et sonar font partie du schéma de réponses et sont conservées pour la reprise", ["jira", "jiraSource", "sonar"].every((k) => ANSWER_KEYS.includes(k)) && stateOf(target3).answers.jira === "ABC" && stateOf(target3).answers.jiraSource === "jira" && stateOf(target3).answers.sonar === "server");
   check("init : le dossier s'ignore seul et aucun fichier temporaire ne reste (écriture atomique)", readFileSync(path.join(target, ".bootstrap", "local", ".gitignore"), "utf8") === "*\n" && readdirSync(path.join(target, ".bootstrap", "local")).every((f) => !f.endsWith(".tmp")));
   const g = (...a) => spawnSync("git", ["-C", target, ...a], { encoding: "utf8" });
   g("init", "-q");

@@ -32,6 +32,16 @@ Sources : changements OpenSpec `24-jenkins-module` (issue #24) et `147-audit-jen
 
 Source : changement OpenSpec `22-sonar-module` (issue #22). Voir [ARCH-004](../adrs/ARCH-004-github-comme-forge-avec-actions-et-releases.md) et [ARCH-006](../adrs/ARCH-006-strategie-de-mise-a-jour-des-fichiers-generes.md).
 
+## Source du besoin : GitHub ou Jira
+
+- Le projet choisit sa source du besoin (`jiraSource`, `github` par défaut). En `jira`, la branche est `<type>/<CLE-N>-<slug>`, le corps de PR dit `Refs CLE-N` (le ticket se ferme dans Jira) et `proposal.md` porte `Ticket: CLE-N`. Le moteur de blocs n'ayant pas de négation, deux pseudo-modules complémentaires (`jira-source`, `issue-source`) sélectionnent la variante d'un modèle.
+- Contrôle par l'environnement : `scripts/check-jira-key.mjs` cherche la clé, comme mot entier, dans le titre de la PR et la branche. Le titre (`PR_TITLE`) et la branche (`HEAD_REF`) passent par des variables d'environnement, jamais interpolés dans le shell ([ARCH-004](../adrs/ARCH-004-github-comme-forge-avec-actions-et-releases.md)). Les branches `dependabot/` et `release-please--` sont exemptées. Le scope de `check-pr-title.mjs` reste `[a-z0-9-]+` : la clé va dans la description du titre. Sans clé de projet configurée, toute clé `[A-Z][A-Z0-9]+-N` est acceptée, au risque de faux positifs.
+- Id OpenSpec en minuscules : OpenSpec refuse les majuscules, l'id est donc `<cle-n>-<slug>` (`abc-12-import`) alors que la branche garde la casse de la clé.
+- Table de lecture, substitut à la réécriture : la prose qui dit encore « issue » (profils, ARCH-004) n'est pas réécrite en mode `jira`. `docs/jira.md` donne la correspondance (issue vers ticket, `#N` vers `CLE-N`, `Closes #N` vers `Refs CLE-N`, `gh issue` non utilisable) et `CLAUDE.md` y renvoie. En `jira`, les agents ne lisent pas Jira : `spec-review` et `spec-reviewer` demandent le texte du ticket.
+- Les « Autolink references » du dépôt et la fermeture des tickets sont des étapes manuelles ; le plugin ne synchronise rien avec Jira.
+
+Source : changement OpenSpec `23-jira-module` (issue #23). Voir [ARCH-017](../adrs/ARCH-017-source-du-besoin-github-ou-jira-au-choix-par-projet.md).
+
 ## Internationalisation de la documentation générée
 
 - L'arborescence est le contrat : les noms de fichiers sont identiques dans toutes les langues, y compris les slugs français d'arc42 et des ADR.
