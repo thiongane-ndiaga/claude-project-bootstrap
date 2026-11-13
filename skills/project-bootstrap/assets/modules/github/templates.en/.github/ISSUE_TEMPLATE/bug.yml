@@ -26,3 +26,12 @@ body:
     id: version
     attributes:
       label: Version or commit
+  # @@module:jira
+  # @@module:issue-source
+  - type: input
+    id: cle-jira
+    attributes:
+      label: Jira key
+      description: Linked Jira ticket, if any (e.g. ABC-123).
+  # @@end
+  # @@end

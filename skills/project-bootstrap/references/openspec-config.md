@@ -18,3 +18,4 @@ rules:
 Sans module `archgate`, retire la mention des ADR des deux premières règles. Sans module `github`, retire `Issue: #<n>` et utilise un id `<slug>`.
 
 Vérifie : `openspec validate --all --strict --no-interactive` renvoie 0.
+Avec `jiraSource: jira` (module `jira`) : id `<cle-n>-<kebab-slug>` en minuscules (OpenSpec refuse les majuscules, ex. `abc-12-password-reset`) et première ligne `Ticket: <CLE-N>` au lieu de `Issue: #<n>`.

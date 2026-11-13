@@ -8,7 +8,12 @@ description: Relire un changement OpenSpec (proposal, specs, design, tasks) face
 À lancer avant `/opsx:apply`, sur `openspec/changes/<id>/`. Tu ne modifies pas le changement.
 
 @@module:github
+@@module:issue-source
 - Lis l'issue liée (`Issue: #N` en tête de `proposal.md`) avec `gh issue view N`.
+@@end
+@@module:jira-source
+- Lis le ticket lié (`Ticket: <CLE-N>` en tête de `proposal.md`) : `gh` ne lit pas Jira, demande son texte à l'utilisateur ou lis ce qu'en recopie `proposal.md`.
+@@end
 @@end
 @@module:archgate
 - Lis les ADR cités et ceux dont le sujet recoupe le changement (`archgate adr list`).

@@ -21,11 +21,26 @@ La langue des identifiants est l'anglais, celle de la documentation est la langu
 
 ## Decision
 
+@@module:issue-source
 - **Branche** : `<type>/<issue>-<slug>`, en anglais, à partir de `main`.
+@@end
+@@module:jira-source
+- **Branche** : `<type>/<CLE-N>-<slug>`, en anglais, à partir de `main`.
+@@end
 - **Commits** : [Conventional Commits](https://www.conventionalcommits.org) en anglais ; types `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `ci`, `build`, `perf`, `style`, `revert`.
+@@module:issue-source
 - **PR** : titre au même format, car il devient le commit de squash sur `main` ; corps avec `Closes #N`.
+@@end
+@@module:jira-source
+- **PR** : titre au même format, car il devient le commit de squash sur `main` ; corps avec `Refs <CLE-N>`.
+@@end
 @@module:dependabot
+@@module:issue-source
 - **Exception** : les PR de Dependabot (branche `dependabot/…`, titre `ci(deps): …`) n'ont ni issue ni `Closes #N`.
+@@end
+@@module:jira-source
+- **Exception** : les PR de Dependabot (branche `dependabot/…`, titre `ci(deps): …`) n'ont ni issue ni `Refs <CLE-N>`.
+@@end
 @@end
 @@module:release
 - **Versionnement** : [SemVer](https://semver.org), calculé par release-please à partir des commits. Avant 1.0.0, `feat` incrémente le patch et un changement cassant (`!`) le mineur ; première version `0.0.1`.

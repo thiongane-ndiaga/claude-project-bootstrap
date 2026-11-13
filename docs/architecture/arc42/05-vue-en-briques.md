@@ -95,3 +95,14 @@ Voir [ARCH-007](../adrs/ARCH-007-installation-des-cli-d-outillage.md) et [ARCH-0
 - `skills/project-bootstrap/assets/modules/sonar/tests/sonar.test.mjs` : tests du module ; les cas de `--update` et le refus de la clé sont dans `tests/scaffold.test.mjs`, les combinaisons `sonar` et `sonar-server` dans `tests/matrix.test.mjs`.
 
 Voir [ARCH-004](../adrs/ARCH-004-github-comme-forge-avec-actions-et-releases.md) et [ARCH-010](../adrs/ARCH-010-modules-auto-decrits.md).
+
+## Briques liées à Jira
+
+- Module `jira` (`requires: github`, `default: false`) : apporte `scripts/check-jira-key.mjs`, `docs/jira.md` (avec la table de lecture) et le champ facultatif « Clé Jira » des formulaires d'issues. Le Jira lui-même est externe.
+- Deux clés de configuration, refusées sans le module `jira`, héritées du manifeste par `--update` et retirées par `null` (la reprise de session les conserve, `state.mjs`) : `jira` (clé de projet) et `jiraSource` (`github` ou `jira` ; absente, `github`).
+- Deux pseudo-modules complémentaires, déclarés dans `catalog.mjs` : `jira-source` (actif quand `jiraSource` vaut `jira`) et `issue-source` (actif sinon, y compris sans le module, ce qui laisse les textes `Closes #N` inchangés). Ils portent les paramètres `JIRA_KEY_RE` et `JIRA_KEY_EXAMPLE`.
+- `scripts/check-jira-key.mjs` : étape du job `pr-title` de `.github/workflows/ci.yml`, après `scripts/check-pr-title.mjs` (module `github`).
+- Fichiers à variantes `jira-source` / `issue-source` : gabarit de PR, formulaires d'issues, `docs/workflow.md`, `CLAUDE.md`, `traceability-checker`, skills `pr-readiness-review` et `spec-review`, agent `spec-reviewer`, `openspec-config.md`, ADR générés ARCH-002, ARCH-003 et ARCH-005.
+- Tests : tests du module dans `skills/project-bootstrap/assets/modules/jira/tests/` ; refus des clés, `--update` et reprise dans `tests/scaffold.test.mjs` et `tests/state.test.mjs` ; combinaisons de la matrice dans `tests/matrix.test.mjs`.
+
+Voir [ARCH-017](../adrs/ARCH-017-source-du-besoin-github-ou-jira-au-choix-par-projet.md), [ARCH-005](../adrs/ARCH-005-conventions-de-branches-commits-et-versionnement.md) et [ARCH-010](../adrs/ARCH-010-modules-auto-decrits.md).

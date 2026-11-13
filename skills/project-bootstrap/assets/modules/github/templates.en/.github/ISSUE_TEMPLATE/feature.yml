@@ -28,3 +28,12 @@ body:
       label: Architecture decision
       options:
         - label: This need probably involves a technical choice or a cross-cutting constraint (ADR required, see docs/workflow.md)
+  # @@module:jira
+  # @@module:issue-source
+  - type: input
+    id: cle-jira
+    attributes:
+      label: Jira key
+      description: Linked Jira ticket, if any (e.g. ABC-123).
+  # @@end
+  # @@end

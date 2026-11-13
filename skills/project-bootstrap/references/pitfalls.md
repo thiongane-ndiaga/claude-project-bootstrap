@@ -193,3 +193,15 @@ Aucun de ces points n'a été observé par un essai réel contre SonarCloud ou u
 - Le message d'une étape `run:` qui contient `: ` doit être un bloc littéral, sinon le YAML est invalide.
 - `sonar-project.properties` est `owned` : un fichier existant est conservé sans conflit, `--update` ne le touche pas ; passer de `cloud` à `server` ne retire pas `sonar.organization`.
 - L'action ne convient pas à Maven, Gradle, .NET ni au C et C++ sans scanner ou build wrapper dédié.
+
+## Module jira (#23)
+
+Aucun de ces points n'a été observé avec une instance Jira : ils viennent de la revue du changement et des essais du script.
+
+- OpenSpec refuse les majuscules dans un id de changement : avec `jiraSource: jira`, la branche est `feat/ABC-12-import` mais l'id est `abc-12-import` (dossier archivé `<date>-abc-12-import`).
+- Le scope du titre de PR n'accepte que `[a-z0-9-]` : la clé Jira va dans la description (`feat(import): ABC-12 accept lines`), pas dans `feat(ABC-12)`.
+- `HEAD_REF` n'existe que sur `pull_request` : le contrôle vit dans le job `pr-title`, qui ne tourne que sur cet événement. Une branche mal nommée ne se renomme pas sur une PR ouverte.
+- Sans clé de projet (`jira`), le motif générique `XXX-N` laisse passer `UTF-8` ou `SHA-256` : fixer la clé en phase 0.
+- La phase 4 du skill (acceptation des ADR) suit la convention du mode : en `jira`, la branche est `docs/<CLE-N>-accept-tooling-adrs`.
+- `gh` ne lit pas Jira : en mode `jira`, `spec-review` et `spec-reviewer` demandent le texte du ticket à l'utilisateur.
+- Le `Jenkinsfile` du module `jenkins` ne contrôle pas la clé Jira.

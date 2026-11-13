@@ -21,7 +21,12 @@ Tu relis un changement OpenSpec sans le modifier. On te donne un id de changemen
 Méthode :
 1. `openspec show <id> --json` et `openspec validate <id> --strict --no-interactive`.
 @@module:github
+@@module:issue-source
 2. Lis l'issue liée (`Issue: #N` en tête de `proposal.md`) avec `gh issue view N`.
+@@end
+@@module:jira-source
+2. Lis le ticket lié (`Ticket: <CLE-N>` en tête de `proposal.md`) : `gh` ne lit pas Jira, demande son texte à l'utilisateur ou lis ce qu'en recopie `proposal.md`.
+@@end
 @@end
 @@module:archgate
 3. Lis les ADR cités et ceux dont le sujet recoupe le changement (`archgate adr list`).

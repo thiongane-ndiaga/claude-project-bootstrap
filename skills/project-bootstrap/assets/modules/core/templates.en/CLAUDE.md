@@ -17,20 +17,40 @@ until an architecture decision has set one. Node.js is only a tooling prerequisi
 ## Workflow
 The details are in `docs/workflow.md`.
 @@module:github
+@@module:issue-source
 - Need → GitHub issue (form).
+@@end
+@@module:jira-source
+- Need → Jira ticket (reading table: `docs/jira.md`).
+@@end
 @@end
 @@module:archgate
 - Architecture decision → ADR created with Archgate, before the change.
 @@end
+@@module:issue-source
 - Branch `<type>/<issue>-<slug>`.
+@@end
+@@module:jira-source
+- Branch `<type>/<KEY-N>-<slug>`.
+@@end
 @@module:openspec
+@@module:issue-source
 - Behavior → `/opsx:propose` (id `<issue>-<slug>`) → `/opsx:apply` → `/opsx:archive` in the PR.
+@@end
+@@module:jira-source
+- Behavior → `/opsx:propose` (id `<key-n>-<slug>`) → `/opsx:apply` → `/opsx:archive` in the PR.
+@@end
 @@module:agent-profiles
 - With `agent-profiles`, `project-lead` archives with `openspec archive <id> --yes` (its hook refuses `/opsx:archive`).
 @@end
 @@end
 @@module:github
+@@module:issue-source
 - PR (`Closes #<issue>`) + CI → squash merge.
+@@end
+@@module:jira-source
+- PR (`Refs <KEY-N>`) + CI → squash merge.
+@@end
 @@end
 @@module:release
 - Delivery → release-please PR.
@@ -38,7 +58,12 @@ The details are in `docs/workflow.md`.
 
 ## Where to find what
 @@module:github
+@@module:issue-source
 - Need: GitHub issues.
+@@end
+@@module:jira-source
+- Need: Jira tickets.
+@@end
 @@end
 @@module:arc42
 - Why and constraints: `docs/architecture/arc42/`.

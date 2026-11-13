@@ -28,3 +28,12 @@ body:
       label: Décision d'architecture
       options:
         - label: Ce besoin implique probablement un choix technique ou une contrainte transverse (ADR requis, voir docs/workflow.md)
+  # @@module:jira
+  # @@module:issue-source
+  - type: input
+    id: cle-jira
+    attributes:
+      label: Clé Jira
+      description: Ticket Jira lié, s'il existe (ex. ABC-123).
+  # @@end
+  # @@end

@@ -18,7 +18,12 @@ Le code sera largement écrit par des agents Claude Code. Sans description préa
 ## Decision
 
 - Tout changement de comportement passe par un **changement OpenSpec** (`@fission-ai/openspec`, schéma `spec-driven`) : `/opsx:propose` → `/opsx:apply` → `/opsx:archive`.
+@@module:issue-source
 - L'id du changement est `<issue>-<slug>` ; `proposal.md` commence par `Issue: #N` et `ADR: …`.
+@@end
+@@module:jira-source
+- L'id du changement est `<cle-n>-<slug>` ; `proposal.md` commence par `Ticket: <CLE-N>` et `ADR: …`.
+@@end
 - L'archivage se fait **dans la PR, avant le merge**, pour que `openspec/specs/` soit à jour au moment du merge.
 - Les fichiers générés (`.claude/skills/openspec-*`, `.claude/commands/opsx/`) ne sont jamais modifiés à la main ; les conventions du projet vivent dans `openspec/config.yaml`.
 - `openspec validate --all --strict --no-interactive` est exécuté par le hook Claude `TaskCompleted`, le hook pre-push et la CI.

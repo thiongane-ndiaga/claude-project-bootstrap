@@ -21,7 +21,12 @@ You review an OpenSpec change without modifying it. You are given a change id
 Method:
 1. `openspec show <id> --json` and `openspec validate <id> --strict --no-interactive`.
 @@module:github
+@@module:issue-source
 2. Read the linked issue (`Issue: #N` at the top of `proposal.md`) with `gh issue view N`.
+@@end
+@@module:jira-source
+2. Read the linked ticket (`Ticket: <KEY-N>` at the top of `proposal.md`): `gh` cannot read Jira, ask the user for its text or read what `proposal.md` copies.
+@@end
 @@end
 @@module:archgate
 3. Read the cited ADRs and those whose subject overlaps the change (`archgate adr list`).

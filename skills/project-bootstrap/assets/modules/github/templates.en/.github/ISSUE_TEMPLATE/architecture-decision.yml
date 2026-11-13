@@ -24,3 +24,12 @@ body:
     id: echeance
     attributes:
       label: What the decision unblocks
+  # @@module:jira
+  # @@module:issue-source
+  - type: input
+    id: cle-jira
+    attributes:
+      label: Jira key
+      description: Linked Jira ticket, if any (e.g. ABC-123).
+  # @@end
+  # @@end

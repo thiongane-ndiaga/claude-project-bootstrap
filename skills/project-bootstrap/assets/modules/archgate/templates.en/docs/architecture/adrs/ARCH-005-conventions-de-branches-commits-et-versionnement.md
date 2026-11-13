@@ -21,11 +21,26 @@ Identifiers are in English; the documentation is in the project's language.
 
 ## Decision
 
+@@module:issue-source
 - **Branch**: `<type>/<issue>-<slug>`, in English, from `main`.
+@@end
+@@module:jira-source
+- **Branch**: `<type>/<KEY-N>-<slug>`, in English, from `main`.
+@@end
 - **Commits**: [Conventional Commits](https://www.conventionalcommits.org) in English; types `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `ci`, `build`, `perf`, `style`, `revert`.
+@@module:issue-source
 - **PR**: title in the same format, because it becomes the squash commit on `main`; body with `Closes #N`.
+@@end
+@@module:jira-source
+- **PR**: title in the same format, because it becomes the squash commit on `main`; body with `Refs <KEY-N>`.
+@@end
 @@module:dependabot
+@@module:issue-source
 - **Exception**: Dependabot PRs (branch `dependabot/…`, title `ci(deps): …`) have neither an issue nor `Closes #N`.
+@@end
+@@module:jira-source
+- **Exception**: Dependabot PRs (branch `dependabot/…`, title `ci(deps): …`) have neither an issue nor `Refs <KEY-N>`.
+@@end
 @@end
 @@module:release
 - **Versioning**: [SemVer](https://semver.org), computed by release-please from the commits. Before 1.0.0, `feat` bumps the patch and a breaking change (`!`) the minor; first version `0.0.1`.

@@ -41,10 +41,20 @@ Chaque couche a un rôle :
 @@module:openspec
 - **Exploration** (facultative) `/opsx:explore`, avant un changement : un dialogue pour réfléchir, comparer et lever les ambiguïtés, avec lecture du dépôt mais sans code. Elle ne décide rien et débouche sur une issue, un ADR ou `/opsx:propose`. Inutile quand l'issue est claire et le changement petit.
 @@module:legacy-agents
+@@module:issue-source
 - **Changement OpenSpec** `/opsx:propose`, id `<N>-<slug>` → `openspec/changes/<N>-<slug>/`. `proposal.md` commence par `Issue: #N` et `ADR: …`. Revue par l'agent `spec-reviewer`.
 @@end
+@@module:jira-source
+- **Changement OpenSpec** `/opsx:propose`, id `<cle-n>-<slug>` → `openspec/changes/<cle-n>-<slug>/`. `proposal.md` commence par `Ticket: <CLE-N>` et `ADR: …`. Revue par l'agent `spec-reviewer`.
+@@end
+@@end
 @@module:agent-profiles
+@@module:issue-source
 - **Changement OpenSpec** `/opsx:propose`, id `<N>-<slug>` → `openspec/changes/<N>-<slug>/`. `proposal.md` commence par `Issue: #N` et `ADR: …`. Revue par le profil `qa-engineer` (skill `spec-review`).
+@@end
+@@module:jira-source
+- **Changement OpenSpec** `/opsx:propose`, id `<cle-n>-<slug>` → `openspec/changes/<cle-n>-<slug>/`. `proposal.md` commence par `Ticket: <CLE-N>` et `ADR: …`. Revue par le profil `qa-engineer` (skill `spec-review`).
+@@end
 @@end
 - **Changement sans comportement** (documentation, outillage) : `skip_specs: true` dans le `.openspec.yaml` du changement ; aucun delta de spec n'est alors attendu ni créé.
 - **Révision** `/opsx:update` : après une revue ou une surprise, révise les artefacts de planification (proposition, specs, conception, tâches) et les garde cohérents entre eux, jamais le code.
@@ -60,14 +70,34 @@ Chaque couche a un rôle :
 @@end
 @@module:github
 @@module:legacy-agents
+@@module:issue-source
 - **PR** : titre Conventional Commit, corps avec `Closes #N`. Agent `traceability-checker` avant de demander le merge.
 @@end
+@@module:jira-source
+- **PR** : titre Conventional Commit, corps avec `Refs <CLE-N>`. Agent `traceability-checker` avant de demander le merge.
+@@end
+@@end
 @@module:agent-profiles
+@@module:issue-source
 - **PR** : titre Conventional Commit, corps avec `Closes #N`. Profil `qa-engineer` (skill `pr-readiness-review`) avant de demander le merge.
 @@end
+@@module:jira-source
+- **PR** : titre Conventional Commit, corps avec `Refs <CLE-N>`. Profil `qa-engineer` (skill `pr-readiness-review`) avant de demander le merge.
+@@end
+@@end
+@@module:issue-source
 - **Squash merge** : le titre de PR devient le commit sur `main` ; l'issue se ferme.
+@@end
+@@module:jira-source
+- **Squash merge** : le titre de PR devient le commit sur `main` ; le ticket se ferme dans Jira (`Refs` ne ferme rien).
+@@end
 @@module:dependabot
+@@module:issue-source
 - **PR de Dependabot** (`ci(deps): …`, branche `dependabot/…`) : seule exception à la branche `<type>/<issue>-<slug>` et à `Closes #N`. Relire le diff (SHA et commentaire de version), vérifier la CI, puis squash merge.
+@@end
+@@module:jira-source
+- **PR de Dependabot** (`ci(deps): …`, branche `dependabot/…`) : seule exception à la branche `<type>/<CLE-N>-<slug>` et à `Refs <CLE-N>`. Relire le diff (SHA et commentaire de version), vérifier la CI, puis squash merge.
+@@end
 @@end
 @@end
 @@module:arc42
@@ -142,8 +172,18 @@ Une décision courante est consignée dans le message de livraison (PR ou commit
 | Élément | Format | Exemple |
 |---|---|---|
 @@module:github
+@@module:issue-source
 | Issue | `#N` | `#12` |
+@@end
+@@module:jira-source
+| Ticket | `<CLE-N>` | `ABC-12` |
+@@end
+@@module:issue-source
 | Corps de PR | `Closes #N` | |
+@@end
+@@module:jira-source
+| Corps de PR | `Refs <CLE-N>` | |
+@@end
 @@end
 @@module:openspec
 | Changement OpenSpec | `openspec/changes/N-<slug>/` | `12-password-reset` |
@@ -172,6 +212,9 @@ Avant 1.0.0 : `feat` → patch, `feat!` → minor.
 @@end
 @@module:github
 | CI `ci.yml` | même contrôle + titre de PR (`scripts/check-pr-title.mjs`) | {{CI_BLOCKING_NOTE}} |
+@@module:jira
+| Clé Jira | `scripts/check-jira-key.mjs` (job `pr-title` de `ci.yml`) | comme la ligne `ci.yml` |
+@@end
 @@end
 @@module:jenkins
 | `Jenkinsfile` (complément de `ci.yml`, étapes manuelles dans `docs/jenkins.md`) | mêmes contrôles + titre de PR | selon le contrôle requis dans la protection de `main` |
@@ -220,6 +263,9 @@ Une règle écrite dans `CLAUDE.md` n'est une consigne que tant que rien ne l'em
 @@end
 @@module:github
 | Le titre d'une PR est un Conventional Commit. | `scripts/check-pr-title.mjs`, lancé par `.github/workflows/ci.yml` |
+@@module:jira
+| La clé Jira figure dans le titre ou la branche d'une PR. | `scripts/check-jira-key.mjs`, lancé par `.github/workflows/ci.yml` |
+@@end
 @@end
 @@module:agent-profiles
 | Un profil n'écrit que dans son périmètre ; `developer` jamais sous `.claude/`, `docs/architecture/` (dont `rules.d.ts`) ni `openspec/specs/`, `architect` écrit dans `docs/architecture/`. | `.claude/hooks/profile-guard.mjs` |

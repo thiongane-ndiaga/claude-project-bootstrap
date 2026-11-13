@@ -41,10 +41,20 @@ Each layer has a role:
 @@module:openspec
 - **Exploration** (optional) `/opsx:explore`, before a change: a dialogue to think, compare and clear up ambiguities, reading the repository but writing no code. It decides nothing and leads to an issue, an ADR or `/opsx:propose`. Needless when the issue is clear and the change small.
 @@module:legacy-agents
+@@module:issue-source
 - **OpenSpec change** `/opsx:propose`, id `<N>-<slug>` → `openspec/changes/<N>-<slug>/`. `proposal.md` starts with `Issue: #N` and `ADR: …`. Review by the `spec-reviewer` agent.
 @@end
+@@module:jira-source
+- **OpenSpec change** `/opsx:propose`, id `<key-n>-<slug>` → `openspec/changes/<key-n>-<slug>/`. `proposal.md` starts with `Ticket: <KEY-N>` and `ADR: …`. Review by the `spec-reviewer` agent.
+@@end
+@@end
 @@module:agent-profiles
+@@module:issue-source
 - **OpenSpec change** `/opsx:propose`, id `<N>-<slug>` → `openspec/changes/<N>-<slug>/`. `proposal.md` starts with `Issue: #N` and `ADR: …`. Review by the `qa-engineer` profile (`spec-review` skill).
+@@end
+@@module:jira-source
+- **OpenSpec change** `/opsx:propose`, id `<key-n>-<slug>` → `openspec/changes/<key-n>-<slug>/`. `proposal.md` starts with `Ticket: <KEY-N>` and `ADR: …`. Review by the `qa-engineer` profile (`spec-review` skill).
+@@end
 @@end
 - **Change without behavior** (documentation, tooling): `skip_specs: true` in the change's `.openspec.yaml`; no spec delta is then expected or created.
 - **Revision** `/opsx:update`: after a review or a surprise, revises the planning artifacts (proposal, specs, design, tasks) and keeps them consistent with each other, never the code.
@@ -60,14 +70,34 @@ Each layer has a role:
 @@end
 @@module:github
 @@module:legacy-agents
+@@module:issue-source
 - **PR**: Conventional Commit title, body with `Closes #N`. `traceability-checker` agent before asking for the merge.
 @@end
+@@module:jira-source
+- **PR**: Conventional Commit title, body with `Refs <KEY-N>`. `traceability-checker` agent before asking for the merge.
+@@end
+@@end
 @@module:agent-profiles
+@@module:issue-source
 - **PR**: Conventional Commit title, body with `Closes #N`. `qa-engineer` profile (`pr-readiness-review` skill) before asking for the merge.
 @@end
+@@module:jira-source
+- **PR**: Conventional Commit title, body with `Refs <KEY-N>`. `qa-engineer` profile (`pr-readiness-review` skill) before asking for the merge.
+@@end
+@@end
+@@module:issue-source
 - **Squash merge**: the PR title becomes the commit on `main`; the issue closes.
+@@end
+@@module:jira-source
+- **Squash merge**: the PR title becomes the commit on `main`; the ticket closes in Jira (`Refs` closes nothing).
+@@end
 @@module:dependabot
+@@module:issue-source
 - **Dependabot PR** (`ci(deps): …`, branch `dependabot/…`): the only exception to the `<type>/<issue>-<slug>` branch and to `Closes #N`. Review the diff (SHA and version comment), check the CI, then squash merge.
+@@end
+@@module:jira-source
+- **Dependabot PR** (`ci(deps): …`, branch `dependabot/…`): the only exception to the `<type>/<KEY-N>-<slug>` branch and to `Refs <KEY-N>`. Review the diff (SHA and version comment), check the CI, then squash merge.
+@@end
 @@end
 @@end
 @@module:arc42
@@ -142,8 +172,18 @@ A current decision is recorded in the delivery message (PR or commit).
 | Item | Format | Example |
 |---|---|---|
 @@module:github
+@@module:issue-source
 | Issue | `#N` | `#12` |
+@@end
+@@module:jira-source
+| Ticket | `<KEY-N>` | `ABC-12` |
+@@end
+@@module:issue-source
 | PR body | `Closes #N` | |
+@@end
+@@module:jira-source
+| PR body | `Refs <KEY-N>` | |
+@@end
 @@end
 @@module:openspec
 | OpenSpec change | `openspec/changes/N-<slug>/` | `12-password-reset` |
@@ -172,6 +212,9 @@ Before 1.0.0: `feat` → patch, `feat!` → minor.
 @@end
 @@module:github
 | CI `ci.yml` | same check + PR title (`scripts/check-pr-title.mjs`) | {{CI_BLOCKING_NOTE}} |
+@@module:jira
+| Jira key | `scripts/check-jira-key.mjs` (`pr-title` job of `ci.yml`) | same as the `ci.yml` row |
+@@end
 @@end
 @@module:jenkins
 | `Jenkinsfile` (complements `ci.yml`, manual steps in `docs/jenkins.md`) | same checks + PR title | depends on the required check in the `main` protection |
@@ -220,6 +263,9 @@ A rule written in `CLAUDE.md` is only an instruction as long as nothing prevents
 @@end
 @@module:github
 | A PR title is a Conventional Commit. | `scripts/check-pr-title.mjs`, run by `.github/workflows/ci.yml` |
+@@module:jira
+| The Jira key appears in a PR title or branch. | `scripts/check-jira-key.mjs`, run by `.github/workflows/ci.yml` |
+@@end
 @@end
 @@module:agent-profiles
 | A profile writes only within its scope; `developer` never under `.claude/`, `docs/architecture/` (`rules.d.ts` included) or `openspec/specs/`, `architect` writes in `docs/architecture/`. | `.claude/hooks/profile-guard.mjs` |

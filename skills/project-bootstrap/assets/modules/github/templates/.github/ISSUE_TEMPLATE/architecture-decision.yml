@@ -24,3 +24,12 @@ body:
     id: echeance
     attributes:
       label: Ce que la décision débloque
+  # @@module:jira
+  # @@module:issue-source
+  - type: input
+    id: cle-jira
+    attributes:
+      label: Clé Jira
+      description: Ticket Jira lié, s'il existe (ex. ABC-123).
+  # @@end
+  # @@end
