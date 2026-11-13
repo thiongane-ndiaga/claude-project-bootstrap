@@ -112,6 +112,7 @@ check("mode github : workflow.md et CLAUDE.md gardent Closes #N et Issue: #N", g
 const jAdr5 = js.read("docs/architecture/adrs/ARCH-005-conventions-de-branches-commits-et-versionnement.md");
 const jAdr2 = js.read("docs/architecture/adrs/ARCH-002-workflow-spec-driven-avec-openspec.md");
 check("mode jira : ARCH-002 et ARCH-005 générés posent la branche, l'id et l'en-tête Jira", jAdr5.includes("<type>/<CLE-N>-<slug>") && jAdr5.includes("Refs <CLE-N>") && jAdr2.includes("<cle-n>-<slug>") && jAdr2.includes("Ticket: <CLE-N>"));
+check("mode jira : ARCH-003 généré nomme le ticket Jira dans le statut, mode github l'issue", js.read("docs/architecture/adrs/ARCH-003-emplacement-et-format-des-adr.md").includes("ticket Jira qui porte la décision") && gh.read("docs/architecture/adrs/ARCH-003-emplacement-et-format-des-adr.md").includes("l'issue qui porte la décision"));
 const tc = js.read(".claude/agents/traceability-checker.md");
 const sr = js.read(".claude/agents/spec-reviewer.md");
 check("mode jira : traceability-checker vérifie Refs et Ticket, spec-reviewer ne lit pas le ticket par gh", tc.includes("Ticket: <CLE-N>") && tc.includes("Refs <CLE-N>") && !tc.includes("Closes #") && sr.includes("gh` ne lit pas Jira") && !sr.includes("gh issue view"));

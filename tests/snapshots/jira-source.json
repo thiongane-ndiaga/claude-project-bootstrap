@@ -16,7 +16,7 @@
   ".gitignore": "e9e571edd71a732e006a483cd4aeffcb511bd60a1e77ee4031e0cd215c3314af",
   "CLAUDE.md": "894885ea3ae15036f19c48f902d123ea07ed26d744fa219da08497066343d5ba",
   "docs/architecture/adrs/ARCH-002-workflow-spec-driven-avec-openspec.md": "0c8548af7b67e3b9449f0f73cacda1f42fd247dd668e8fdff2b171efa2f91026",
-  "docs/architecture/adrs/ARCH-003-emplacement-et-format-des-adr.md": "8c29d2f24d5e701dd795c5ad88826b99625e0097b5c49dd7114dc29ac81ad32d",
+  "docs/architecture/adrs/ARCH-003-emplacement-et-format-des-adr.md": "5d4c4be5542944f8c2f3a1574a1787268586bdc7a11cb90dc51cb39608679e4e",
   "docs/architecture/adrs/ARCH-003-emplacement-et-format-des-adr.rules.ts": "8b27b675ab5f10c5964038a986200194e5e405913f92a04353c54c6aebbea041",
   "docs/architecture/adrs/ARCH-004-github-comme-forge-avec-actions-et-releases.md": "2ae075a69737915bd36413b892146d39f2c8a8ad47c2c2d70ff0b0115290cc2b",
   "docs/architecture/adrs/ARCH-004-github-comme-forge-avec-actions-et-releases.rules.ts": "d97ccc2509925a1eb5fe920be145620746a17c1c1a76d062ab6c510157b7aff8",

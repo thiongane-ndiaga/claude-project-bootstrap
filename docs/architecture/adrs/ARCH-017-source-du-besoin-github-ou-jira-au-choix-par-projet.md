@@ -1,6 +1,6 @@
 ---
 id: ARCH-017
-title: Source du besoin : GitHub ou Jira, au choix par projet
+title: "Source du besoin : GitHub ou Jira, au choix par projet"
 domain: architecture
 rules: false
 files: ["skills/project-bootstrap/assets/modules/jira/**", "skills/project-bootstrap/scripts/scaffold.mjs", "skills/project-bootstrap/scripts/catalog.mjs"]
