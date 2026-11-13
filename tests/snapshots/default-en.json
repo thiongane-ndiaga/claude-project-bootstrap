@@ -33,7 +33,7 @@
   "docs/architecture/adrs/ARCH-003-emplacement-et-format-des-adr.rules.ts": "b6422f6901022ef717c36596f627a4269cf36fcd1e566b7d845c15856ba9e820",
   "docs/architecture/adrs/ARCH-004-github-comme-forge-avec-actions-et-releases.md": "aa450787a97f027a7dc597fee65823fed5e4ef402bdb0d71a25011edf2b74c1c",
   "docs/architecture/adrs/ARCH-004-github-comme-forge-avec-actions-et-releases.rules.ts": "7c841e5bd4a32d9baff5591990ea6b75a07fb4801fc9b0e43c7a882e4214b7f6",
-  "docs/architecture/adrs/ARCH-005-conventions-de-branches-commits-et-versionnement.md": "6bda39f2f3ee47507fc6bac098fc82eb5602262a10df139b2fa4c5a3d8de7781",
+  "docs/architecture/adrs/ARCH-005-conventions-de-branches-commits-et-versionnement.md": "71d511da43e06b7d879f0820c56957a566fc55cde61918c0333e47b63bd4f1d7",
   "docs/architecture/arc42/01-introduction-et-objectifs.md": "a702ba5ddd6850468e9d3ba776408304e7856a911e41324452fd55acca9cd549",
   "docs/architecture/arc42/02-contraintes.md": "c4ab981078f8de5ed5287087a2e41450887cd019c939a2361442d614d25ddc65",
   "docs/architecture/arc42/03-contexte-et-perimetre.md": "e9c1db07275b127126a6f1414142fd625e1a26dffb7cbbe4503914516ba96918",
@@ -46,7 +46,7 @@
   "docs/architecture/arc42/10-exigences-de-qualite.md": "f300e85b2da429bae8126f88bc616b8fb9cdde711077d6d45ee35ba72a243377",
   "docs/architecture/arc42/11-risques-et-dette-technique.md": "9bdb3bbf598ca92c4763fcaacda2acfdc08568a5013d64e4e16f65dcacfa4f6e",
   "docs/architecture/arc42/12-glossaire.md": "1678f3b3e6d4fdb2857aa6ea0d0a5efc92362f8336adecd7e7db282b4322d535",
-  "docs/workflow.md": "707f9591fed253924c41d29f7f09b733be74844fb37c1892c3f372f96f6e964d",
+  "docs/workflow.md": "bcc7f81e3373c971216c9b0ec48bec034e7a8843aa923e1f8e904f6cf25a3a90",
   "release-please-config.json": "c4a900e93d479b4264ac754c5925c6a699cb08272b864af8d0bc0986f27a8e27",
   "scripts/check-pr-title.mjs": "e0f383242e70d05da533f58473393d34178a843ff9a73170d8b5a269296b583f",
   "scripts/sync-labels.mjs": "8478be6e2aad6011c472d491567934d9cea9036c4ab9a82dec3e0bb82e4fb22b"

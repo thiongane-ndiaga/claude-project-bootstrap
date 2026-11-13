@@ -67,6 +67,9 @@
 | Module `gitlab` : pas de release automatique (`release` exige `github`), donc pas de version ni de changelog automatiques | Haute | Moyen | Accepté ; version et changelog à la charge du projet ([ARCH-018](../adrs/ARCH-018-gitlab-comme-forge-d-h-bergement-seulement.md)) |
 | Module `gitlab` : une MR en brouillon (`Draft:`) échoue au contrôle du titre | Moyenne | Faible | Documenté dans `docs/gitlab.md` (changement `25-gitlab-module`) |
 | Module `gitlab` sans `jenkins` : le projet n'a aucune CI | Moyenne | Moyen | `docs/gitlab.md` le dit et recommande `jenkins` ([ARCH-018](../adrs/ARCH-018-gitlab-comme-forge-d-h-bergement-seulement.md)) |
+| Réglage de squash par dépôt : un dépôt qui n'a pas appliqué la migration `0004-squash-title-only` garde l'ancien comportement (`Closes #N` d'un commit copié dans le commit de squash) | Moyenne | Moyen | Le skill le règle à la mise en place ; l'audit `--forge` le signale et cite la commande directe (changement `156-squash-setting`, [ARCH-005](../adrs/ARCH-005-conventions-de-branches-commits-et-versionnement.md)) |
+| Merge hors squash (merge commit, rebase) ou squash désactivé : le réglage ne s'applique pas, les commits arrivent sur `main` tels quels | Faible | Moyen | Non couvert ; l'audit note un squash désactivé (changement `156-squash-setting`) |
+| Mode `jira` : la clé n'est pas dans le commit de squash si elle manque au titre de la PR (les `Refs` des commits ne sont plus sur `main`) | Moyenne | Faible | `docs/workflow.md` le dit ; le contrôle de clé porte sur le titre de la PR (changement `156-squash-setting`) |
 
 - Quels risques pèsent sur les objectifs de qualité ?
 - Quelle dette est acceptée consciemment, et jusqu'à quand ?

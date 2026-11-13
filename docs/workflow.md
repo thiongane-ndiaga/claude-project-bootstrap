@@ -19,7 +19,7 @@ Chaque couche a un rôle :
 - **Exécution** `/opsx:apply` ; commits atomiques en Conventional Commits (anglais).
 - **Archivage** `/opsx:archive` **dans la PR, avant le merge** : les specs vivantes (`openspec/specs/`) sont à jour au moment du merge.
 - **PR** : titre Conventional Commit, corps avec `Closes #N`. Le titre est contrôlé par la CI (job `pr-title`). Agent `traceability-checker` avant de demander le merge.
-- **Squash merge** : le titre de PR devient le commit sur `main` ; l'issue se ferme.
+- **Squash merge** : le titre de PR devient le commit sur `main` (réglage de squash du dépôt : titre seul, jamais de `Closes #N` dans un commit) ; l'issue se ferme.
 - **arc42** : la PR met à jour les sections impactées (agent `arc42-keeper`) ; la section 9 ne fait que pointer vers les ADR.
 - **Release** : release-please tient à jour une PR « chore(main): release X.Y.Z » (`CHANGELOG.md`, `.release-please-manifest.json`). La merger crée le tag `vX.Y.Z` et la GitHub Release. Pas de déploiement : le plugin est installé depuis ce dépôt (marketplace).
 

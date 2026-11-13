@@ -12,7 +12,7 @@
   ".github/workflows/ci.yml": "ef910db84d10b639646e6789e5018e3b1dec2f3fbd6dc901836579300f821e16",
   ".gitignore": "bbb7a6669f4e6557474827de0d4e0bb38586aea32f0a639aeb9f82a7cec7e717",
   "CLAUDE.md": "e7a3b61229308354225cd001c4bf471f353c096f1dd8ec374fec28468afbfaeb",
-  "docs/workflow.md": "4604f1503e1d092daef87cded8c1434adaea340a45ea5d66bb4263982050a2e9",
+  "docs/workflow.md": "e3190e22f2fda7efc24eb9ccd625073caa46938e81fe62228fa88d99839c0468",
   "scripts/check-pr-title.mjs": "6bd4d1a35fc2ad9c483c7ae09361b8061d8c3681e4c744528e219f9f2f61c401",
   "scripts/sync-labels.mjs": "fec29054527bad66276014e15548ce0913ee9e923d14a30881f2b4a3d73e33b6"
 }

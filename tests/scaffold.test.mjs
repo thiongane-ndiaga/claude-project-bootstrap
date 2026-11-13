@@ -6,7 +6,7 @@ import { createHash } from "node:crypto";
 import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, writeFileSync, readFileSync, readdirSync, realpathSync, statSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { runMigrations } from "../skills/project-bootstrap/scripts/migrate.mjs";
 import { PSEUDO_MODULES, loadCatalog, templatePath } from "../skills/project-bootstrap/scripts/catalog.mjs";
 import { syncLabels } from "../skills/project-bootstrap/assets/modules/github/templates/scripts/sync-labels.mjs";
@@ -1381,12 +1381,14 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
 
     // --- forge (gh simulé)
     const labelsGh = (names) => (args) => (args.some((a) => /labels\?per_page/.test(a)) ? res(0, names.join("\n")) : res(0, ""));
-    const forgeGh = ({ labels = ["bug", "enhancement", "adr", "chore"], protection, rules, other } = {}) => (args) => {
+    const squashOk = { allow_squash_merge: true, squash_merge_commit_title: "PR_TITLE", squash_merge_commit_message: "BLANK" };
+    const forgeGh = ({ labels = ["bug", "enhancement", "adr", "chore"], protection, rules, other, repoInfo = squashOk } = {}) => (args) => {
       const route = args.find((a) => a.startsWith("repos/")) ?? "";
       if (/\/labels\?per_page/.test(route)) return res(0, args.some((a) => /@json/.test(a)) ? labels.map((n) => JSON.stringify([n, "ededed", ""])).join("\n") : labels.join("\n"));
       if (/\/branches\/main\/protection$/.test(route)) return protection ?? res(1, "", "gh: Branch not protected (HTTP 404)");
       if (/\/rules\/branches\/main$/.test(route)) return rules ?? res(0, "[]");
       if (/\/actions\/permissions\/workflow$/.test(route)) return res(0, JSON.stringify({ can_approve_pull_request_reviews: true, default_workflow_permissions: "read" }));
+      if (/^repos\/[^/]+\/[^/]+$/.test(route) && !args.includes("PATCH")) return res(0, JSON.stringify(repoInfo));
       if (other) return other(args, route);
       return res(0, "");
     };
@@ -1413,6 +1415,38 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
     check("audit : --forge sans dépôt (ni --repo ni origin) -> forge non vérifiable", by(fo7, "forge")?.statut === "non-verifiable");
     const fo8 = await audit(healthy, { gh: forgeGh({ protection: prot(okCtx) }) }, forgeOpts);
     check("audit : check d'une matrice lu depuis ciOs (checks (os))", by(fo8, "forge-protection")?.statut === "ok" && /checks \(ubuntu-latest\)/.test(by(fo8, "forge-protection").message));
+    // réglage de squash (#156) : migration 0004, audit et documents
+    const SQ = "migration-0004-squash-title-only";
+    check("audit : réglage de squash conforme (PR_TITLE, BLANK) -> migration 0004 ok", by(fo1, SQ)?.statut === "ok", JSON.stringify(by(fo1, SQ)));
+    for (const [label, info] of [["COMMIT_MESSAGES", { ...squashOk, squash_merge_commit_title: "COMMIT_OR_PR_TITLE", squash_merge_commit_message: "COMMIT_MESSAGES" }], ["PR_BODY", { ...squashOk, squash_merge_commit_message: "PR_BODY" }]]) {
+      const sq = await audit(healthy, { gh: forgeGh({ protection: prot(okCtx), repoInfo: info }) }, forgeOpts);
+      check(`piège : squash avec ${label} -> écart qui nomme le réglage, correction avec la commande PATCH du dépôt visé`, by(sq, SQ)?.statut === "ecart" && by(sq, SQ).message.includes(label) && by(sq, SQ).correction.includes("gh api -X PATCH repos/o/r -f squash_merge_commit_title=PR_TITLE -f squash_merge_commit_message=BLANK"), JSON.stringify(by(sq, SQ)));
+    }
+    const sqOff = await audit(healthy, { gh: forgeGh({ protection: prot(okCtx), repoInfo: { ...squashOk, allow_squash_merge: false } }) }, forgeOpts);
+    check("audit : squash désactivé -> migration 0004 ok avec une note", by(sqOff, SQ)?.statut === "ok" && /squash désactivé/.test(by(sqOff, SQ).message), JSON.stringify(by(sqOff, SQ)));
+    const sqBlind = await audit(healthy, { gh: forgeGh({ protection: prot(okCtx), repoInfo: { name: "r" } }) }, forgeOpts);
+    check("audit : champs de squash absents de la réponse -> non vérifiable, pas un écart", by(sqBlind, SQ)?.statut === "non-verifiable", JSON.stringify(by(sqBlind, SQ)));
+    const sqConsigned = mkProject();
+    const sqm = JSON.parse(read(sqConsigned, ".bootstrap/manifest.json"));
+    sqm.migrations = ["0004-squash-title-only"];
+    writeFileSync(path.join(sqConsigned, ".bootstrap", "manifest.json"), JSON.stringify(sqm, null, 2));
+    const sqDrift = await audit(sqConsigned, { gh: forgeGh({ protection: prot(okCtx), repoInfo: { ...squashOk, squash_merge_commit_message: "COMMIT_MESSAGES" } }) }, forgeOpts);
+    check("piège : migration consignée puis réglage revenu en arrière -> écart dont la correction directe (PATCH) fonctionne", by(sqDrift, SQ)?.statut === "ecart" && by(sqDrift, SQ).correction.includes("déjà consignée") && by(sqDrift, SQ).correction.includes("gh api -X PATCH repos/o/r"), JSON.stringify(by(sqDrift, SQ)));
+    const sqMig = await import(pathToFileURL(path.join(root, "skills", "project-bootstrap", "migrations", "0004-squash-title-only.mjs")).href);
+    const ghCalls = [];
+    const stubGh = (info) => (a) => { ghCalls.push(a.join(" ")); return JSON.stringify(info); };
+    const planned = sqMig.plan({ gh: stubGh({ ...squashOk, squash_merge_commit_message: "PR_BODY" }), repo: "acme/projet" });
+    check("migration 0004 : propose une action sur le dépôt reçu, jamais celui du dossier courant", planned.length === 1 && planned[0].command === "gh api -X PATCH repos/acme/projet -f squash_merge_commit_title=PR_TITLE -f squash_merge_commit_message=BLANK" && ghCalls.every((c) => c.includes("repos/acme/projet")), ghCalls.join(" | "));
+    planned[0].run();
+    check("migration 0004 : l'application envoie un seul PATCH avec les deux paramètres", ghCalls.at(-1) === "api -X PATCH repos/acme/projet -f squash_merge_commit_title=PR_TITLE -f squash_merge_commit_message=BLANK", ghCalls.at(-1));
+    check("migration 0004 : idempotente (conforme -> aucune action), squash désactivé -> une note", sqMig.plan({ gh: stubGh(squashOk), repo: "a/b" }).length === 0 && sqMig.plan({ gh: stubGh({ allow_squash_merge: false }), repo: "a/b" }).notes.length === 1);
+    check("migration 0004 : champs absents -> erreur (non vérifiable à l'audit)", (() => { try { sqMig.plan({ gh: stubGh({}), repo: "a/b" }); return false; } catch (err) { return /illisible/.test(err.message); } })());
+    const sqDocs = mkProject(["claude", "github", "archgate"]);
+    const sqWf = read(sqDocs, "docs/workflow.md");
+    const sqAdr = read(sqDocs, "docs/architecture/adrs/ARCH-005-conventions-de-branches-commits-et-versionnement.md");
+    check("documents avec github sans release : workflow.md et ARCH-005 disent titre seul, jamais de Closes #N dans un commit", sqWf.includes("titre seul, jamais de `Closes #N` dans un commit") && sqAdr.includes("squash_merge_commit_title=PR_TITLE") && sqAdr.includes("Ne pas écrire `Closes #N` dans un message de commit"));
+    check("documents sans jira : pas la variante Jira du titre de PR", !sqWf.includes("la clé Jira doit figurer dans le titre de la PR"));
+
     // module jenkins (#147) : contextes de statut Jenkins et versions du Jenkinsfile
     const jenkinsCtx = "continuous-integration/jenkins/pr-merge";
     const jProj = mkProject([...MODS, "jenkins"]);

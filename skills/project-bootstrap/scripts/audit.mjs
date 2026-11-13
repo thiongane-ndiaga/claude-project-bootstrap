@@ -462,7 +462,7 @@ async function checkMigrations(ctx, gh, repo) {
       const actions = Array.isArray(planned) ? planned : (planned.actions ?? []);
       const notes = Array.isArray(planned) ? [] : (planned.notes ?? []);
       const suffix = notes.length ? ` — notes : ${notes.join(" ; ")}` : "";
-      if (actions.length) results.push(ecart(`migration-${m.id}`, `migration en attente (${actions.length} action(s)) : ${actions.map((a) => a.description).join(" ; ")}${suffix}`, "node migrate.mjs --target <dépôt> (simulation), puis --apply avec l'accord de l'utilisateur"));
+      if (actions.length) results.push(ecart(`migration-${m.id}`, `migration en attente (${actions.length} action(s)) : ${actions.map((a) => a.description).join(" ; ")}${suffix}`, `node migrate.mjs --target <dépôt> (simulation), puis --apply avec l'accord de l'utilisateur${actions.some((a) => a.command) ? ` ; ou directement, si la migration est déjà consignée au manifeste : ${actions.filter((a) => a.command).map((a) => a.command).join(" ; ")}` : ""}`));
       else results.push(ok(`migration-${m.id}`, `forge conforme${suffix}`));
     } catch (err) {
       results.push(nv(`migration-${m.id}`, err.message));

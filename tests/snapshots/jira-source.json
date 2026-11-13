@@ -20,9 +20,9 @@
   "docs/architecture/adrs/ARCH-003-emplacement-et-format-des-adr.rules.ts": "8b27b675ab5f10c5964038a986200194e5e405913f92a04353c54c6aebbea041",
   "docs/architecture/adrs/ARCH-004-github-comme-forge-avec-actions-et-releases.md": "2ae075a69737915bd36413b892146d39f2c8a8ad47c2c2d70ff0b0115290cc2b",
   "docs/architecture/adrs/ARCH-004-github-comme-forge-avec-actions-et-releases.rules.ts": "d97ccc2509925a1eb5fe920be145620746a17c1c1a76d062ab6c510157b7aff8",
-  "docs/architecture/adrs/ARCH-005-conventions-de-branches-commits-et-versionnement.md": "4b9c25f573e1874c636437c07b8d1ce5e59bb3bfb36d40fdf13fdc0164226cb3",
+  "docs/architecture/adrs/ARCH-005-conventions-de-branches-commits-et-versionnement.md": "1b559825cd1ad8342e14230df6c90408bdce7b1605f1348b1b4e71ee97a62a50",
   "docs/jira.md": "28919920a4918296351b9bfbb3b8083019cb4997f37ebdc3b344d3cba29e6211",
-  "docs/workflow.md": "eff6146c5db0bcdf76a38cbbbe5d3834ce234c634d37174283131f6b45fc3b91",
+  "docs/workflow.md": "de1a3e1f8d85c56803c19372efcb32bed510df631901e9f04729e20bef7657ce",
   "scripts/check-jira-key.mjs": "2ef261aaa82baef045bb386cb1cab5d6290a4e7fdf4726e8710c95d95ef03106",
   "scripts/check-pr-title.mjs": "6bd4d1a35fc2ad9c483c7ae09361b8061d8c3681e4c744528e219f9f2f61c401",
   "scripts/sync-labels.mjs": "fec29054527bad66276014e15548ce0913ee9e923d14a30881f2b4a3d73e33b6"

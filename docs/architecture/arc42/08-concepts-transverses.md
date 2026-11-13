@@ -60,6 +60,16 @@ Source : changement OpenSpec `23-jira-module` (issue #23). Voir [ARCH-017](../ad
 
 Sources : changements OpenSpec `25-gitlab-module` (premier lot) et `25-gitlab-sonar-jira` (second lot), issue #25. Voir [ARCH-018](../adrs/ARCH-018-gitlab-comme-forge-d-h-bergement-seulement.md), [ARCH-017](../adrs/ARCH-017-source-du-besoin-github-ou-jira-au-choix-par-projet.md) et [ARCH-004](../adrs/ARCH-004-github-comme-forge-avec-actions-et-releases.md).
 
+## Réglage de squash du dépôt GitHub
+
+- Le squash du dépôt prend le titre de la PR seul (`squash_merge_commit_title=PR_TITLE`, `squash_merge_commit_message=BLANK`) : le titre de la PR, déjà contrôlé comme Conventional Commit, est le commit de squash. Sinon un `Closes #N` d'un commit était copié dans le commit de squash puis dans la PR de release-please, que GitHub comptait comme seconde PR fermante et qui remettait la carte du Project en « In Progress ».
+- Convention : `Closes #N` s'écrit dans le corps de la PR, jamais dans un commit ; les commits portent `Refs #N`. `docs/workflow.md` et ARCH-005 générés (avec `github`) et ceux du plugin le disent. En mode `jira`, la clé doit figurer dans le titre de la PR, car les `Refs` des commits n'arrivent pas sur `main`.
+- Application : le skill règle le squash à la mise en place GitHub (`references/github-setup.md`, avec accord) ; la migration `0004-squash-title-only` et l'audit `--forge` rattrapent un dépôt existant. L'audit signale l'écart, le déclare non vérifiable si les champs de squash sont absents de la réponse (droits insuffisants) et note un squash désactivé (`allow_squash_merge: false`).
+- Migration consignée : `migrate.mjs` ne rejoue pas une migration déjà consignée alors que l'audit la recalcule ; la correction de l'audit cite donc aussi la commande directe (`gh api -X PATCH`) de chaque action, pour toutes les migrations.
+- GitLab est hors périmètre : `docs/gitlab.md` demande de régler le squash avec le titre de la MR.
+
+Source : changement OpenSpec `156-squash-setting` (issue #156). Voir [ARCH-005](../adrs/ARCH-005-conventions-de-branches-commits-et-versionnement.md).
+
 ## Internationalisation de la documentation générée
 
 - L'arborescence est le contrat : les noms de fichiers sont identiques dans toutes les langues, y compris les slugs français d'arc42 et des ADR.
