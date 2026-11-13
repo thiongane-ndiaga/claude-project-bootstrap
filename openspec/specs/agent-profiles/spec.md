@@ -124,7 +124,7 @@ Chaque profil SHALL contenir la règle « qui écrit ne relit pas » : `architec
 - **THEN** chacun contient la règle correspondante
 
 ### Requirement: Réutilisation d'Archgate et d'OpenSpec
-Les profils SHALL citer, selon les modules actifs, ce qu'ils réutilisent : les skills `archgate:adr-author` et `archgate:cli-reference` pour `architect`, `archgate review-context --base --run-checks` pour `qa-engineer`, le skill `openspec-apply-change` (`/opsx:apply`) pour `developer`. Ils lancent les skills de leur table et demandent le reste à l'agent principal. Ils MUST NOT citer le skill `onboard` ni les agents `architecture-explorer`, `arc42-keeper`, `spec-reviewer` et `traceability-checker`. Une référence à un module absent MUST NOT apparaître.
+Les profils SHALL citer, selon les modules actifs, ce qu'ils réutilisent : `archgate:adr-author` et `archgate:cli-reference` pour `architect`, `archgate review-context --base --run-checks` pour `qa-engineer`, `openspec-apply-change` pour `developer`. Ils lancent les skills de leur table et demandent le reste à l'agent principal. Ils MUST NOT citer `onboard` ni `architecture-explorer`, `arc42-keeper`, `spec-reviewer`, `traceability-checker`. Une référence à un module absent MUST NOT apparaître.
 
 #### Scenario: Module Archgate absent
 - **WHEN** un projet est généré avec `agent-profiles` mais sans `archgate`, `openspec`, `github` ni `arc42`
@@ -181,7 +181,11 @@ Pour les outils `Agent` et `Task`, `profile-guard.mjs` SHALL refuser (code 2) un
 - **THEN** le hook se termine avec le code 2
 
 ### Requirement: Bornage des skills
-Pour l'outil `Skill`, `profile-guard.mjs` SHALL refuser (code 2) un profil de la table dont le skill n'est pas dans sa liste `skills` (comparaison du nom exact), ou dont la liste est vide ou absente, sauf pour un profil à l'option `skillsOpen`, qui n'a pas de liste. Les skills à contexte isolé sont refusés à tous (« Skills à contexte isolé »). `architect` peut lancer `archgate:adr-author`, `archgate:cli-reference`, `adr-options-comparison` et `arc42-update` ; `qa-engineer`, `spec-review` et `pr-readiness-review` ; `developer`, `openspec-apply-change` et `opsx:apply`. `archgate:reviewer` et l'agent `archgate:planner` ne sont permis à aucun profil.
+Pour l'outil `Skill`, `profile-guard.mjs` SHALL refuser (code 2) un profil de la table dont le skill n'est pas dans sa liste `skills` (nom exact), ou dont la liste est vide ou absente, sauf `skillsOpen`. Les skills à contexte isolé sont refusés à tous. `archgate:reviewer` et l'agent `archgate:planner` ne sont permis à aucun profil.
+
+#### Scenario: Skills de chaque profil
+- **WHEN** la table du hook est lue
+- **THEN** `architect` peut lancer `archgate:adr-author`, `archgate:cli-reference`, `adr-options-comparison` et `arc42-update`, `qa-engineer` `spec-review` et `pr-readiness-review`, `developer` `openspec-apply-change` et `opsx:apply`
 
 #### Scenario: Skill permis
 - **WHEN** `architect` lance `archgate:adr-author`, `archgate:cli-reference`, `adr-options-comparison` ou `arc42-update`, ou `qa-engineer` lance `spec-review` ou `pr-readiness-review`
@@ -375,7 +379,7 @@ La configuration SHALL accepter une clé facultative `profiles`, liste de noms p
 - **THEN** le hook se termine avec le code 2 ; `git log` et `gh issue view` sont permis
 
 ### Requirement: Profil developer
-`developer` SHALL être généré avec `agent-profiles` sans figurer dans `profiles`. Il SHALL implémenter le brief, faire un commit atomique par tâche, lancer les tests du projet, ne rien publier et rendre un travail relu par `qa-engineer`. Avec `openspec`, il SHALL lancer le skill `openspec-apply-change` (`/opsx:apply`) pour exécuter un changement existant. Sans `business-analyst`, il SHALL rédiger et réviser le changement OpenSpec dans `openspec/changes/<id>/`. Son shell n'est pas borné ; il MUST NOT disposer de l'outil `Agent` et ne lance aucun autre skill que celui d'apply.
+`developer` SHALL être généré avec `agent-profiles` sans figurer dans `profiles`. Il SHALL implémenter le brief, faire un commit atomique par tâche, lancer les tests, ne rien publier et rendre un travail relu par `qa-engineer`. Avec `openspec`, il SHALL lancer le skill `openspec-apply-change` (`/opsx:apply`) ; sans `business-analyst`, il SHALL rédiger et réviser le changement. Son shell n'est pas borné ; il MUST NOT disposer de `Agent` ni lancer d'autre skill que celui d'apply.
 
 #### Scenario: Profil généré
 - **WHEN** `developer` est généré
