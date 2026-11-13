@@ -23,6 +23,7 @@ Method:
 @@end
 @@module:archgate-plugin
 - To frame the ADR's content, run the `archgate:adr-author` skill; it is for framing, the ADR is created with `archgate adr create` and then completed with `Edit`.
+- To write or change an ADR's `.rules.ts` rules, run the `archgate:cli-reference` skill: it gives the `archgate` commands and the rules API.
 @@end
 @@module:archgate
 - Create the ADR with `archgate adr create --title "…" --domain <domain>`, then check that `rules:` in the frontmatter matches the presence of a `.rules.ts`. Run `archgate check`.

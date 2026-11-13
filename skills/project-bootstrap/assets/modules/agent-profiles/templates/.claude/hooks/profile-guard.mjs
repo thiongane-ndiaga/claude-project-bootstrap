@@ -113,7 +113,7 @@ const PROFILES = {
   architect: {
     write: ["docs/architecture/"],
     agents: [],
-    skills: ["archgate:adr-author", "adr-options-comparison", "arc42-update"],
+    skills: ["archgate:adr-author", "archgate:cli-reference", "adr-options-comparison", "arc42-update"],
     // titre : lettres, chiffres, espace et ponctuation simple seulement (ni guillemet, ni parenthèse, ni substitution : PowerShell évalue les parenthèses)
     shell: [/^archgate adr create --title "[\p{L}\p{N} ,.:'’_-]+" --domain [a-z0-9-]+$/u, /^archgate adr domain list$/],
   },
@@ -137,7 +137,7 @@ const PROFILES = {
   "compliance-reviewer": { write: [], shell: [], agents: [], skills: [] },
   // developer : la stack n'est pas choisie, donc pas de dossiers d'écriture permis ; les dossiers de gouvernance lui sont interdits.
   // Son shell n'est pas borné (build, tests) : il peut écrire dans ces dossiers par la ligne de commande, le bornage est un garde-fou.
-  developer: { writeExcept: [".archgate/", ".bootstrap/", ".claude/", ".git/", ".githooks/", ".github/", ".release-please-manifest.json", "agents.md", "claude.md", "docs/architecture/", "docs/workflow.md", "openspec/changes/archive/", "openspec/config.yaml", "openspec/config.yml", "openspec/schemas/", "openspec/specs/", "release-please-config.json"], shellOpen: true, agents: [], skills: [] },
+  developer: { writeExcept: [".archgate/", ".bootstrap/", ".claude/", ".git/", ".githooks/", ".github/", ".release-please-manifest.json", "agents.md", "claude.md", "docs/architecture/", "docs/workflow.md", "openspec/changes/archive/", "openspec/config.yaml", "openspec/config.yml", "openspec/schemas/", "openspec/specs/", "release-please-config.json"], shellOpen: true, agents: [], skills: ["openspec-apply-change", "opsx:apply"] },
   "business-analyst": {
     write: ["openspec/changes/"],
     shell: [/^openspec new change "?[a-z0-9-]+"?$/, /^openspec instructions "?[a-z-]+"? --change "?[a-z0-9-]+"?( --json)?$/, /^openspec context( --json)?$/],

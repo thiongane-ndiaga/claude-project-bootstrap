@@ -23,6 +23,7 @@ Méthode :
 @@end
 @@module:archgate-plugin
 - Pour cadrer le contenu de l'ADR, lance le skill `archgate:adr-author` ; il sert à cadrer, l'ADR se crée avec `archgate adr create` puis se complète avec `Edit`.
+- Pour écrire ou modifier les règles `.rules.ts` d'un ADR, lance le skill `archgate:cli-reference` : il donne les commandes d'`archgate` et l'API des règles.
 @@end
 @@module:archgate
 - Crée l'ADR avec `archgate adr create --title "…" --domain <domaine>`, puis vérifie que `rules:` du frontmatter correspond à la présence d'un `.rules.ts`. Lance `archgate check`.
