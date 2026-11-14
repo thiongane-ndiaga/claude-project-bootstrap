@@ -72,6 +72,15 @@ if (existsSync(manifestPath)) {
   }
 }
 
+// modules et profils du catalogue que le manifeste n'a pas choisis : proposés à la mise à jour (absent si le manifeste est illisible ou sans liste de modules)
+function availableChoices() {
+  if (!previous || !Array.isArray(previous.modules)) return undefined;
+  const have = new Set(previous.modules);
+  const modules = describeModules(manifest).filter((m) => m.name !== "core" && !have.has(m.name) && !m.conflicts.some((c) => have.has(c)) && ![...have].some((h) => manifest.modules[h]?.conflicts?.includes(m.name)));
+  const chosen = Array.isArray(previous.config?.profiles) ? previous.config.profiles : [];
+  return { modules, profiles: have.has("agent-profiles") ? OPTIONAL_PROFILES.filter((p) => !chosen.includes(p)) : [] };
+}
+
 // --- détection : le dépôt cible existe-t-il, est-il déjà bootstrappé ? (aucune écriture) ---
 if (args.detect === true) {
   const has = (p) => existsSync(path.join(target, ...p.split("/")));
@@ -92,6 +101,7 @@ if (args.detect === true) {
         pluginVersion,
         languages: ["fr", ...languageDirs()].sort(),
         updateAvailable: previous?.plugin?.version !== undefined && previous.plugin.version !== pluginVersion,
+        available: availableChoices(),
         claude: has(".claude"),
         packageJson: has("package.json"),
         resumable: has(".bootstrap/local/state.json"),
@@ -373,6 +383,7 @@ const report = {
   bootstrapped: previous !== null,
   fromVersion: previous?.plugin?.version ?? null,
   toVersion: pluginVersion,
+  available: availableChoices(),
   created: [],
   updated: [],
   merged: [],

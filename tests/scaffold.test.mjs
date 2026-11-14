@@ -549,6 +549,39 @@ for (const c of cases) {
   const apQuestions = listed.modules.find((m) => m.name === "agent-profiles")?.questions ?? [];
   check("--list-modules : agent-profiles déclare les questions de phase 0 sur mainAgent et sur profiles (défaut non / aucun), listées aussi dans le tableau", apQuestions.length === 3 && /regulatedDomain/.test(apQuestions[2]) && /Défaut : non/.test(apQuestions[2]) && /mainAgent/.test(apQuestions[0]) && /Défaut : non/.test(apQuestions[0]) && /profiles/.test(apQuestions[1]) && /Défaut : aucun/.test(apQuestions[1]) && /project-lead/.test(table.stdout.split("\n").find((l) => l.startsWith("| `agent-profiles`")) ?? ""));
   check("--list-modules --format table : tableau markdown avec les questions de phase 0", table.status === 0 && /^\| Module \| Apporte \| Requiert \| Incompatible avec \| Par défaut \| Questions de phase 0 \|/.test(table.stdout) && table.stdout.split("\n").filter((l) => l.startsWith("| `")).length === 19);
+  // modules et profils proposables à la mise à jour : available (--detect et rapport de --update)
+  {
+    const detect = (t) => JSON.parse(spawnSync(process.execPath, [scaffold, "--detect", "--target", t], { encoding: "utf8" }).stdout);
+    const fresh = run({ ...base, visibility: "private", modules: ["claude", "github", "openspec", "agent-profiles"], profiles: ["product-owner"] });
+    const av = detect(fresh.out).available;
+    const dep = av?.modules.find((m) => m.name === "dependabot");
+    check("available : module absent du manifeste proposé avec ses champs, profil absent proposé dans l'ordre du catalogue", fresh.res.status === 0 && dep?.description && Array.isArray(dep.requires) && Array.isArray(dep.requiresAny) && Array.isArray(dep.conflicts) && dep.default === false && Array.isArray(dep.questions) && av.profiles.join() === "acceptance-tester,business-analyst,compliance-reviewer,devops-engineer,scout,second-opinion", JSON.stringify(av));
+    check("available : core, modules du manifeste et modules incompatibles (gitlab avec github) jamais proposés", !av.modules.some((m) => ["core", "github", "openspec", "gitlab"].includes(m.name)), JSON.stringify(av.modules.map((m) => m.name)));
+    const rep = { report: JSON.parse(spawnSync(process.execPath, [scaffold, "--update", "--target", fresh.out, "--dry-run"], { encoding: "utf8" }).stdout) };
+    check("available : rapporté aussi par --update --dry-run", rep.report.available?.modules.some((m) => m.name === "dependabot") === true && rep.report.available.profiles.includes("scout"));
+    const mpath = path.join(fresh.out, ".bootstrap", "manifest.json");
+    const m0 = JSON.parse(readFileSync(mpath, "utf8"));
+    const completed = { ...m0.config, modules: [...m0.modules, "dependabot"], profiles: [...m0.config.profiles, "scout"] };
+    const cfgDone = path.join(mkdtempSync(path.join(tmpdir(), "pb-avail-")), "bootstrap.json");
+    writeFileSync(cfgDone, JSON.stringify(completed));
+    const sim = spawnSync(process.execPath, [scaffold, "--config", cfgDone, "--target", fresh.out, "--dry-run"], { encoding: "utf8" });
+    const simReport = sim.status === 0 ? JSON.parse(sim.stdout) : null;
+    check("available : simulation avec la configuration du manifeste complétée (code 0, fichiers du module et du profil créés)", sim.status === 0 && simReport.created.includes(".github/dependabot.yml") && simReport.created.includes(".claude/agents/scout.md"), sim.stderr || sim.stdout);
+    const all = JSON.parse(spawnSync(process.execPath, [scaffold, "--list-modules"], { encoding: "utf8" }).stdout).modules.map((n) => n.name).filter((n) => n !== "gitlab" && n !== "core");
+    const done = run({ ...base, visibility: "private", modules: ["claude", "github", "openspec", "agent-profiles"], profiles: [] });
+    const dm = JSON.parse(readFileSync(path.join(done.out, ".bootstrap", "manifest.json"), "utf8"));
+    dm.modules = all;
+    dm.config.profiles = ["acceptance-tester", "business-analyst", "compliance-reviewer", "devops-engineer", "product-owner", "scout", "second-opinion"];
+    writeFileSync(path.join(done.out, ".bootstrap", "manifest.json"), JSON.stringify(dm));
+    const none = detect(done.out).available;
+    check("available : rien de nouveau, listes vides", none?.modules.length === 0 && none.profiles.length === 0, JSON.stringify(none));
+    dm.modules = ["claude", "github"];
+    writeFileSync(path.join(done.out, ".bootstrap", "manifest.json"), JSON.stringify(dm));
+    const noAp = detect(done.out).available;
+    check("available : sans agent-profiles au manifeste, aucun profil et agent-profiles proposé comme module", noAp.profiles.length === 0 && noAp.modules.some((m) => m.name === "agent-profiles"));
+    writeFileSync(path.join(done.out, ".bootstrap", "manifest.json"), "{ pas du json");
+    check("available : manifeste illisible, absent de la sortie", !("available" in detect(done.out)));
+  }
   check("--list-modules : requiresAny de jenkins affiché en JSON (github, gitlab) et dans la colonne Requiert, gitlab incompatible avec github", JSON.stringify(listed.modules.find((m) => m.name === "jenkins").requiresAny) === JSON.stringify(["github", "gitlab"]) && listed.modules.find((m) => m.name === "jenkins").requires.length === 0 && (table.stdout.split("\n").find((l) => l.startsWith("| `jenkins`")) ?? "").includes("l'un de github / gitlab") && listed.modules.find((m) => m.name === "gitlab").conflicts.join() === "github");
   const badCatalog = spawnSync(process.execPath, [scaffold, "--list-modules", "--catalog", path.join(mkdtempSync(path.join(tmpdir(), "pb-vide-")), "rien")], { encoding: "utf8" });
   check("--catalog invalide : code 1 et message", badCatalog.status === 1 && /Catalogue introuvable/.test(badCatalog.stderr));
