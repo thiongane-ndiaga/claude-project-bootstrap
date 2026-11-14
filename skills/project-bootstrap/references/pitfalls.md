@@ -61,6 +61,10 @@ Constatés lors de la mise en place de référence (Claude Code 2.1.31x, OpenSpe
 - Seuls `feat` et `fix` apparaissent dans le changelog ; des commits uniquement `docs`/`chore` ne proposent pas de release.
 - Une action peut publier un correctif sur une **ancienne majeure** après la dernière majeure : choisir les versions par numéro, pas par date (`resolve-versions.mjs` le fait).
 
+## Mise à jour et `keep` (#170)
+- Un fichier resté longtemps dans `keep` avant ce changement a un manifeste dérivé : `generated` y était réécrit à chaque passage avec le modèle actuel, alors que sa base (`.bootstrap/base/`) restait figée. Au retrait de `keep` : modèle inchangé depuis, la base est réancrée sur le modèle actuel (rien à faire) ; modèle changé, `baseInvalid` et conflit. Réparer en mettant `generated` au sha256 du `.base` normalisé en LF avant le premier `--update` sans `keep`, ou fusionner à la main puis `--adopt` (`versioning.md`, « Manifeste dérivé par une version antérieure »).
+- Un fichier dans `keep` dès la première génération n'a jamais de base : retiré de `keep`, il reste en conflit (diff simple) jusqu'à `--adopt`.
+
 ## Reprise et journal des effets (`state.mjs`)
 - `state.mjs init` est refusé quand un état existe : après un redémarrage, lancer `resume` (et `config --out` pour restituer `bootstrap.json`), jamais `init --force`, qui efface l'avancement.
 - `resume` ne croit pas aveuglément l'état : une étape faite dont la preuve manque (`.git`, manifeste, `openspec/config.yaml`, `core.hooksPath`) redevient la prochaine.

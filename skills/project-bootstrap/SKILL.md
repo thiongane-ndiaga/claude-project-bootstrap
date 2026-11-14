@@ -9,7 +9,7 @@ Recrée l'outillage d'un projet piloté par Claude Code : la stack applicative n
 
 Travaille en phases et arrête-toi à chaque **[STOP]** pour obtenir une validation explicite. L'utilisateur garde la main sur tout ce qui est global à sa machine ou visible à l'extérieur (installations globales, `archgate login`, toute écriture sur GitHub).
 
-Lis `references/pitfalls.md` avant la phase 2 : chaque piège qui y figure a déjà coûté du temps.
+Lis `references/pitfalls.md` avant la phase 2 : chaque piège qui y figure a coûté du temps.
 
 ## Reprise et journal des effets
 
@@ -37,12 +37,12 @@ Sans `agent-profiles`, les agents générés dépendent des modules : `spec-revi
 | resté tel que généré (empreinte du manifeste) | remplacé par le modèle actuel (ex. `ci.yml` quand on ajoute un module) |
 | `.gitignore`, `.gitattributes`, `.claude/settings.json`, `.archgate/config.json` | **fusionné** avec l'existant : règles ajoutées, clés et tableaux réunis, rien retiré |
 | modifié par le projet, ou déjà présent sans manifeste | **conflit** signalé (code 3), diff avec `--diff`, jamais écrasé |
-| listé dans `keep` de `bootstrap.json` | conservé tel quel et consigné |
+| listé dans `keep` de `bootstrap.json` | conservé et consigné ; retiré de `keep` : fusion à trois voies |
 
-- **Ajouter un module** : relance avec `modules` complété ; seuls les fichiers du module sont créés, les fichiers non modifiés sont mis à jour, les fichiers personnalisés restent intacts. Le retrait d'un module n'est pas géré (suppression de fichiers : à faire à la main).
-- **Dépôt déjà équipé** (CI, linter, `CLAUDE.md`, formulaires) : pour chaque conflit, propose conserver (`keep`), remplacer ou fusionner à la main, et consigne la décision dans `keep`. Ne duplique pas une CI existante : propose de brancher les commandes du projet dans `.bootstrap/checks.json`.
+- **Ajouter un module** : relance avec `modules` complété ; seuls les fichiers du module sont créés, les fichiers non modifiés sont mis à jour, les personnalisés restent intacts. Retrait d'un module non géré (fichiers à supprimer à la main).
+- **Dépôt déjà équipé** (CI, linter, `CLAUDE.md`, formulaires) : pour chaque conflit, propose conserver (`keep`), remplacer ou fusionner à la main, et consigne la décision dans `keep` (retirable ensuite). Ne duplique pas une CI existante : propose de brancher les commandes du projet dans `.bootstrap/checks.json`.
 - **Phase 1 [STOP]** obligatoire avant de modifier un fichier existant : présente le dry-run (`--dry-run --diff`) fichier par fichier.
-- La mise à jour d'un projet vers une nouvelle version du plugin : phase 5.
+- Mise à jour vers une nouvelle version du plugin : phase 5.
 
 ## Phase 0 — Cadrage
 
@@ -124,8 +124,8 @@ Propose ensuite de rédiger arc42 §1 à §3, puis d'ouvrir la première issue �
    - `created` : nouveaux fichiers du modèle, ajoutés après accord ;
    - `updated` : fichiers restés tels que générés, remplacés par le nouveau modèle ;
    - `merged` : fichiers partagés fusionnés ;
-   - `reconciled` : fichiers modifiés par le projet, fusionnés avec le nouveau modèle à partir de leur base (`.bootstrap/base/`) ; à relire, surtout `ci.yml` et les hooks ;
-   - `conflicts` : fichiers modifiés par le projet **dont le modèle a changé** et qui n'ont pas pu être fusionnés ; avec `--diff`, `diffs` contient la proposition de fusion avec marqueurs (jamais écrite dans le fichier) ; `baseInvalid` liste les bases altérées ;
+   - `reconciled` : fichiers modifiés par le projet, fusionnés avec le nouveau modèle à partir de leur base (`.bootstrap/base/`) ; à relire, surtout `ci.yml` et les hooks, y compris un fichier retiré de `keep`, fusionné à partir de sa base d'avant `keep` ;
+   - `conflicts` : fichiers modifiés par le projet **dont le modèle a changé** et qui n'ont pas pu être fusionnés ; avec `--diff`, `diffs` contient la proposition de fusion avec marqueurs (jamais écrite dans le fichier) ; `baseInvalid` liste les bases altérées (manifeste dérivé d'un fichier resté longtemps dans `keep` : procédure de `references/versioning.md`) ;
    - `customized` : fichiers modifiés dont le modèle n'a pas changé (rien à faire) ;
    - `retired` : fichiers que le modèle ne produit plus (jamais supprimés automatiquement).
    Ces fichiers contiennent du code qui s'exécute (hooks, CI, `pre-push`) : l'utilisateur relit le diff avant d'appliquer.
