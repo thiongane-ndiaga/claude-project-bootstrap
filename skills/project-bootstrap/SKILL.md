@@ -37,10 +37,10 @@ Sans `agent-profiles`, les agents générés dépendent des modules : `spec-revi
 | resté tel que généré (empreinte du manifeste) | remplacé par le modèle actuel (ex. `ci.yml` quand on ajoute un module) |
 | `.gitignore`, `.gitattributes`, `.claude/settings.json`, `.archgate/config.json` | **fusionné** avec l'existant : règles ajoutées, clés et tableaux réunis, rien retiré |
 | modifié par le projet, ou déjà présent sans manifeste | **conflit** signalé (code 3), diff avec `--diff`, jamais écrasé |
-| listé dans `keep` de `bootstrap.json` | conservé et consigné ; retiré de `keep` : fusion à trois voies si sa base existe, sinon conflit jusqu'à `--adopt` (fichiers fusionnés par lignes ou JSON : leur mécanisme) |
+| listé dans `keep` de `bootstrap.json` | conservé et consigné ; retiré de `keep` : fusion à trois voies si base, sinon conflit jusqu'à `--adopt` |
 
 - **Ajouter un module** : relance avec `modules` complété ; seuls les fichiers du module sont créés, les fichiers non modifiés sont mis à jour, les personnalisés restent intacts. Retrait d'un module non géré (fichiers à supprimer à la main).
-- **Dépôt déjà équipé** (CI, linter, `CLAUDE.md`, formulaires) : pour chaque conflit, propose conserver (`keep`), remplacer ou fusionner à la main, et consigne la décision dans `keep` (retirable ensuite). Ne duplique pas une CI existante : propose de brancher les commandes du projet dans `.bootstrap/checks.json`.
+- **Dépôt déjà équipé** (CI, linter, `CLAUDE.md`, formulaires) : pour chaque conflit, propose conserver (`keep`), remplacer ou fusionner à la main, et consigne la décision dans `keep`. Ne duplique pas une CI existante : propose de brancher les commandes du projet dans `.bootstrap/checks.json`.
 - **Phase 1 [STOP]** obligatoire avant de modifier un fichier existant : présente le dry-run (`--dry-run --diff`) fichier par fichier.
 - Mise à jour vers une nouvelle version du plugin : phase 5.
 
@@ -123,7 +123,7 @@ Propose ensuite de rédiger arc42 §1 à §3, puis d'ouvrir la première issue �
 4. **Présenter** [STOP], en citant `fromVersion` → `toVersion` :
    - `created` : nouveaux fichiers du modèle, ajoutés après accord ;
    - `updated` : fichiers restés tels que générés, remplacés par le nouveau modèle ;
-   - `merged` : fichiers partagés fusionnés ;
+   - `merged` : fichiers partagés fusionnés (un fichier fusionné par lignes ou JSON retiré de `keep` garde ce mécanisme, sans base) ;
    - `reconciled` : fichiers modifiés par le projet, fusionnés avec le nouveau modèle à partir de leur base (`.bootstrap/base/`) ; à relire, surtout `ci.yml` et les hooks, y compris un fichier retiré de `keep`, fusionné à partir de sa base d'avant `keep` ;
    - `conflicts` : fichiers modifiés par le projet **dont le modèle a changé** et qui n'ont pas pu être fusionnés, et fichiers retirés de `keep` sans base (dans `keep` dès la première génération : conflit jusqu'à `--adopt`) ; avec `--diff`, `diffs` contient la proposition de fusion avec marqueurs (jamais écrite dans le fichier) ; `baseInvalid` liste les bases altérées (manifeste dérivé d'un fichier resté longtemps dans `keep` : procédure de `references/versioning.md`) ;
    - `customized` : fichiers modifiés dont le modèle n'a pas changé (rien à faire) ;
