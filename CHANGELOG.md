@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.21](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.20...v0.1.21) (2026-11-14)
+
+
+### Features
+
+* **skill:** offer new modules and profiles when updating a project ([#164](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/164)) ([1ce6f35](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/1ce6f35451615613470d91feedb95b2a07a1ec95))
+
 ## [0.1.20](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.19...v0.1.20) (2026-11-13)
 
 
