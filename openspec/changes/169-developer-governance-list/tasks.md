@@ -19,12 +19,18 @@
 ## 4. Documentation
 
 - [x] 4.1 Dans `skills/project-bootstrap/references/pitfalls.md`, ligne 96 : « dossiers de gouvernance » devient « dossiers et fichiers de gouvernance » ; ligne 99 : ajouter qu'une entrée ajoutée à `writeExcept` oblige à modifier les deux hooks (fr et en) et les deux modèles de `workflow.md`, sinon le test de cohérence échoue ; vérifier par relecture du diff et `node .claude/hooks/quality-gate.mjs`
-- [ ] 4.2 `architect` (skill `arc42-update`) complète `docs/architecture/arc42/11-risques-et-dette-technique.md` ligne 29 : la mitigation « tenir la liste à jour dans la table » cite le test de cohérence entre le tableau de `workflow.md` et `writeExcept` ; vérifier que `docs/architecture/arc42/08-concepts-transverses.md` (lignes 126 à 128) n'appelle aucune modification (exemples cohérents) et signaler à `project-lead` la contradiction sur les liens et jonctions d'ARCH-011 (ligne 65) et de `pitfalls.md` (ligne 96), hors de ce changement
+- [x] 4.2 `architect` (skill `arc42-update`) complète `docs/architecture/arc42/11-risques-et-dette-technique.md` ligne 29 : la mitigation « tenir la liste à jour dans la table » cite le test de cohérence entre le tableau de `workflow.md` et `writeExcept` ; vérifier que `docs/architecture/arc42/08-concepts-transverses.md` (lignes 126 à 128) n'appelle aucune modification (exemples cohérents) et signaler à `project-lead` la contradiction sur les liens et jonctions d'ARCH-011 (ligne 65) et de `pitfalls.md` (ligne 96), hors de ce changement
 
 ## 5. Contrôles
 
 - [x] 5.1 `node .bootstrap/run-checks.mjs` passe, `node .claude/hooks/quality-gate.mjs` passe, `archgate check` passe
 - [x] 5.2 `openspec validate 169-developer-governance-list --strict --no-interactive` puis `openspec validate --all --strict --no-interactive` passent
+
+## 6. Corrections de la revue
+
+- [x] 6.1 Dans `tests/scaffold.test.mjs`, ajouter le contrôle que la liste `writeExcept` du hook français est égale à celle du hook anglais, avec l'écart nommé (entrées manquantes, en trop, répétées, ordre) ; vérifier qu'il échoue sur une copie jetable du dépôt dont le hook anglais est altéré
+- [x] 6.2 Dans `skills/project-bootstrap/references/pitfalls.md`, regrouper la règle de mise à jour de `writeExcept` à un seul endroit (ligne 99, sans doublon avec la ligne 96), la rendre exacte avec les deux contrôles (tableau et hook, hook français et hook anglais), et corriger la phrase sur les liens et jonctions de la ligne 96 (le chemin d'un outil d'écriture est résolu vers sa cible réelle) ; ARCH-011 reste inchangé
+- [x] 6.3 Dans `tests/scaffold.test.mjs`, ajouter les contrôles de la revue : altération de la ligne `developer` par la chaîne d'extraction complète (élément en trop après la parenthèse, entrée retirée, seconde parenthèse, ligne absente), tableau vide, doublon côté hook (comparaison symétrique des répétitions), une seule parenthèse dans la cellule
 
 ## Workflow follow-up
 
