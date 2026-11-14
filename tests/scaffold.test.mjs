@@ -2552,6 +2552,33 @@ const d = mkdtempSync(path.join(tmpdir(), "pb-sonde-")); writeFileSync(path.join
   const cells = (l) => l.slice(1, -1).split("|").map((c) => c.trim());
   const ALL = ["product-owner", "developer", "business-analyst", "acceptance-tester", "scout", "second-opinion", "devops-engineer", "compliance-reviewer"];
   const full = ["claude", "github", "release", "openspec", "archgate", "arc42", "githooks", "agent-profiles"];
+  // liste de gouvernance de developer : le tableau égale writeExcept du hook généré (#169)
+  const hookList = (r) => {
+    const m = /developer: \{ writeExcept: (\[[^\]]*\])/.exec(txt(r, ".claude/hooks/profile-guard.mjs"));
+    return m ? JSON.parse(m[1]) : [];
+  };
+  const govProblems = (table, hook) => {
+    if (hook.length === 0) return ["liste writeExcept du hook introuvable ou vide"];
+    const count = (list) => list.reduce((m, e) => m.set(e, (m.get(e) ?? 0) + 1), new Map());
+    const t = count(table);
+    const h = count(hook);
+    const out = [];
+    const missing = [...h.keys()].filter((e) => !t.has(e));
+    const extra = [...t.keys()].filter((e) => !h.has(e));
+    const repeated = [...t.keys()].filter((e) => h.has(e) && t.get(e) > h.get(e));
+    if (missing.length) out.push(`manquantes : ${missing.join(", ")}`);
+    if (extra.length) out.push(`en trop : ${extra.join(", ")}`);
+    if (repeated.length) out.push(`répétées : ${repeated.join(", ")}`);
+    const common = (list, other) => [...new Set(list)].filter((e) => other.includes(e));
+    const tableOrder = common(table, hook);
+    const hookOrder = common(hook, table);
+    if (tableOrder.join("\n") !== hookOrder.join("\n")) out.push(`ordre différent : ${tableOrder.join(", ")} au lieu de ${hookOrder.join(", ")}`);
+    return out;
+  };
+  const devCell = (wf, T) => {
+    const line = rows(section(wf, T.who)).find((l) => cells(l)[0] === "`developer`");
+    return line ? cells(line)[2] : undefined;
+  };
   const configs = [
     ["tous les profils", full, { profiles: ALL, regulatedDomain: "RGPD" }],
     ["aucun profil", full, {}],
@@ -2567,6 +2594,13 @@ const d = mkdtempSync(path.join(tmpdir(), "pb-sonde-")); writeFileSync(path.join
       const names = rows(section(wf, T.who)).map((l) => /^`([\w-]+)`$/.exec(cells(l)[0])?.[1]).sort();
       const files = readdirSync(path.join(r.out, ".claude", "agents")).map((f) => f.replace(/\.md$/, "")).sort();
       check(`workflow.md (${lang}, ${label}) : un agent généré = une ligne de la table`, r.res.status === 0 && names.join() === files.join(), `${names} / ${files}`);
+      const cell = devCell(wf, T);
+      const tableList = [...(cell ?? "").matchAll(/`([^`]+)`/g)].map((m) => m[1]);
+      const hookEntries = hookList(r);
+      const problems = govProblems(tableList, hookEntries);
+      check(`workflow.md (${lang}, ${label}) : liste de gouvernance de developer égale writeExcept du hook`, cell !== undefined && problems.length === 0, problems.join(" ; ") || "ligne developer absente");
+      const paren = /\(([^)]*)\)/.exec(cell ?? "")?.[1];
+      check(`workflow.md (${lang}, ${label}) : liste de gouvernance de developer entre accents graves, séparée par des virgules`, hookEntries.length > 0 && paren === hookEntries.map((e) => `\`${e}\``).join(", "), String(paren));
       const lead = txt(r, ".claude/agents/project-lead.md");
       const ladder = (t) => t.split("\n").filter((l) => /^\| [1-5] \|/.test(l));
       check(`workflow.md (${lang}, ${label}) : échelle d'arbitrage identique à project-lead`, ladder(wf).length === 5 && ladder(wf).join("\n") === ladder(lead).join("\n"));
@@ -2583,6 +2617,13 @@ const d = mkdtempSync(path.join(tmpdir(), "pb-sonde-")); writeFileSync(path.join
       check(`workflow.md (${lang}, ${label}) : chaque règle de CLAUDE.md a sa ligne`, missing.length === 0, missing.join(" ; "));
       check(`workflow.md (${lang}, ${label}) : commandes OpenSpec documentées`, /\/opsx:(explore|update|sync)|skip_specs/.test(wf) === mods.includes("openspec") && (!mods.includes("openspec") || (/\/opsx:explore/.test(wf) && /\/opsx:update/.test(wf) && /\/opsx:sync/.test(wf) && /skip_specs: true/.test(wf))));
     }
+    const hookRef = hookList(gen(["claude", "agent-profiles"], { docLanguage: lang }));
+    const signals = (mutate, expected) => hookRef.length > 0 && govProblems(mutate([...hookRef]), hookRef).join(" ; ").includes(expected);
+    check(`workflow.md (${lang}) : liste de gouvernance, entrée retirée nommée`, signals((l) => l.filter((e) => e !== "openspec/schemas/"), "manquantes : openspec/schemas/"));
+    check(`workflow.md (${lang}) : liste de gouvernance, entrée ajoutée nommée`, signals((l) => [...l, "docs/extra/"], "en trop : docs/extra/"));
+    check(`workflow.md (${lang}) : liste de gouvernance, ordre permuté signalé`, signals((l) => [l[1], l[0], ...l.slice(2)], "ordre différent"));
+    check(`workflow.md (${lang}) : liste de gouvernance, entrée répétée nommée`, signals((l) => [...l, ".github/"], "répétées : .github/"));
+    check(`workflow.md (${lang}) : liste de gouvernance, liste vide du hook refusée`, govProblems(hookRef, []).length > 0);
     const noOpen = txt(gen(["claude", "github"], { docLanguage: lang }), "docs/workflow.md");
     check(`workflow.md (${lang}) : sans openspec, ni explore, ni update, ni sync, ni skip_specs`, !/\/opsx:(explore|update|sync)|skip_specs/.test(noOpen));
     const arch = gen(["claude", "archgate"], { docLanguage: lang });
