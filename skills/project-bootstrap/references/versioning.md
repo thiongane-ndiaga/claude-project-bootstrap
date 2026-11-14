@@ -36,9 +36,18 @@ Un changement de **modèle** (`assets/modules/<module>/templates*/`), du **catal
 - Les bases de fichiers que le modèle ne produit plus restent en place (rien n'est supprimé).
 
 ### Manifeste dérivé par une version antérieure
-Avant ce changement, `generated` d'un fichier dans `keep` était réécrit à chaque passage avec l'empreinte du modèle actuel, alors que la base restait figée : le manifeste d'un fichier resté longtemps dans `keep` peut donc ne plus correspondre à sa base. Au retrait de `keep` :
-- **modèle inchangé depuis le dernier passage** : rien à faire, la base est réancrée sur le modèle actuel sans `baseInvalid` (elle n'est plus l'ancêtre réel du fichier : une fusion ultérieure ne porte que les changements du modèle postérieurs à ce passage, sans perte du contenu du projet) ;
-- **modèle changé** : `baseInvalid` et conflit. Pour retrouver la fusion, avant le premier `--update` sans `keep`, mettre `generated` de l'entrée du fichier au sha256 du `.base` normalisé en LF ; sinon, fusionner à la main avec le diff (`--diff`), puis relancer avec `--adopt`.
+Un manifeste écrit par une version qui réécrivait `generated` pendant `keep` (#170) peut ne plus correspondre à la base d'un fichier resté longtemps dans `keep` : `generated` porte l'empreinte d'un modèle plus récent que sa base (`.bootstrap/base/`). Au retrait de `keep`, recommande (a) dans tous les cas :
+- **(a) retrouver la valeur d'origine de `generated`, avant le premier `--update` sans `keep`** : lire l'ancienne valeur dans l'historique (`git log -p .bootstrap/manifest.json`), ou calculer le sha256 du `.base` normalisé en LF (`Get-FileHash` donne un faux résultat si la copie de travail est en CRLF) ; puis l'écrire dans `generated` de l'entrée du fichier. La fusion à trois voies repart de la base réelle ;
+- **(b) modèle changé depuis le dernier passage de la version qui dérivait, sans (a)** : `baseInvalid` et conflit ; fusionner à la main avec le diff (`--diff`), puis relancer avec `--adopt` ;
+- **(c) modèle inchangé depuis ce dernier passage, sans (a)** : la base est réancrée sur le modèle actuel sans `baseInvalid`. Les changements du modèle depuis la base d'origine sont abandonnés, et une fusion ultérieure ne porte que les changements postérieurs à ce passage, sans perte du contenu du projet. C'est la conséquence acceptée de ne rien faire.
+
+Calcul du sha256 du `.base` en LF :
+
+```
+node -e "const c=require('node:crypto'),f=require('node:fs');console.log(c.createHash('sha256').update(f.readFileSync(process.argv[1],'utf8').replace(/\r\n/g,'\n')).digest('hex'))" .bootstrap/base/<fichier>.base
+```
+
+`--update --config <fichier>` sans la clé `keep` vide toute la liste (`keep` n'est pas héritée) : tous les fichiers qu'elle gardait sont alors fusionnés. Applique (a) à chacun avant de la lancer.
 
 Le dépôt du plugin est concerné : `ARCH-005` y est dans le même cas que `docs/workflow.md`.
 
