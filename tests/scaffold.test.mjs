@@ -943,6 +943,172 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
     const sharedUp = runScript(p2.script, ["--update", "--target", shared]);
     check("fichier partagé : fusion par lignes inchangée, aucune base", sharedUp.res.status === 0 && read(shared, ".gitignore").includes("mon-dossier/") && !exists(shared, baseOf(".gitignore")));
 
+    // fichier retiré de keep : réconcilié à partir de sa base d'avant keep (#170)
+    {
+      const MODS = ["claude", "github"];
+      const sha = (text) => createHash("sha256").update(text).digest("hex");
+      const entry = (o, rel = WF) => manifestOf(o).files[rel];
+      const manifestOf = (o) => JSON.parse(read(o, ".bootstrap/manifest.json"));
+      const keepCfg = (list = [WF], modules = MODS) => withConfig(cfg(modules, { keep: list }));
+      const freeCfg = (modules = MODS) => withConfig(cfg(modules));
+      // projet généré en p1, fichier modifié, puis consigné dans keep (entrée kept, base d'avant keep)
+      const keptProject = (edit = editTop, list = [WF]) => {
+        const o = fresh();
+        edit(o);
+        runScript(p1.script, ["--update", "--target", o, "--config", keepCfg(list)]);
+        return o;
+      };
+      const nearEdit = (o, rel = WF) => writeFileSync(path.join(o, ...rel.split("/")), read(o, rel).replace(/\n+$/, "") + " (projet)\n");
+      const model2 = (() => {
+        const o = path.join(mkdir("pb-3w-m2-"), "repo");
+        runScript(p2.script, ["--config", freeCfg(), "--target", o]);
+        return sha(read(o, WF));
+      })();
+
+      // référence de base figée pendant keep
+      const hold = keptProject();
+      const gen1 = entry(hold).generated;
+      check("keep : entrée kept, generated = empreinte de la base, sha256 suit le fichier", entry(hold).status === "kept" && gen1 === sha(read(hold, baseOf(WF))) && entry(hold).sha256 === sha(read(hold, WF)));
+      const holdUp = runScript(p2.script, ["--update", "--target", hold, "--config", keepCfg()]);
+      check("keep : modèle changé -> fichier et base intacts, generated figé, toujours kept sans conflit", holdUp.res.status === 0 && holdUp.report.kept.includes(WF) && holdUp.report.conflicts.length === 0 && read(hold, WF).startsWith("# Mon workflow") && !/v9\.5/.test(read(hold, WF)) && !/v9\.5/.test(read(hold, baseOf(WF))) && entry(hold).generated === gen1 && entry(hold).sha256 === sha(read(hold, WF)), JSON.stringify(holdUp.report));
+      const addKeep = fresh();
+      editTop(addKeep);
+      const gen0 = entry(addKeep).generated;
+      const addUp = runScript(p2.script, ["--update", "--target", addKeep, "--config", keepCfg()]);
+      check("keep : ajout à keep avec modèle changé -> generated de la génération précédente, base intacte", addUp.res.status === 0 && addUp.report.kept.includes(WF) && entry(addKeep).generated === gen0 && entry(addKeep).status === "kept" && !/v9\.5/.test(read(addKeep, baseOf(WF))) && read(addKeep, baseOf(WF)) === read(fresh(), WF) );
+      const firstKeep = path.join(mkdir("pb-3w-fk-"), "repo");
+      mkdirSync(path.join(firstKeep, "docs"), { recursive: true });
+      writeFileSync(path.join(firstKeep, ...WF.split("/")), "# Workflow existant\n");
+      runScript(p1.script, ["--config", keepCfg(), "--target", firstKeep]);
+      check("keep : fichier dans keep dès la première génération -> aucune base, generated = modèle actuel", !exists(firstKeep, baseOf(WF)) && entry(firstKeep).status === "kept" && entry(firstKeep).generated === sha(read(fresh(), WF)) && read(firstKeep, WF) === "# Workflow existant\n");
+
+      // retrait de keep, base valide, sans conflit
+      const clean = keptProject();
+      const cleanBefore = read(clean, ".bootstrap/manifest.json");
+      const dryRm = runScript(p2.script, ["--update", "--target", clean, "--config", freeCfg(), "--dry-run"]);
+      check("retrait de keep : --dry-run rapporte reconciled sans écrire fichier, base ni manifeste", dryRm.res.status === 0 && dryRm.report.reconciled.includes(WF) && read(clean, WF).startsWith("# Mon workflow") && !/v9\.5/.test(read(clean, WF)) && !/v9\.5/.test(read(clean, baseOf(WF))) && read(clean, ".bootstrap/manifest.json") === cleanBefore, JSON.stringify(dryRm.report));
+      const rm = runScript(p2.script, ["--update", "--target", clean, "--config", freeCfg()]);
+      check("retrait de keep : fusionné (reconciled), code 0, fichier du projet et section du modèle conservés", rm.res.status === 0 && rm.report.reconciled.includes(WF) && rm.report.conflicts.length === 0 && !rm.report.kept.includes(WF) && read(clean, WF).startsWith("# Mon workflow") && /Nouvelle section v9\.5/.test(read(clean, WF)), JSON.stringify(rm.report));
+      check("retrait de keep : entrée reconciled avec l'empreinte du nouveau modèle, base = nouveau modèle", entry(clean).status === "reconciled" && entry(clean).generated === model2 && entry(clean).sha256 === sha(read(clean, WF)) && /v9\.5/.test(read(clean, baseOf(WF))) && manifestOf(clean).config.keep === undefined);
+      const rmAgain = runScript(p2.script, ["--update", "--target", clean]);
+      check("retrait de keep : seconde mise à jour idempotente (customized, aucune écriture)", rmAgain.res.status === 0 && rmAgain.report.customized.includes(WF) && rmAgain.report.reconciled.length === 0 && rmAgain.report.manifest === undefined, JSON.stringify(rmAgain.report));
+
+      // chemin de l'issue : édition de config.keep dans le manifeste, puis --update sans --config
+      const viaManifest = keptProject();
+      const mfPath = path.join(viaManifest, ".bootstrap", "manifest.json");
+      const mfEdit = manifestOf(viaManifest);
+      mfEdit.config.keep = mfEdit.config.keep.filter((f) => f !== WF);
+      writeFileSync(mfPath, JSON.stringify(mfEdit, null, 2) + "\n");
+      const viaUp = runScript(p2.script, ["--update", "--target", viaManifest, "--diff"]);
+      check("retrait de keep : édition de config.keep puis --update seul suffit, sans toucher aux empreintes", viaUp.res.status === 0 && viaUp.report.reconciled.includes(WF) && /Nouvelle section v9\.5/.test(read(viaManifest, WF)) && entry(viaManifest).status === "reconciled", JSON.stringify(viaUp.report));
+      const viaDry = keptProject();
+      const viaDryManifest = manifestOf(viaDry);
+      viaDryManifest.config.keep = [];
+      writeFileSync(path.join(viaDry, ".bootstrap", "manifest.json"), JSON.stringify(viaDryManifest, null, 2) + "\n");
+      const viaDryUp = runScript(p2.script, ["--update", "--dry-run", "--diff", "--target", viaDry]);
+      check("retrait de keep : --update --dry-run --diff rend la fusion sans manipuler les empreintes", viaDryUp.res.status === 0 && viaDryUp.report.reconciled.includes(WF) && !viaDryUp.report.baseInvalid.includes(WF), JSON.stringify(viaDryUp.report));
+
+      // retrait de keep avec conflit
+      const rmConflict = keptProject(nearEdit);
+      const nearText = read(rmConflict, WF);
+      const entryBefore = JSON.stringify(entry(rmConflict));
+      const rmc = runScript(p2.script, ["--update", "--target", rmConflict, "--config", freeCfg(), "--diff"]);
+      check("retrait de keep : conflit -> code 3, fichier intact sans marqueur, proposition sous diffs", rmc.res.status === 3 && rmc.report.conflicts.includes(WF) && read(rmConflict, WF) === nearText && /<<<<<<< projet/.test(rmc.report.diffs?.[WF] ?? ""), JSON.stringify(rmc.report));
+      check("retrait de keep : conflit -> base et entrée inchangées (kept, generated figé)", !/v9\.5/.test(read(rmConflict, baseOf(WF))) && JSON.stringify(entry(rmConflict)) === entryBefore);
+
+      // fins de ligne CRLF restituées
+      const rmCrlf = keptProject((o) => editTop(o, "\r\n"));
+      const rmCrlfUp = runScript(p2.script, ["--update", "--target", rmCrlf, "--config", freeCfg()]);
+      const rmCrlfText = readFileSync(path.join(rmCrlf, ...WF.split("/")), "utf8");
+      check("retrait de keep : fins de ligne CRLF restituées", rmCrlfUp.res.status === 0 && rmCrlfUp.report.reconciled.includes(WF) && rmCrlfText.includes("\r\n") && !/[^\r]\n/.test(rmCrlfText), JSON.stringify(rmCrlfUp.report));
+
+      // replis
+      const rmNoBase = keptProject();
+      rmSync(path.join(rmNoBase, ...baseOf(WF).split("/")));
+      const nbText = read(rmNoBase, WF);
+      const rmnb = runScript(p2.script, ["--update", "--target", rmNoBase, "--config", freeCfg(), "--diff"]);
+      check("retrait de keep : base absente -> conflit avec diff simple, intact, pas baseInvalid", rmnb.res.status === 3 && rmnb.report.conflicts.includes(WF) && !rmnb.report.baseInvalid.includes(WF) && read(rmNoBase, WF) === nbText && !/<<<<<<</.test(rmnb.report.diffs?.[WF] ?? "") && /Nouvelle section v9\.5/.test(rmnb.report.diffs?.[WF] ?? ""), JSON.stringify(rmnb.report));
+      const rmBad = keptProject();
+      writeFileSync(path.join(rmBad, ...baseOf(WF).split("/")), "base altérée\n");
+      const rmbb = runScript(p2.script, ["--update", "--target", rmBad, "--config", freeCfg()]);
+      check("retrait de keep : base altérée, modèle changé -> conflit et baseInvalid, intact", rmbb.res.status === 3 && rmbb.report.conflicts.includes(WF) && rmbb.report.baseInvalid.includes(WF) && read(rmBad, WF) === nbText);
+      // manifeste déjà dérivé (generated rafraîchi pendant keep par une version antérieure)
+      const drifted = (rel = WF) => {
+        const o = keptProject();
+        const m = manifestOf(o);
+        m.files[rel].generated = model2;
+        writeFileSync(path.join(o, ".bootstrap", "manifest.json"), JSON.stringify(m, null, 2) + "\n");
+        return o;
+      };
+      const driftChanged = drifted();
+      const dc = runScript(p3.script, ["--update", "--target", driftChanged, "--config", freeCfg()]);
+      check("manifeste dérivé, modèle changé -> conflit et baseInvalid, fichier intact", dc.res.status === 3 && dc.report.conflicts.includes(WF) && dc.report.baseInvalid.includes(WF) && read(driftChanged, WF) === nbText, JSON.stringify(dc.report));
+      const driftSame = drifted();
+      const ds = runScript(p2.script, ["--update", "--target", driftSame, "--config", freeCfg()]);
+      check("manifeste dérivé, modèle inchangé -> customized, base réancrée sur le modèle actuel, pas de baseInvalid", ds.res.status === 0 && ds.report.customized.includes(WF) && !ds.report.baseInvalid.includes(WF) && read(driftSame, WF) === nbText && /v9\.5/.test(read(driftSame, baseOf(WF))), JSON.stringify(ds.report));
+      const noGitRm = keptProject();
+      const noGitRmUp = runScript(p2.script, ["--update", "--target", noGitRm, "--config", freeCfg()], { ...process.env, PATH: "", Path: "" });
+      check("retrait de keep : git indisponible -> conflit, fichier intact", noGitRmUp.res.status === 3 && noGitRmUp.report.conflicts.includes(WF) && read(noGitRm, WF) === nbText, noGitRmUp.res.stderr);
+
+      // fichier sans base (dans keep dès la première génération), retiré de keep
+      const noBaseFirst = path.join(mkdir("pb-3w-fk2-"), "repo");
+      mkdirSync(path.join(noBaseFirst, "docs"), { recursive: true });
+      writeFileSync(path.join(noBaseFirst, ...WF.split("/")), "# Workflow existant\n");
+      runScript(p1.script, ["--config", keepCfg(), "--target", noBaseFirst]);
+      const nf = runScript(p1.script, ["--update", "--target", noBaseFirst, "--config", freeCfg()]);
+      check("retrait de keep : sans base, modèle inchangé -> conflit, intact, pas baseInvalid", nf.res.status === 3 && nf.report.conflicts.includes(WF) && !nf.report.baseInvalid.includes(WF) && read(noBaseFirst, WF) === "# Workflow existant\n", JSON.stringify(nf.report));
+      const nfAdopt = runScript(p1.script, ["--update", "--target", noBaseFirst, "--adopt"]);
+      check("retrait de keep : --adopt consigne le fichier (adopted, base = modèle actuel)", nfAdopt.res.status === 0 && nfAdopt.report.adopted.includes(WF) && entry(noBaseFirst).status === "adopted" && exists(noBaseFirst, baseOf(WF)), JSON.stringify(nfAdopt.report));
+      const nfAgain = runScript(p2.script, ["--update", "--target", noBaseFirst]);
+      check("retrait de keep : après adoption, le fichier suit la fusion à trois voies (modèle changé -> reconciled ou conflit, jamais écrasé)", read(noBaseFirst, WF).startsWith("# Workflow existant") && (nfAgain.report.reconciled.includes(WF) || nfAgain.report.conflicts.includes(WF)), JSON.stringify(nfAgain.report));
+
+      // retrait avec modèle inchangé : customized, entrée intacte
+      const sameModel = keptProject();
+      const smBefore = JSON.stringify(entry(sameModel));
+      const sm = runScript(p1.script, ["--update", "--target", sameModel, "--config", freeCfg()]);
+      check("retrait de keep : base et modèle inchangé -> customized, fichier et entrée intacts", sm.res.status === 0 && sm.report.customized.includes(WF) && sm.report.reconciled.length === 0 && JSON.stringify(entry(sameModel)) === smBefore && read(sameModel, WF).startsWith("# Mon workflow"), JSON.stringify(sm.report));
+
+      // --adopt sur conflit, puis seconde mise à jour
+      const adoptKept = keptProject(nearEdit);
+      const ak = runScript(p2.script, ["--update", "--target", adoptKept, "--config", freeCfg(), "--adopt"]);
+      check("retrait de keep : --adopt sur conflit -> adopted, code 0, base = nouveau modèle", ak.res.status === 0 && ak.report.adopted.includes(WF) && entry(adoptKept).status === "adopted" && /v9\.5/.test(read(adoptKept, baseOf(WF))), JSON.stringify(ak.report));
+      const ak2 = runScript(p2.script, ["--update", "--target", adoptKept]);
+      check("retrait de keep : après adoption, seconde mise à jour -> customized, aucune écriture", ak2.res.status === 0 && ak2.report.customized.includes(WF) && ak2.report.manifest === undefined, JSON.stringify(ak2.report));
+
+      // non-régressions
+      const pGi = plugin("9.8.1", appendTo(".gitignore", "\nnouveau-dossier-v981/\n"));
+      const giKept = fresh();
+      writeFileSync(path.join(giKept, ".gitignore"), "mon-dossier/\n");
+      runScript(p1.script, ["--update", "--target", giKept, "--config", keepCfg([".gitignore"])]);
+      check("non-régression : .gitignore dans keep reste intact (kept)", read(giKept, ".gitignore") === "mon-dossier/\n" && entry(giKept, ".gitignore").status === "kept");
+      const giSame = runScript(p1.script, ["--update", "--target", giKept, "--config", freeCfg()]);
+      check("non-régression : .gitignore retiré de keep, modèle inchangé -> fusion par lignes, ni base ni reconciled", giSame.res.status === 0 && giSame.report.merged.includes(".gitignore") && !giSame.report.reconciled.includes(".gitignore") && read(giKept, ".gitignore").includes("mon-dossier/") && !exists(giKept, baseOf(".gitignore")) && entry(giKept, ".gitignore").status === "merged", JSON.stringify(giSame.report));
+      const giKept2 = fresh();
+      writeFileSync(path.join(giKept2, ".gitignore"), "mon-dossier/\n");
+      runScript(p1.script, ["--update", "--target", giKept2, "--config", keepCfg([".gitignore"])]);
+      const giChanged = runScript(pGi.script, ["--update", "--target", giKept2, "--config", freeCfg()]);
+      check("non-régression : .gitignore retiré de keep, modèle changé -> fusion par lignes, ni base ni reconciled", giChanged.res.status === 0 && giChanged.report.merged.includes(".gitignore") && !giChanged.report.reconciled.includes(".gitignore") && /nouveau-dossier-v981/.test(read(giKept2, ".gitignore")) && read(giKept2, ".gitignore").includes("mon-dossier/") && !exists(giKept2, baseOf(".gitignore")), JSON.stringify(giChanged.report));
+
+      // plusieurs fichiers retirés d'un coup : un fusionné, un en conflit
+      const CM = "CLAUDE.md";
+      const p5 = plugin("9.8.0", (skill) => {
+        appendTo(WF, "\nNouvelle section v9.5.\n")(skill);
+        appendTo(CM, "\nRègle v9.8.\n")(skill);
+      });
+      const multi = keptProject((o) => {
+        editTop(o);
+        nearEdit(o, CM);
+      }, [WF, CM]);
+      const mu = runScript(p5.script, ["--update", "--target", multi, "--config", freeCfg(), "--diff"]);
+      check("retrait de plusieurs fichiers : l'un fusionné, l'autre en conflit, code 3", mu.res.status === 3 && mu.report.reconciled.includes(WF) && mu.report.conflicts.includes(CM) && !mu.report.conflicts.includes(WF) && /<<<<<<< projet/.test(mu.report.diffs?.[CM] ?? ""), JSON.stringify(mu.report));
+
+      // fichier retiré de keep et supprimé du projet : recréé depuis le modèle
+      const gone = keptProject();
+      rmSync(path.join(gone, ...WF.split("/")));
+      const goneUp = runScript(p2.script, ["--update", "--target", gone, "--config", freeCfg()]);
+      check("retrait de keep : fichier supprimé du projet -> recréé depuis le modèle", goneUp.res.status === 0 && goneUp.report.created.includes(WF) && /Nouvelle section v9\.5/.test(read(gone, WF)) && entry(gone).status === "created", JSON.stringify(goneUp.report));
+    }
+
     // date figée au manifeste : conservée avec --update --config sans date
     const dated = fresh();
     const mf = path.join(dated, ".bootstrap", "manifest.json");
@@ -981,6 +1147,7 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
   writeFileSync(path.join(ownOut, ".bootstrap", "checks.json"), "[]\n");
   const ownUp2 = runScript(own2.script, ["--update", "--target", ownOut]);
   check("owned : personnalisé, jamais touché", read(ownOut, ".bootstrap/checks.json") === "[]\n" &&ownUp2.res.status === 0);
+  check("owned : modifié -> kept, ni customized, ni reconciled, ni conflit, aucune base (#170)", ownUp2.report.kept.includes(".bootstrap/checks.json") && ["customized", "reconciled", "conflicts"].every((k) => !ownUp2.report[k].includes(".bootstrap/checks.json")) && !exists(ownOut, ".bootstrap/base/.bootstrap/checks.json.base"), JSON.stringify(ownUp2.report));
 
   // labels natifs de la forge : formulaires, synchronisation non destructive, migration 0002 (#29)
   {
