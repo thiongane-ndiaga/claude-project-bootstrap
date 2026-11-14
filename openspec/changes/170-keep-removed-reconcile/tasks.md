@@ -20,13 +20,13 @@
 - [x] 3.2 Mettre à jour `skills/project-bootstrap/references/bootstrap-config.md` (clé `keep`) : retirer un fichier de `keep` le rend réconciliable à la mise à jour suivante, sans toucher au manifeste. Vérifier : phrase présente et cohérente avec `versioning.md`.
 - [x] 3.3 Mettre à jour `skills/project-bootstrap/SKILL.md` : tableau « Situation du fichier » (ligne `keep`) et conseil de la section « Dépôt déjà équipé » (consigner dans `keep`, retirable ensuite) ; phase 5, étape 4 (`reconciled` : y compris un fichier retiré de `keep`, fusionné à partir de sa base d'avant `keep`, à relire ; `baseInvalid` et manifeste dérivé : renvoi à la procédure de `versioning.md`). Vérifier : `node .bootstrap/run-checks.mjs` passe.
 - [x] 3.4 Ajouter à `skills/project-bootstrap/references/pitfalls.md` le piège du manifeste dérivé (fichier resté longtemps dans `keep` avant ce changement : réparation de `generated`, ou `--adopt`). Vérifier : entrée présente, avec renvoi à `versioning.md`.
-- [ ] 3.5 Faire mettre à jour par `architect` (skill `arc42-update`) arc42 §5 (brique `scaffold.mjs`), §8 si le concept de manifeste y est décrit, et §11 (risque du manifeste dérivé, mitigation), et ajouter une ligne dans les « Suites » d'ARCH-006 : `generated` figé pendant `keep` désigne la base (#170). Vérifier : `archgate check` passe et les sections modifiées citent ARCH-006.
+- [x] 3.5 Faire mettre à jour par `architect` (skill `arc42-update`) arc42 §5 (brique `scaffold.mjs`), §8 si le concept de manifeste y est décrit, et §11 (risque du manifeste dérivé, mitigation), et ajouter une ligne dans les « Suites » d'ARCH-006 : `generated` figé pendant `keep` désigne la base (#170). Vérifier : `archgate check` passe et les sections modifiées citent ARCH-006.
 
 ## 4. Contrôles d'ensemble
 
 - [x] 4.1 `node .bootstrap/run-checks.mjs` passe (tests de comportement, matrice, état).
 - [x] 4.2 `node .claude/hooks/quality-gate.mjs` renvoie 0.
-- [ ] 4.3 `archgate check` passe.
+- [x] 4.3 `archgate check` passe.
 - [x] 4.4 `openspec validate --all --strict --no-interactive` passe.
 
 ## Workflow follow-up
