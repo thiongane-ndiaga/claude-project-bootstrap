@@ -23,8 +23,8 @@
 
 ## 5. Contrôles
 
-- [ ] 5.1 `node .bootstrap/run-checks.mjs` passe, `node .claude/hooks/quality-gate.mjs` passe, `archgate check` passe
-- [ ] 5.2 `openspec validate 169-developer-governance-list --strict --no-interactive` puis `openspec validate --all --strict --no-interactive` passent
+- [x] 5.1 `node .bootstrap/run-checks.mjs` passe, `node .claude/hooks/quality-gate.mjs` passe, `archgate check` passe
+- [x] 5.2 `openspec validate 169-developer-governance-list --strict --no-interactive` puis `openspec validate --all --strict --no-interactive` passent
 
 ## Workflow follow-up
 
