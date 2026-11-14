@@ -361,11 +361,14 @@ function diffText(currentPath, proposed) {
   return res.error ? "(git requis pour afficher le diff)" : res.stdout;
 }
 
-// Chaque entrée du manifeste : { sha256 (fichier tel qu'écrit), generated (empreinte du contenu produit par le modèle), status }.
-// status : created (fichier du modèle) | merged (fusionné avec l'existant) | kept (géré par le projet) | adopted (existant repris tel quel).
+// Chaque entrée du manifeste : { sha256 (fichier tel qu'écrit), generated (empreinte du contenu produit par le modèle ;
+// pour une entrée « kept » non owned et non fusionnée, empreinte de sa base, figée tant que le fichier est dans keep), status }.
+// status : created (fichier du modèle) | merged (fusionné avec l'existant) | kept (géré par le projet) | adopted (existant repris tel quel)
+//   | reconciled (fusionné à trois voies avec sa base).
 //
 // Règles, dans l'ordre, pour chaque fichier du modèle :
 //   listé dans config.keep ou « owned » dans le catalogue (créé s'il est absent) -> conservé tel quel, jamais touché ;
+//                                        une entrée « kept » retirée de keep rejoint les règles suivantes si sa base existe ;
 //   absent                            -> créé ;
 //   identique au modèle               -> rien ;
 //   resté tel que généré              -> remplacé par le modèle actuel (l'empreinte du manifeste le prouve) ;
@@ -433,7 +436,9 @@ for (const { rel, content, merge, owned } of outputs) {
   };
   if (keep.has(rel) || (owned && existsSync(dest))) {
     report.kept.push(rel);
-    if (existsSync(dest)) files[rel] = { sha256: sha256(readText(dest)), generated, status: "kept" };
+    // un fichier non owned, non fusionné, déjà suivi garde l'empreinte de sa dernière base : `generated` reste la référence de la base (#170)
+    const frozen = !owned && !merge && before?.generated ? before.generated : generated;
+    if (existsSync(dest)) files[rel] = { sha256: sha256(readText(dest)), generated: frozen, status: "kept" };
     continue;
   }
   if (!existsSync(dest)) {
@@ -457,14 +462,16 @@ for (const { rel, content, merge, owned } of outputs) {
     files[rel] = { sha256: generated, generated, status: "created" };
     continue;
   }
-  if (before && before.status !== "kept" && before.generated === generated) {
+  // une entrée « kept » hors keep (retirée de keep) est un fichier modifié, à condition d'avoir une base ; sans base : conflit avec le diff simple, jusqu'à --adopt
+  const reconcilable = before?.status !== "kept" || (!merge && !owned && existsSync(baseFile(rel)));
+  if (before && reconcilable && before.generated === generated) {
     base(content);
     report.customized.push(rel);
     continue;
   }
   // fusion à trois voies : base valide (empreinte du manifeste), fichier modifié, modèle changé
   let proposal = null;
-  if (before && before.status !== "kept" && !merge && !owned && existsSync(baseFile(rel))) {
+  if (before && !merge && !owned && existsSync(baseFile(rel))) {
     const old = readText(baseFile(rel));
     if (sha256(old) !== before.generated) report.baseInvalid.push(rel);
     else {

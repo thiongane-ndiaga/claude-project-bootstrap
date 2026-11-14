@@ -79,6 +79,14 @@ Source : changement OpenSpec `156-squash-setting` (issue #156). Voir [ARCH-005](
 
 Voir [ARCH-008](../adrs/ARCH-008-modeles-de-documentation-par-langue.md).
 
+## Base de fusion et `keep`
+
+- La base `.bootstrap/base/<chemin>.base` est écrite avec le contenu produit par le modèle (LF), dont l'empreinte devient `generated` de l'entrée du manifeste ; elle n'est valide que si son empreinte égale `generated`, sinon elle est ignorée et signalée `baseInvalid` ([ARCH-006](../adrs/ARCH-006-strategie-de-mise-a-jour-des-fichiers-generes.md), décision 1).
+- Pendant `keep`, `generated` reste figé et désigne la base du fichier ; seul `sha256` suit le fichier du projet. Retirer un fichier de `keep` suffit à le rendre réconciliable : il est fusionné à trois voies à partir de sa dernière base, avec les changements du modèle accumulés depuis. Sans base (fichier dans `keep` dès la première génération), il reste en conflit jusqu'à `--adopt`, sans adoption implicite.
+- Les fichiers `owned` et ceux fusionnés par lignes ou JSON n'ont pas de base et gardent leur mécanisme propre, dans `keep` comme hors de `keep`.
+
+Détail dans [`versioning.md`](../../../skills/project-bootstrap/references/versioning.md). Source : changement OpenSpec `170-keep-removed-reconcile` (issue #170).
+
 ## Propriété des fichiers par module
 
 - Un fichier appartient au module qui le déclare ; `when` ne liste que les modules supplémentaires nécessaires. Les ADR d'outillage ARCH-001 à ARCH-005 appartiennent à `archgate`, les formulaires d'issues à `github`, les fichiers transverses à `core`.

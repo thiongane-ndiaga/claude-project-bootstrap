@@ -18,18 +18,38 @@ Un changement de **modèle** (`assets/modules/<module>/templates*/`), du **catal
 | fichier modifié, modèle inchangé | laissé tel quel (`customized`) |
 | fichier modifié, modèle changé, base valide | **fusion à trois voies** : sans conflit, écrite et consignée `reconciled` ; avec conflit, rien n'est écrit et la proposition avec marqueurs est dans `diffs` (`--diff`) |
 | fichier modifié, modèle changé, base absente ou invalide | **conflit** : diff proposé, jamais écrasé (`baseInvalid` si la base est altérée) |
+| fichier listé dans `keep` | conservé tel quel (`kept`) ; sa base et son empreinte `generated` ne bougent pas |
+| fichier retiré de `keep` | traité comme un fichier modifié : fusion à trois voies à partir de sa base d'avant `keep` ; sans base, conflit jusqu'à `--adopt` |
 | fichier que le modèle ne produit plus | signalé (`retired`), jamais supprimé |
 
 ## Base et fusion à trois voies
-À chaque génération ou mise à jour, `scaffold.mjs` conserve dans `.bootstrap/base/<chemin>.base` ce que le modèle a produit (LF), pour les fichiers du modèle qui ne sont ni partagés (`.gitignore`, `settings.json`…), ni `owned`, ni `keep`. Le suffixe `.base` évite que les outils du projet traitent ces copies comme du code. La base est valide si son empreinte, après normalisation en LF, égale `generated` du manifeste ; sinon elle est ignorée et signalée (`baseInvalid`).
+À chaque génération ou mise à jour, `scaffold.mjs` conserve dans `.bootstrap/base/<chemin>.base` ce que le modèle a produit (LF), pour les fichiers du modèle qui ne sont ni partagés (`.gitignore`, `settings.json`…), ni `owned`, ni dans `keep` (tant qu'un fichier est dans `keep`, sa base reste en place, inchangée). Le suffixe `.base` évite que les outils du projet traitent ces copies comme du code. La base est valide si son empreinte, après normalisation en LF, égale `generated` du manifeste ; sinon elle est ignorée et signalée (`baseInvalid`).
 
 - Fusion par `git merge-file` (git est déjà requis pour les diffs). Les fins de ligne CRLF du fichier du projet sont restituées.
-- Un fichier fusionné prend le statut `reconciled` : il n'est jamais remplacé par le modèle aux mises à jour suivantes, mais refusionné.
+- Un fichier fusionné prend le statut `reconciled` : il n'est jamais remplacé par le modèle aux mises à jour suivantes, mais refusionné. Un fichier jamais modifié peut rester `reconciled` sans effet.
+- Pendant `keep`, l'empreinte `generated` de l'entrée du manifeste reste celle de la dernière base (`sha256` suit le fichier du projet) : à la sortie de `keep`, la base reste valide. Retirer un fichier de `keep` (par `--update --config` sans la clé, ou en éditant `config.keep` du manifeste puis `--update`) suffit : il est fusionné à partir de sa base d'avant `keep`, avec les changements du modèle accumulés depuis ; une entrée `kept` hors `keep` peut rester `kept` sans effet (`customized`, modèle inchangé).
+- Un fichier sans base (dans `keep` dès la première génération, ou ancien `owned`) reste en conflit avec le diff simple jusqu'à `--adopt` ; il n'est jamais adopté implicitement. Les fichiers fusionnés par lignes ou JSON gardent leur mécanisme propre, avec ou sans `keep`.
 - Jamais de marqueurs de conflit écrits dans un fichier du projet.
 - Une fusion sans conflit peut produire un fichier invalide (clé YAML en double, étape ajoutée des deux côtés) : relire `ci.yml` et les hooks avant de commiter.
 - Un fichier aux fins de ligne mélangées est réécrit entièrement en CRLF.
 - La date de génération est enregistrée dans `config.date` : un manifeste antérieur sans date reçoit la date du jour à la première mise à jour, ce qui peut changer une fois la date écrite dans ARCH-004 si ce fichier est resté tel que généré.
 - Les bases de fichiers que le modèle ne produit plus restent en place (rien n'est supprimé).
+
+### Manifeste dérivé par une version antérieure
+Un manifeste écrit par une version qui réécrivait `generated` pendant `keep` (#170) peut ne plus correspondre à la base d'un fichier resté longtemps dans `keep` : `generated` porte l'empreinte d'un modèle plus récent que sa base (`.bootstrap/base/`). Au retrait de `keep`, recommande (a) dans tous les cas :
+- **(a) retrouver la valeur d'origine de `generated`, avant le premier `--update` sans `keep`** : lire l'ancienne valeur dans l'historique (`git log -p .bootstrap/manifest.json`), ou calculer le sha256 du `.base` normalisé en LF (`Get-FileHash` donne un faux résultat si la copie de travail est en CRLF) ; puis l'écrire dans `generated` de l'entrée du fichier. La fusion à trois voies repart de la base réelle ;
+- **(b) modèle changé depuis le dernier passage de la version qui dérivait, sans (a)** : `baseInvalid` et conflit ; fusionner à la main avec le diff (`--diff`), puis relancer avec `--adopt` ;
+- **(c) modèle inchangé depuis ce dernier passage, sans (a)** : la base est réancrée sur le modèle actuel sans `baseInvalid`. Les changements du modèle depuis la base d'origine sont abandonnés, et une fusion ultérieure ne porte que les changements postérieurs à ce passage, sans perte du contenu du projet. C'est la conséquence acceptée de ne rien faire.
+
+Calcul du sha256 du `.base` en LF :
+
+```
+node -e "const c=require('node:crypto'),f=require('node:fs');console.log(c.createHash('sha256').update(f.readFileSync(process.argv[1],'utf8').replace(/\r\n/g,'\n')).digest('hex'))" .bootstrap/base/<fichier>.base
+```
+
+`--update --config <fichier>` sans la clé `keep` vide toute la liste (`keep` n'est pas héritée) : tous les fichiers qu'elle gardait sont alors fusionnés. Applique (a) à chacun avant de la lancer.
+
+Le dépôt du plugin est concerné : `ARCH-005` y est dans le même cas que `docs/workflow.md`.
 
 ## Fichiers propres au projet
 Une entrée de `files` d'un descripteur de module (`assets/modules/<module>/module.json`) marquée `"owned": true` est créée à la première génération, puis appartient au projet : jamais remplacée, fusionnée ni signalée en conflit, consignée `kept` dans le manifeste. C'est le cas de `.bootstrap/checks.json` (commandes de tests et systèmes de la CI). Pas besoin de la lister dans `keep`.
