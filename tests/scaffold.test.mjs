@@ -2566,9 +2566,11 @@ const d = mkdtempSync(path.join(tmpdir(), "pb-sonde-")); writeFileSync(path.join
     const missing = [...h.keys()].filter((e) => !t.has(e));
     const extra = [...t.keys()].filter((e) => !h.has(e));
     const repeated = [...t.keys()].filter((e) => h.has(e) && t.get(e) > h.get(e));
+    const repeatedHook = [...h.keys()].filter((e) => t.has(e) && h.get(e) > t.get(e));
     if (missing.length) out.push(`manquantes : ${missing.join(", ")}`);
     if (extra.length) out.push(`en trop : ${extra.join(", ")}`);
     if (repeated.length) out.push(`répétées : ${repeated.join(", ")}`);
+    if (repeatedHook.length) out.push(`répétées dans la référence : ${repeatedHook.join(", ")}`);
     const common = (list, other) => [...new Set(list)].filter((e) => other.includes(e));
     const tableOrder = common(table, hook);
     const hookOrder = common(hook, table);
@@ -2579,6 +2581,21 @@ const d = mkdtempSync(path.join(tmpdir(), "pb-sonde-")); writeFileSync(path.join
     const line = rows(section(wf, T.who)).find((l) => cells(l)[0] === "`developer`");
     return line ? cells(line)[2] : undefined;
   };
+  // chaîne d'extraction complète : jetons entre accents graves de toute la cellule, puis forme de la parenthèse
+  const listProblems = (wf, T, hook) => {
+    const cell = devCell(wf, T);
+    return cell === undefined ? ["ligne developer absente"] : govProblems([...cell.matchAll(/`([^`]+)`/g)].map((m) => m[1]), hook);
+  };
+  const parenProblems = (wf, T, hook) => {
+    const cell = devCell(wf, T);
+    if (cell === undefined) return ["ligne developer absente"];
+    const open = cell.split("(").length - 1;
+    const close = cell.split(")").length - 1;
+    if (open !== 1 || close !== 1) return [`${open} parenthèse(s) ouvrante(s) et ${close} fermante(s) au lieu d'une seule paire`];
+    const inner = /\(([^)]*)\)/.exec(cell)[1];
+    return hook.length > 0 && inner === hook.map((e) => `\`${e}\``).join(", ") ? [] : [`parenthèse : ${inner}`];
+  };
+  const hookByLang = {};
   const configs = [
     ["tous les profils", full, { profiles: ALL, regulatedDomain: "RGPD" }],
     ["aucun profil", full, {}],
@@ -2594,13 +2611,11 @@ const d = mkdtempSync(path.join(tmpdir(), "pb-sonde-")); writeFileSync(path.join
       const names = rows(section(wf, T.who)).map((l) => /^`([\w-]+)`$/.exec(cells(l)[0])?.[1]).sort();
       const files = readdirSync(path.join(r.out, ".claude", "agents")).map((f) => f.replace(/\.md$/, "")).sort();
       check(`workflow.md (${lang}, ${label}) : un agent généré = une ligne de la table`, r.res.status === 0 && names.join() === files.join(), `${names} / ${files}`);
-      const cell = devCell(wf, T);
-      const tableList = [...(cell ?? "").matchAll(/`([^`]+)`/g)].map((m) => m[1]);
       const hookEntries = hookList(r);
-      const problems = govProblems(tableList, hookEntries);
-      check(`workflow.md (${lang}, ${label}) : liste de gouvernance de developer égale writeExcept du hook`, cell !== undefined && problems.length === 0, problems.join(" ; ") || "ligne developer absente");
-      const paren = /\(([^)]*)\)/.exec(cell ?? "")?.[1];
-      check(`workflow.md (${lang}, ${label}) : liste de gouvernance de developer entre accents graves, séparée par des virgules`, hookEntries.length > 0 && paren === hookEntries.map((e) => `\`${e}\``).join(", "), String(paren));
+      const problems = listProblems(wf, T, hookEntries);
+      check(`workflow.md (${lang}, ${label}) : liste de gouvernance de developer égale writeExcept du hook`, problems.length === 0, problems.join(" ; "));
+      const parenIssues = parenProblems(wf, T, hookEntries);
+      check(`workflow.md (${lang}, ${label}) : liste de gouvernance de developer entre accents graves, séparée par des virgules, une seule parenthèse`, parenIssues.length === 0, parenIssues.join(" ; "));
       const lead = txt(r, ".claude/agents/project-lead.md");
       const ladder = (t) => t.split("\n").filter((l) => /^\| [1-5] \|/.test(l));
       check(`workflow.md (${lang}, ${label}) : échelle d'arbitrage identique à project-lead`, ladder(wf).length === 5 && ladder(wf).join("\n") === ladder(lead).join("\n"));
@@ -2617,13 +2632,26 @@ const d = mkdtempSync(path.join(tmpdir(), "pb-sonde-")); writeFileSync(path.join
       check(`workflow.md (${lang}, ${label}) : chaque règle de CLAUDE.md a sa ligne`, missing.length === 0, missing.join(" ; "));
       check(`workflow.md (${lang}, ${label}) : commandes OpenSpec documentées`, /\/opsx:(explore|update|sync)|skip_specs/.test(wf) === mods.includes("openspec") && (!mods.includes("openspec") || (/\/opsx:explore/.test(wf) && /\/opsx:update/.test(wf) && /\/opsx:sync/.test(wf) && /skip_specs: true/.test(wf))));
     }
-    const hookRef = hookList(gen(["claude", "agent-profiles"], { docLanguage: lang }));
+    const ref = gen(["claude", "agent-profiles"], { docLanguage: lang });
+    const hookRef = hookList(ref);
+    const wfRef = txt(ref, "docs/workflow.md");
+    hookByLang[lang] = hookRef;
     const signals = (mutate, expected) => hookRef.length > 0 && govProblems(mutate([...hookRef]), hookRef).join(" ; ").includes(expected);
     check(`workflow.md (${lang}) : liste de gouvernance, entrée retirée nommée`, signals((l) => l.filter((e) => e !== "openspec/schemas/"), "manquantes : openspec/schemas/"));
     check(`workflow.md (${lang}) : liste de gouvernance, entrée ajoutée nommée`, signals((l) => [...l, "docs/extra/"], "en trop : docs/extra/"));
     check(`workflow.md (${lang}) : liste de gouvernance, ordre permuté signalé`, signals((l) => [l[1], l[0], ...l.slice(2)], "ordre différent"));
     check(`workflow.md (${lang}) : liste de gouvernance, entrée répétée nommée`, signals((l) => [...l, ".github/"], "répétées : .github/"));
     check(`workflow.md (${lang}) : liste de gouvernance, liste vide du hook refusée`, govProblems(hookRef, []).length > 0);
+    check(`workflow.md (${lang}) : liste de gouvernance, tableau vide refusé`, hookRef.length > 0 && govProblems([], hookRef).join(" ; ").includes(`manquantes : ${hookRef.join(", ")}`));
+    check(`workflow.md (${lang}) : liste de gouvernance, entrée répétée dans la référence nommée`, hookRef.length > 0 && govProblems(hookRef, [...hookRef, ".github/"]).join(" ; ").includes("répétées dans la référence : .github/"));
+    // altération de la ligne developer, par la chaîne d'extraction complète (cellule entière, parenthèse)
+    const alter = (f) => wfRef.split("\n").map((l) => (l.startsWith("| `developer` |") ? f(l) : l)).join("\n");
+    const tail = (s) => (l) => l.replace(/ \|\s*$/, ` ${s} |`);
+    const has = (list, s) => hookRef.length > 0 && list.join(" ; ").includes(s);
+    check(`workflow.md (${lang}) : ligne developer altérée, élément en trop après la parenthèse nommé`, has(listProblems(alter(tail("`docs/extra/`")), T, hookRef), "en trop : docs/extra/"));
+    check(`workflow.md (${lang}) : ligne developer altérée, entrée retirée de la parenthèse nommée`, has(listProblems(alter((l) => l.replace("`openspec/schemas/`, ", "")), T, hookRef), "manquantes : openspec/schemas/"));
+    check(`workflow.md (${lang}) : ligne developer altérée, seconde parenthèse refusée`, hookRef.length > 0 && parenProblems(alter(tail("(voir ci-dessus)")), T, hookRef).length > 0);
+    check(`workflow.md (${lang}) : ligne developer altérée, ligne absente refusée`, listProblems(alter(() => ""), T, hookRef).join() === "ligne developer absente");
     const noOpen = txt(gen(["claude", "github"], { docLanguage: lang }), "docs/workflow.md");
     check(`workflow.md (${lang}) : sans openspec, ni explore, ni update, ni sync, ni skip_specs`, !/\/opsx:(explore|update|sync)|skip_specs/.test(noOpen));
     const arch = gen(["claude", "archgate"], { docLanguage: lang });
@@ -2635,6 +2663,9 @@ const d = mkdtempSync(path.join(tmpdir(), "pb-sonde-")); writeFileSync(path.join
     const noProf = txt(gen(["claude", "github", "openspec"], { docLanguage: lang }), "docs/workflow.md");
     check(`workflow.md (${lang}) : sans agent-profiles, ni qui fait quoi, ni échelle, ni journal`, section(noProf, T.who) === null && section(noProf, T.scale) === null);
   }
+  // les hooks français et anglais portent la même liste writeExcept (#169)
+  const frVsEn = govProblems(hookByLang.fr, hookByLang.en);
+  check("profile-guard.mjs : writeExcept du hook français égale celle du hook anglais", frVsEn.length === 0, "fr comparé à en : " + frVsEn.join(" ; "));
   const coreOnly = txt(gen([]), "docs/workflow.md");
   check("workflow.md : core seul, pas de table de double encodage", section(coreOnly, "Double encodage des règles") === null);
 }
