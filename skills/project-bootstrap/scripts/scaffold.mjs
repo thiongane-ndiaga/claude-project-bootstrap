@@ -462,7 +462,7 @@ for (const { rel, content, merge, owned } of outputs) {
     files[rel] = { sha256: generated, generated, status: "created" };
     continue;
   }
-  // une entrée « kept » hors keep (retirée de keep) est un fichier modifié, à condition d'avoir une base ; sans base : conflit comme avant
+  // une entrée « kept » hors keep (retirée de keep) est un fichier modifié, à condition d'avoir une base ; sans base : conflit avec le diff simple, jusqu'à --adopt
   const reconcilable = before?.status !== "kept" || (!merge && !owned && existsSync(baseFile(rel)));
   if (before && reconcilable && before.generated === generated) {
     base(content);
