@@ -12,7 +12,7 @@
 - [x] 2.3 Tests de repli : base absente (conflit, diff simple, pas `baseInvalid`) ; base altérée, modèle changé (conflit et `baseInvalid`) ; manifeste dérivé, modèle changé (`generated` rafraîchi, base d'avant `keep` : conflit et `baseInvalid`) ; manifeste dérivé, modèle inchangé (`customized`, base réancrée sur le modèle actuel, pas de `baseInvalid`) ; fichier dans `keep` dès la première génération, retiré, modèle inchangé (conflit) puis `--adopt` (`adopted`). Vérifier : aucune exception, fichier intact, codes de sortie attendus.
 - [x] 2.4 Tests des cas restants : fichier toujours dans `keep` (`kept`, intact) ; retrait avec base et modèle inchangé (`customized`, entrée intacte) ; `--dry-run` (`reconciled` rapporté, ni fichier, ni base, ni manifeste écrits) ; `--adopt` sur conflit puis seconde mise à jour (`customized`, aucune écriture, pas de clé `manifest`). Vérifier : les contrôles passent.
 - [x] 2.5 Tests de non-régression : `.gitignore` dans `keep` puis retiré, modèle inchangé puis modèle changé (fusion par lignes comme avant, ni base ni `reconciled`) ; fichier `owned` modifié non touché ni signalé ; plusieurs fichiers retirés d'un coup (un fusionné, un en conflit : `reconciled` et `conflicts` cumulés, code 3) ; fichier retiré de `keep` et supprimé du projet (recréé). Vérifier : les contrôles passent.
-- [ ] 2.6 Vérifier que `tests/matrix.test.mjs` et `tests/snapshots/` n'ont pas bougé (`git status` ne liste aucun instantané modifié) et que `node .bootstrap/run-checks.mjs` passe.
+- [x] 2.6 Vérifier que `tests/matrix.test.mjs` et `tests/snapshots/` n'ont pas bougé (`git status` ne liste aucun instantané modifié) et que `node .bootstrap/run-checks.mjs` passe.
 
 ## 3. Documentation
 
@@ -24,10 +24,10 @@
 
 ## 4. Contrôles d'ensemble
 
-- [ ] 4.1 `node .bootstrap/run-checks.mjs` passe (tests de comportement, matrice, état).
-- [ ] 4.2 `node .claude/hooks/quality-gate.mjs` renvoie 0.
+- [x] 4.1 `node .bootstrap/run-checks.mjs` passe (tests de comportement, matrice, état).
+- [x] 4.2 `node .claude/hooks/quality-gate.mjs` renvoie 0.
 - [ ] 4.3 `archgate check` passe.
-- [ ] 4.4 `openspec validate --all --strict --no-interactive` passe.
+- [x] 4.4 `openspec validate --all --strict --no-interactive` passe.
 
 ## Workflow follow-up
 
