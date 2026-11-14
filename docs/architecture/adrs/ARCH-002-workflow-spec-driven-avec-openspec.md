@@ -39,7 +39,7 @@ Le code sera largement écrit par des agents Claude Code. Sans description préa
 
 ### Positive
 
-- Comportement attendu explicite avant l'exécution, revu par `spec-reviewer`.
+- Comportement attendu explicite avant l'exécution, revu par `qa-engineer`.
 - Specs vivantes qui décrivent l'état réel du système.
 
 ### Negative
@@ -49,7 +49,7 @@ Le code sera largement écrit par des agents Claude Code. Sans description préa
 
 ### Risks
 
-- Dérive entre l'issue et la spec (par exemple un nom de capability différent de celui annoncé dans l'issue) : atténuée par `spec-reviewer` et `traceability-checker`.
+- Dérive entre l'issue et la spec (par exemple un nom de capability différent de celui annoncé dans l'issue) : atténuée par `qa-engineer`.
 
 ## Compliance and Enforcement
 

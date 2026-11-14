@@ -2,7 +2,7 @@
   "schema": 1,
   "plugin": {
     "name": "project-bootstrap",
-    "version": "0.1.6"
+    "version": "0.1.21"
   },
   "modules": [
     "core",
@@ -15,7 +15,11 @@
     "archgate-plugin",
     "arc42",
     "projects",
-    "agent-teams"
+    "agent-teams",
+    "agent-profiles",
+    "advisor",
+    "compact-recall",
+    "dependabot"
   ],
   "config": {
     "projectName": "project-bootstrap",
@@ -33,7 +37,11 @@
       "archgate-plugin",
       "arc42",
       "projects",
-      "agent-teams"
+      "agent-teams",
+      "agent-profiles",
+      "advisor",
+      "compact-recall",
+      "dependabot"
     ],
     "versions": {
       "openspec": "1.16.0",
@@ -59,10 +67,21 @@
     },
     "actionsCreditNote": "sans objet (dépôt public)",
     "keep": [
-      ".claude/hooks/read-only-bash.mjs",
-      ".bootstrap/checks.json"
+      ".bootstrap/checks.json",
+      "docs/architecture/adrs/ARCH-005-conventions-de-branches-commits-et-versionnement.md",
+      "docs/workflow.md"
     ],
-    "date": "2026-10-31"
+    "date": "2026-10-31",
+    "profiles": [
+      "acceptance-tester",
+      "business-analyst",
+      "devops-engineer",
+      "product-owner",
+      "scout",
+      "second-opinion"
+    ],
+    "mainAgent": "project-lead",
+    "advisor": true
   },
   "files": {
     ".archgate/config.json": {
@@ -85,24 +104,64 @@
       "generated": "469af1333ac019b6d573fe015119069be733baf2814f3cd34814f55bbad13456",
       "status": "created"
     },
-    ".claude/agents/arc42-keeper.md": {
-      "sha256": "487e09f2cb74ee98d3ecf894ed1774cac84d4597dfe7f4c73820729d111baea1",
-      "generated": "487e09f2cb74ee98d3ecf894ed1774cac84d4597dfe7f4c73820729d111baea1",
+    ".claude/agents/acceptance-tester.md": {
+      "sha256": "67a89782dcfdd2e0fabc982bbaaaf86ceb3c05d581f3ed23a2245747b114f526",
+      "generated": "67a89782dcfdd2e0fabc982bbaaaf86ceb3c05d581f3ed23a2245747b114f526",
       "status": "created"
     },
-    ".claude/agents/architecture-explorer.md": {
-      "sha256": "5b0b160c2d6d472e62faadc0aa802938578464a867e351e2154b1e80fb64797d",
-      "generated": "5b0b160c2d6d472e62faadc0aa802938578464a867e351e2154b1e80fb64797d",
+    ".claude/agents/architect.md": {
+      "sha256": "640d411c688367e9acba81a5f4d1238fe70640170caba74efd72e48da84f08d3",
+      "generated": "640d411c688367e9acba81a5f4d1238fe70640170caba74efd72e48da84f08d3",
       "status": "created"
     },
-    ".claude/agents/spec-reviewer.md": {
-      "sha256": "91897672927ce1aa2172a76ffad17acdb7387c545ee294d9709d62ecaf2e7d79",
-      "generated": "91897672927ce1aa2172a76ffad17acdb7387c545ee294d9709d62ecaf2e7d79",
+    ".claude/agents/business-analyst.md": {
+      "sha256": "312d67362c46c5adecb66feebc166ac4f427d7115e15dd3505c769250bfb391d",
+      "generated": "312d67362c46c5adecb66feebc166ac4f427d7115e15dd3505c769250bfb391d",
       "status": "created"
     },
-    ".claude/agents/traceability-checker.md": {
-      "sha256": "60113bbb80b7f81b3d288233774d3a3f621fe92a6b827fcf9d1ad6fbbff39bbe",
-      "generated": "60113bbb80b7f81b3d288233774d3a3f621fe92a6b827fcf9d1ad6fbbff39bbe",
+    ".claude/agents/developer.md": {
+      "sha256": "cf18388adfa02cacbfac0ca86b80f4110be8127bd4eb7ec2785f48a0751aba57",
+      "generated": "cf18388adfa02cacbfac0ca86b80f4110be8127bd4eb7ec2785f48a0751aba57",
+      "status": "created"
+    },
+    ".claude/agents/devops-engineer.md": {
+      "sha256": "a69730b433bef70d85148f520d6aff850b00edeec6c404fd8f44c84ff5da8c20",
+      "generated": "a69730b433bef70d85148f520d6aff850b00edeec6c404fd8f44c84ff5da8c20",
+      "status": "created"
+    },
+    ".claude/agents/product-owner.md": {
+      "sha256": "dc49dad15009eecc0be26c562d85c70d035d8c9b72a1e4ff49b3d07dabbb3f53",
+      "generated": "dc49dad15009eecc0be26c562d85c70d035d8c9b72a1e4ff49b3d07dabbb3f53",
+      "status": "created"
+    },
+    ".claude/agents/project-lead.md": {
+      "sha256": "0bcd7fa7fe815afe52dbc9850ec06b0686abc26aeefad796b5a751456d0a71ee",
+      "generated": "0bcd7fa7fe815afe52dbc9850ec06b0686abc26aeefad796b5a751456d0a71ee",
+      "status": "created"
+    },
+    ".claude/agents/qa-engineer.md": {
+      "sha256": "aab8c7c2206a93b20e2dab01ca070bc9a979104ab32644e2287cec183a170b5c",
+      "generated": "aab8c7c2206a93b20e2dab01ca070bc9a979104ab32644e2287cec183a170b5c",
+      "status": "created"
+    },
+    ".claude/agents/scout.md": {
+      "sha256": "e3126b0275d35fde8fdbff97414641ad335005dc0e66ed33efd4a1953eee84c1",
+      "generated": "e3126b0275d35fde8fdbff97414641ad335005dc0e66ed33efd4a1953eee84c1",
+      "status": "created"
+    },
+    ".claude/agents/second-opinion.md": {
+      "sha256": "f7a977473b4c4bcce0d7cc73b5d4e7b4aafbbe24b13d0a1dd1d9f575f85d7ee9",
+      "generated": "f7a977473b4c4bcce0d7cc73b5d4e7b4aafbbe24b13d0a1dd1d9f575f85d7ee9",
+      "status": "created"
+    },
+    ".claude/hooks/compact-recall.mjs": {
+      "sha256": "2edd34e937d22cc78b4c728555f81fe443f5f9a35879c39b4092acc6221ef778",
+      "generated": "2edd34e937d22cc78b4c728555f81fe443f5f9a35879c39b4092acc6221ef778",
+      "status": "created"
+    },
+    ".claude/hooks/profile-guard.mjs": {
+      "sha256": "8fb47074071b5c6a02829aecd5fc09d87565fe593d79642348792567c5beddac",
+      "generated": "8fb47074071b5c6a02829aecd5fc09d87565fe593d79642348792567c5beddac",
       "status": "created"
     },
     ".claude/hooks/quality-gate.mjs": {
@@ -110,14 +169,34 @@
       "generated": "c13266a67922f74e3dbc1573a24c0c8f0db79c8c0edf2d3d8f0dde0aad071501",
       "status": "created"
     },
-    ".claude/hooks/restrict-path.mjs": {
-      "sha256": "fcc4373eadfb57dbdb11daaf1b8f4ddf76ec0b872796665b9284fbff03c6ebfb",
-      "generated": "fcc4373eadfb57dbdb11daaf1b8f4ddf76ec0b872796665b9284fbff03c6ebfb",
+    ".claude/hooks/read-only-bash.mjs": {
+      "sha256": "f2a9fbc62196edab6ad2e76adca2fcd1258876a3fe701d52a1295f96e6108c5f",
+      "generated": "f2a9fbc62196edab6ad2e76adca2fcd1258876a3fe701d52a1295f96e6108c5f",
       "status": "created"
     },
     ".claude/settings.json": {
-      "sha256": "141faca021cd41b6da894cb30acaedcd47c6c4b744fc29e1c287455a7f6ea117",
-      "generated": "141faca021cd41b6da894cb30acaedcd47c6c4b744fc29e1c287455a7f6ea117",
+      "sha256": "0cb8ab5f0e38729bc93c717a6642cf2202fb753255b13320f8d9c45f88d29eca",
+      "generated": "0cb8ab5f0e38729bc93c717a6642cf2202fb753255b13320f8d9c45f88d29eca",
+      "status": "created"
+    },
+    ".claude/skills/adr-options-comparison/SKILL.md": {
+      "sha256": "550bfb523b5dbca647807a89c6a98a2bd211f971abeabfa3920f047fcc20429f",
+      "generated": "550bfb523b5dbca647807a89c6a98a2bd211f971abeabfa3920f047fcc20429f",
+      "status": "created"
+    },
+    ".claude/skills/arc42-update/SKILL.md": {
+      "sha256": "9dde4f8e310b0a2b3f8426b8a73f4ea2ef9fd85b3efc153a293c79d53aabd83a",
+      "generated": "9dde4f8e310b0a2b3f8426b8a73f4ea2ef9fd85b3efc153a293c79d53aabd83a",
+      "status": "created"
+    },
+    ".claude/skills/pr-readiness-review/SKILL.md": {
+      "sha256": "794f2f6cc218bca38ac753785f93aa78e3f334ee40f13ff59f8d16917d250551",
+      "generated": "794f2f6cc218bca38ac753785f93aa78e3f334ee40f13ff59f8d16917d250551",
+      "status": "created"
+    },
+    ".claude/skills/spec-review/SKILL.md": {
+      "sha256": "af02c36ff3db84babf2b581e9e2a09c30ab2a247493b32fae033c8732ebb0f10",
+      "generated": "af02c36ff3db84babf2b581e9e2a09c30ab2a247493b32fae033c8732ebb0f10",
       "status": "created"
     },
     ".gitattributes": {
@@ -134,6 +213,11 @@
       "sha256": "e2f60cae813321c66b10f5a98484d3b119ec4505c0e92737129041802c73e40e",
       "generated": "e2f60cae813321c66b10f5a98484d3b119ec4505c0e92737129041802c73e40e",
       "status": "kept"
+    },
+    ".github/dependabot.yml": {
+      "sha256": "0cd165f237886c88d9e6c70609c64d2fadd974a521f483171948f9810ada9b5a",
+      "generated": "0cd165f237886c88d9e6c70609c64d2fadd974a521f483171948f9810ada9b5a",
+      "status": "created"
     },
     ".github/ISSUE_TEMPLATE/architecture-decision.yml": {
       "sha256": "a567f1c033d9f2a01af471d74720a60ca839f35fb7ba81995291d32c3b69cea0",
@@ -186,13 +270,13 @@
       "status": "adopted"
     },
     "CLAUDE.md": {
-      "sha256": "1729a74e28746650cd82f386b7dc437eeb557d31e9fae19fefca263d92e9d1e7",
-      "generated": "dea45fecf8ec4ba08095a996aea0da75122b3f4a1a6ae2a5592e14297d5ce779",
-      "status": "adopted"
+      "sha256": "5429adc9468c6e47bc971e6c42d4478deeea2c68a451479517209c5b852b6c5e",
+      "generated": "ee60850046b4628f7a588443c05c5bca0e00e72fcc5e540d9bd4e3c3773b6e92",
+      "status": "reconciled"
     },
     "docs/architecture/adrs/ARCH-001-documentation-d-architecture-arc42-et-adr.md": {
-      "sha256": "a2ed9c6d772f81fa702e324edb363c8ac7a61a3886b6beb245e890cb7c5d1f46",
-      "generated": "a2ed9c6d772f81fa702e324edb363c8ac7a61a3886b6beb245e890cb7c5d1f46",
+      "sha256": "fcc3a4a878dda8d6d130f75e80e4de008a3fa6e9d4fe73c3c7e6b03e7b9eb46d",
+      "generated": "fcc3a4a878dda8d6d130f75e80e4de008a3fa6e9d4fe73c3c7e6b03e7b9eb46d",
       "status": "created"
     },
     "docs/architecture/adrs/ARCH-001-documentation-d-architecture-arc42-et-adr.rules.ts": {
@@ -201,8 +285,8 @@
       "status": "created"
     },
     "docs/architecture/adrs/ARCH-002-workflow-spec-driven-avec-openspec.md": {
-      "sha256": "e73fb0dfd7b7197dcc1d28b618cd76b97dc058118ff69b46164293e14f67ee49",
-      "generated": "e73fb0dfd7b7197dcc1d28b618cd76b97dc058118ff69b46164293e14f67ee49",
+      "sha256": "5565334aaf7a4c0878149b5ed2d07ed324ac5dd7f3051ead6be6a29ec721be72",
+      "generated": "5565334aaf7a4c0878149b5ed2d07ed324ac5dd7f3051ead6be6a29ec721be72",
       "status": "created"
     },
     "docs/architecture/adrs/ARCH-003-emplacement-et-format-des-adr.md": {
@@ -226,9 +310,9 @@
       "status": "created"
     },
     "docs/architecture/adrs/ARCH-005-conventions-de-branches-commits-et-versionnement.md": {
-      "sha256": "8c702a34c889d30af1608a843357a8bd8b75c93a859d2ecaf31474a9577ea126",
-      "generated": "8c702a34c889d30af1608a843357a8bd8b75c93a859d2ecaf31474a9577ea126",
-      "status": "created"
+      "sha256": "05b7bd19ec0f562487cb74a99de83dfb4242221182ef0b00152368a6cd3dc133",
+      "generated": "23f8149007d98ec8d5d1d1a89eb281f2de8cf9e37a771385a7f986f2e6825561",
+      "status": "kept"
     },
     "docs/architecture/arc42/01-introduction-et-objectifs.md": {
       "sha256": "0791077be56cb9985611351529f4040e3d44ec99221250fcabe1c24b77d89526",
@@ -291,9 +375,9 @@
       "status": "created"
     },
     "docs/workflow.md": {
-      "sha256": "9a835ecf8c806cb5ae9fc56b9e4f309e1b8cd16c4641aa207fb836129d9a4d62",
-      "generated": "ba0ae81dc10fa1cc2c0196411b5403712d3d2444886a77c3355502c87a7c1783",
-      "status": "reconciled"
+      "sha256": "e22f22d69d8c90a27b997b3eb90cc066a30d0c9c24c5c3b1aac03ecf60964dbe",
+      "generated": "e0c04a58be8f8f62d1c46af657034f4d1340281044e11354eb6eb74bd3e611ef",
+      "status": "kept"
     },
     "release-please-config.json": {
       "sha256": "65ce8956e7bb585d5188bbb7e6eb45fcb938621057fca78a091b0ce54e873353",
@@ -311,5 +395,7 @@
       "status": "created"
     }
   },
-  "migrations": []
+  "migrations": [
+    "0003-absorb-legacy-agents"
+  ]
 }

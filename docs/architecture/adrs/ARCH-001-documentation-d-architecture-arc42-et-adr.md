@@ -25,7 +25,7 @@ Le projet démarre sans stack choisie et est développé seul, avec des agents I
 
 ### Do
 
-- Mettre à jour les sections impactées dans la PR qui accepte un ADR ou archive un changement (agent `arc42-keeper`).
+- Mettre à jour les sections impactées dans la PR qui accepte un ADR ou archive un changement (profil `architect`).
 - Laisser une question-guide en place tant qu'aucune information fiable n'y répond.
 
 ### Don't
@@ -46,7 +46,7 @@ Le projet démarre sans stack choisie et est développé seul, avec des agents I
 
 ### Risks
 
-- Dérive entre arc42 et le code : atténuée par la checklist de PR et l'agent `arc42-keeper`.
+- Dérive entre arc42 et le code : atténuée par la checklist de PR et le profil `architect`.
 
 ## Compliance and Enforcement
 

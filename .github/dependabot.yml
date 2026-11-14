@@ -1,0 +1,23 @@
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    # Les workflows (« / ») et les actions composites locales (« .github/actions/* »).
+    directories:
+      - "/"
+      - "/.github/actions/*"
+    schedule:
+      interval: "weekly"
+    # Même délai d'ancienneté que resolve-versions.mjs par défaut : pas de version publiée depuis moins de 14 jours.
+    cooldown:
+      default-days: 14
+    # Titre « ci(deps): … », accepté par scripts/check-pr-title.mjs.
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    # Label du dépôt (.github/labels.json) au lieu des labels « dependencies » et « github_actions ».
+    labels:
+      - "chore"
+    groups:
+      actions:
+        patterns:
+          - "*"
