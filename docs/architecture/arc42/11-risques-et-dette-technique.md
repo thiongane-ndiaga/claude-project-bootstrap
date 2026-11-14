@@ -70,6 +70,7 @@
 | Réglage de squash par dépôt : un dépôt qui n'a pas appliqué la migration `0004-squash-title-only` garde l'ancien comportement (`Closes #N` d'un commit copié dans le commit de squash) | Moyenne | Moyen | Le skill le règle à la mise en place ; l'audit `--forge` le signale et cite la commande directe (changement `156-squash-setting`, [ARCH-005](../adrs/ARCH-005-conventions-de-branches-commits-et-versionnement.md)) |
 | Merge hors squash (merge commit, rebase) ou squash désactivé : le réglage ne s'applique pas, les commits arrivent sur `main` tels quels | Faible | Moyen | Non couvert ; l'audit note un squash désactivé (changement `156-squash-setting`) |
 | Mode `jira` : la clé n'est pas dans le commit de squash si elle manque au titre de la PR (les `Refs` des commits ne sont plus sur `main`) | Moyenne | Faible | `docs/workflow.md` le dit ; le contrôle de clé porte sur le titre de la PR (changement `156-squash-setting`) |
+| Refus non consignés au manifeste : un module ou un profil décliné à la mise à jour est reproposé à chaque mise à jour (`jenkins`, `sonar`, `jira`, `compact-recall`… pour un projet qui ne les veut pas) | Haute | Faible | Accepté ; le skill regroupe les propositions en questions de quatre options et le dit (changement `163-update-new-modules`, [ARCH-010](../adrs/ARCH-010-modules-auto-decrits.md)) |
 
 - Quels risques pèsent sur les objectifs de qualité ?
 - Quelle dette est acceptée consciemment, et jusqu'à quand ?

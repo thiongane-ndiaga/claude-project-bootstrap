@@ -23,7 +23,7 @@ Voir [ARCH-007](../adrs/ARCH-007-installation-des-cli-d-outillage.md).
 
 - `skills/project-bootstrap/assets/modules/<nom>/` : un module ; `module.json` (description, `requires`, `requiresAny`, `default`, `conflicts`, `questions`, `files`), `templates/`, `templates.<lang>/`, `tests/*.test.mjs`. Le dossier `core` est obligatoire.
 - `skills/project-bootstrap/scripts/catalog.mjs` : découvre les dossiers, valide les descripteurs (messages qui nomment le fichier fautif) et assemble le catalogue.
-- `skills/project-bootstrap/scripts/scaffold.mjs` : utilise le chargeur ; `--list-modules` produit le tableau des modules.
+- `skills/project-bootstrap/scripts/scaffold.mjs` : utilise le chargeur ; `--list-modules` produit le tableau des modules ; `--detect` et le rapport de `--update` rapportent aussi `available` (modules du catalogue hors `core`, absents du manifeste et sans incompatibilité avec lui, avec les champs de `--list-modules` ; profils optionnels absents de `profiles`, seulement si `agent-profiles` figure au manifeste). Un manifeste illisible ou sans liste `modules` ne donne pas de `available`.
 - `tests/modules.test.mjs` : lance les tests de chaque module ; `tests/scaffold.test.mjs` valide le chargeur et `tests/matrix.test.mjs` la matrice.
 - Hors du dossier d'un module : permissions de `.claude/settings.json` (`buildSettings`), étapes de `state.mjs`, contrôles de `audit.mjs`, migrations, blocs `@@module` des fichiers transverses.
 
