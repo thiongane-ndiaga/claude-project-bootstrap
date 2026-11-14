@@ -139,7 +139,7 @@ Every agent generated in `.claude/agents/` has a row. Write rights are those of 
 | `product-owner` | need, priorities, acceptance criteria | nothing (read-only) |
 @@end
 @@module:agent-profiles
-| `developer` | code and commits | everything except the governance folders (`.archgate/`, `.bootstrap/`, `.claude/`, `.git/`, `.githooks/`, `.github/`, `docs/architecture/`, `openspec/specs/`, archives, `docs/workflow.md`) |
+| `developer` | code and commits | everything except the governance folders and files (`.archgate/`, `.bootstrap/`, `.claude/`, `.git/`, `.githooks/`, `.github/`, `.release-please-manifest.json`, `agents.md`, `claude.md`, `docs/architecture/`, `docs/workflow.md`, `openspec/changes/archive/`, `openspec/config.yaml`, `openspec/config.yml`, `openspec/schemas/`, `openspec/specs/`, `release-please-config.json`), compared case-insensitively |
 @@end
 @@module:profile-business-analyst
 | `business-analyst` | OpenSpec change (`/opsx:propose`, `/opsx:update`) | `openspec/changes/` |

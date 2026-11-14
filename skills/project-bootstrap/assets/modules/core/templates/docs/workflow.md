@@ -139,7 +139,7 @@ Chaque agent généré dans `.claude/agents/` a une ligne. Les droits d'écritur
 | `product-owner` | besoin, priorités, critères d'acceptation | rien (lecture seule) |
 @@end
 @@module:agent-profiles
-| `developer` | code et commits | tout sauf les dossiers de gouvernance (`.archgate/`, `.bootstrap/`, `.claude/`, `.git/`, `.githooks/`, `.github/`, `docs/architecture/`, `openspec/specs/`, archives, `docs/workflow.md`) |
+| `developer` | code et commits | tout sauf les dossiers et fichiers de gouvernance (`.archgate/`, `.bootstrap/`, `.claude/`, `.git/`, `.githooks/`, `.github/`, `.release-please-manifest.json`, `agents.md`, `claude.md`, `docs/architecture/`, `docs/workflow.md`, `openspec/changes/archive/`, `openspec/config.yaml`, `openspec/config.yml`, `openspec/schemas/`, `openspec/specs/`, `release-please-config.json`), comparés sans tenir compte de la casse |
 @@end
 @@module:profile-business-analyst
 | `business-analyst` | changement OpenSpec (`/opsx:propose`, `/opsx:update`) | `openspec/changes/` |
