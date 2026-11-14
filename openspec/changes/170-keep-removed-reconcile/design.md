@@ -51,7 +51,7 @@ Conséquences, dans l'ordre des règles existantes :
 - Fichier identique au modèle : `identical`, entrée `created` (inchangé).
 - Fichier absent : recréé depuis le modèle comme tout fichier manquant (entrée `created`).
 - Règle « resté tel que généré » (statut `created` et `sha256` inchangé) : jamais applicable à un `kept`, et c'est voulu. L'entrée ne passe pas à `created` avec le `sha256` du fichier du projet, car elle ferait remplacer par le modèle un contenu que le projet a choisi de garder.
-- Base présente et `before.generated === generated` : le modèle n'a pas changé depuis la base, `customized` ; le fichier et l'entrée (statut `kept` conservé) ne sont pas touchés, et la règle existante réécrit la base avec le modèle actuel si elle manque ou diffère. Une entrée `kept` peut ainsi rester `kept` sans effet.
+- Base présente et `before.generated === generated` : le modèle n'a pas changé depuis la base, `customized` ; le fichier et l'entrée (statut `kept` conservé) ne sont pas touchés, et la règle existante réécrit la base avec le modèle actuel si elle diffère. Une entrée `kept` peut ainsi rester `kept` sans effet.
 - Base présente et empreinte égale à `generated` : fusion à trois voies, réutilisant le bloc existant (`git merge-file`).
 - Base absente : conflit, diff simple (jamais `baseInvalid`). Base présente d'empreinte différente et modèle changé : `baseInvalid` et conflit, diff simple. `git` indisponible ou fusion en erreur : conflit, diff simple. « Sans erreur » signifie : pas d'arrêt du script, le conflit habituel (code 3), jamais d'écrasement.
 
@@ -65,7 +65,7 @@ Conséquences, dans l'ordre des règles existantes :
 | fusion donnant le fichier tel quel | `reconciled` (comme le bloc existant), fichier non réécrit, listé `identical` | écrite |
 | conflit | inchangée (reste `kept`, `generated` figé) | inchangée |
 | conflit avec `--adopt` | `adopted`, `sha256` du fichier, `generated` = modèle actuel | écrite (modèle actuel) |
-| `customized` | inchangée | réancrée : écrite avec le modèle actuel si absente ou différente |
+| `customized` | inchangée | réancrée : réécrite avec le modèle actuel si elle diffère |
 
 Au passage suivant, une entrée `reconciled` ou `adopted` suit les règles existantes : `customized` si le modèle est inchangé (idempotent), refusion sinon. Un conflit non résolu se représente à l'identique à chaque passage, comme aujourd'hui.
 
@@ -87,7 +87,7 @@ La fusion est calculée et rapportée (`reconciled` ou `conflicts`, `diffs`), ma
 
 ## Risks / Trade-offs
 
-- [Manifeste déjà dérivé : `generated` rafraîchi pendant `keep`] → deux issues. Modèle changé depuis le dernier passage : `baseInvalid` et conflit (repli demandé). Modèle inchangé : `customized` réancre la base sur le modèle actuel sans `baseInvalid` (écart assumé, voir décision 2) ; elle redevient cohérente avec `generated` mais n'est plus l'ancêtre réel du fichier, donc une fusion ultérieure ne porte que les changements du modèle postérieurs à ce passage, sans perte du contenu du projet. Réparation à documenter dans `versioning.md` et `SKILL.md` : (a) avant le premier `--update` sans `keep`, mettre `generated` = sha256 du `.base` normalisé en LF ; (b) en cas de conflit, fusionner à la main avec le diff, puis `--adopt` ; (c) modèle inchangé : rien à faire, la base est réancrée. Le dépôt du plugin est concerné : `ARCH-005` est dans le même cas que `docs/workflow.md`.
+- [Manifeste déjà dérivé : `generated` rafraîchi pendant `keep`] → deux issues. Modèle changé depuis le dernier passage : `baseInvalid` et conflit (repli demandé). Modèle inchangé : `customized` réancre la base sur le modèle actuel sans `baseInvalid` (écart assumé, voir décision 2) ; elle redevient cohérente avec `generated` mais n'est plus l'ancêtre réel du fichier, donc une fusion ultérieure ne porte que les changements du modèle postérieurs à ce passage, sans perte du contenu du projet. Réparation à documenter dans `versioning.md` et `SKILL.md` : (a) avant le premier `--update` sans `keep`, mettre `generated` = sha256 du `.base` normalisé en LF ; (b) en cas de conflit, fusionner à la main avec le diff, puis `--adopt` ; (c) ne rien faire : la base est réancrée sur le modèle actuel et les changements du modèle depuis la base d’avant `keep` sont abandonnés (conséquence acceptée, (a) est recommandée dans tous les cas). Le dépôt du plugin est concerné : `ARCH-005` est dans le même cas que `docs/workflow.md`.
 - [Une fusion propre peut produire un fichier invalide après un long séjour en `keep`, la base étant ancienne] → `reconciled` reste à relire (déjà dit dans `SKILL.md`) ; la phase 5 précise que les fichiers retirés de `keep` sont fusionnés à partir de leur base d'avant `keep`.
 - [Un `generated` figé n'est plus l'empreinte du modèle courant] → seule la règle `customized` l'utilise pour un fichier hors `keep`, et le sens voulu : le modèle a-t-il changé depuis la base ? Les tests existants sur `keep` (CLAUDE.md, `project-setup`) ne lisent pas `generated`.
 - [Une entrée `reconciled` d'un fichier jamais modifié, ou `kept` hors `keep` en `customized`, subsiste] → sans effet ; à dire dans `versioning.md`.

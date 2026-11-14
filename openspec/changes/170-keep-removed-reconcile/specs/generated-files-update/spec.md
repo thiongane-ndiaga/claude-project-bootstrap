@@ -61,7 +61,7 @@ Une entrée du manifeste au statut `kept`, non `owned` et non fusionnée par lig
 
 #### Scenario: Retrait de keep avec modèle inchangé
 - **WHEN** un fichier retiré de `keep` a une base et a été modifié par le projet alors que son modèle n'a pas changé depuis cette base
-- **THEN** il est listé dans `customized`, et ni le fichier ni son entrée du manifeste ne sont modifiés ; sa base est réécrite avec le modèle actuel si elle manque ou diffère
+- **THEN** il est listé dans `customized`, et ni le fichier ni son entrée du manifeste ne sont modifiés ; sa base est réécrite avec le modèle actuel si elle diffère
 
 #### Scenario: Fichier toujours dans keep
 - **WHEN** `--update` s'exécute alors que le fichier est toujours listé dans `keep`
@@ -69,7 +69,7 @@ Une entrée du manifeste au statut `kept`, non `owned` et non fusionnée par lig
 
 #### Scenario: Fichier fusionné par lignes retiré de keep
 - **WHEN** un fichier fusionné par lignes ou par JSON, tel que `.gitignore`, est retiré de `keep`
-- **THEN** il est fusionné par son mécanisme propre, sans base ni fusion à trois voies, comme avant ce changement
+- **THEN** il est fusionné par son mécanisme propre, sans base et sans fusion à trois voies
 
 #### Scenario: Simulation d'un retrait de keep
 - **WHEN** `--update --dry-run` s'exécute et la fusion d'un fichier retiré de `keep` serait sans conflit
