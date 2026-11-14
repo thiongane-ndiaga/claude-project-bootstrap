@@ -990,8 +990,9 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
       const rm = runScript(p2.script, ["--update", "--target", clean, "--config", freeCfg()]);
       check("retrait de keep : fusionné (reconciled), code 0, fichier du projet et section du modèle conservés", rm.res.status === 0 && rm.report.reconciled.includes(WF) && rm.report.conflicts.length === 0 && !rm.report.kept.includes(WF) && read(clean, WF).startsWith("# Mon workflow") && /Nouvelle section v9\.5/.test(read(clean, WF)), JSON.stringify(rm.report));
       check("retrait de keep : entrée reconciled avec l'empreinte du nouveau modèle, base = nouveau modèle", entry(clean).status === "reconciled" && entry(clean).generated === model2 && entry(clean).sha256 === sha(read(clean, WF)) && /v9\.5/.test(read(clean, baseOf(WF))) && manifestOf(clean).config.keep === undefined);
+      const rmBaseBefore = read(clean, baseOf(WF));
       const rmAgain = runScript(p2.script, ["--update", "--target", clean]);
-      check("retrait de keep : seconde mise à jour idempotente (customized, aucune écriture)", rmAgain.res.status === 0 && rmAgain.report.customized.includes(WF) && rmAgain.report.reconciled.length === 0 && rmAgain.report.manifest === undefined, JSON.stringify(rmAgain.report));
+      check("retrait de keep : seconde mise à jour idempotente (customized, ni fichier, ni base, ni manifeste)", rmAgain.res.status === 0 && rmAgain.report.customized.includes(WF) && rmAgain.report.reconciled.length === 0 && rmAgain.report.manifest === undefined && read(clean, baseOf(WF)) === rmBaseBefore, JSON.stringify(rmAgain.report));
 
       // chemin de l'issue : édition de config.keep dans le manifeste, puis --update sans --config
       const viaManifest = keptProject();
@@ -1060,7 +1061,7 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
       const nfAdopt = runScript(p1.script, ["--update", "--target", noBaseFirst, "--adopt"]);
       check("retrait de keep : --adopt consigne le fichier (adopted, base = modèle actuel)", nfAdopt.res.status === 0 && nfAdopt.report.adopted.includes(WF) && entry(noBaseFirst).status === "adopted" && exists(noBaseFirst, baseOf(WF)), JSON.stringify(nfAdopt.report));
       const nfAgain = runScript(p2.script, ["--update", "--target", noBaseFirst]);
-      check("retrait de keep : après adoption, le fichier suit la fusion à trois voies (modèle changé -> reconciled ou conflit, jamais écrasé)", read(noBaseFirst, WF).startsWith("# Workflow existant") && (nfAgain.report.reconciled.includes(WF) || nfAgain.report.conflicts.includes(WF)), JSON.stringify(nfAgain.report));
+      check("retrait de keep : après adoption, le modèle change -> fusion à trois voies, conflit (code 3), fichier jamais écrasé", nfAgain.res.status === 3 && nfAgain.report.conflicts.includes(WF) && !nfAgain.report.reconciled.includes(WF) && !nfAgain.report.baseInvalid.includes(WF) && read(noBaseFirst, WF) === "# Workflow existant\n", JSON.stringify(nfAgain.report));
 
       // retrait avec modèle inchangé : customized, entrée intacte
       const sameModel = keptProject();
@@ -1072,8 +1073,18 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
       const adoptKept = keptProject(nearEdit);
       const ak = runScript(p2.script, ["--update", "--target", adoptKept, "--config", freeCfg(), "--adopt"]);
       check("retrait de keep : --adopt sur conflit -> adopted, code 0, base = nouveau modèle", ak.res.status === 0 && ak.report.adopted.includes(WF) && entry(adoptKept).status === "adopted" && /v9\.5/.test(read(adoptKept, baseOf(WF))), JSON.stringify(ak.report));
+      const akBaseBefore = read(adoptKept, baseOf(WF));
+      const akFileBefore = read(adoptKept, WF);
       const ak2 = runScript(p2.script, ["--update", "--target", adoptKept]);
-      check("retrait de keep : après adoption, seconde mise à jour -> customized, aucune écriture", ak2.res.status === 0 && ak2.report.customized.includes(WF) && ak2.report.manifest === undefined, JSON.stringify(ak2.report));
+      check("retrait de keep : après adoption, seconde mise à jour -> customized, ni fichier, ni base, ni manifeste", ak2.res.status === 0 && ak2.report.customized.includes(WF) && ak2.report.manifest === undefined && read(adoptKept, baseOf(WF)) === akBaseBefore && read(adoptKept, WF) === akFileBefore, JSON.stringify(ak2.report));
+
+      // fichier retiré de keep que le modèle ne produit plus : signalé retired, entrée laissée kept, fichier non supprimé
+      const pDrop = plugin("9.9.0", (skill) => dropFile(skill, WF));
+      const dropped = keptProject();
+      const dropEntry = JSON.stringify(entry(dropped));
+      const dropText = read(dropped, WF);
+      const dropUp = runScript(pDrop.script, ["--update", "--target", dropped, "--config", freeCfg()]);
+      check("retrait de keep : fichier que le modèle ne produit plus -> retired, entrée laissée kept, fichier non supprimé", dropUp.res.status === 0 && dropUp.report.retired.includes(WF) && ["reconciled", "customized", "conflicts", "adopted"].every((k) => !dropUp.report[k].includes(WF)) && JSON.stringify(entry(dropped)) === dropEntry && entry(dropped).status === "kept" && read(dropped, WF) === dropText, JSON.stringify(dropUp.report));
 
       // non-régressions
       const pGi = plugin("9.8.1", appendTo(".gitignore", "\nnouveau-dossier-v981/\n"));
