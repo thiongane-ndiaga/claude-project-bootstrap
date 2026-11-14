@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.20](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.19...v0.1.20) (2026-11-13)
+
+
+### Features
+
+* **skill:** let developer run the apply skill and architect the archgate cli reference ([#160](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/160)) ([3d9c06d](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/3d9c06dbb7df2cf620f2ed6a70f059bb30b9d1b3))
+
 ## [0.1.19](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.18...v0.1.19) (2026-11-13)
 
 
