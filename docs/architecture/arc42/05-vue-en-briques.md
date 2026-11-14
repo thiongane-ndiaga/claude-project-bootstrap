@@ -124,3 +124,10 @@ Voir [ARCH-017](../adrs/ARCH-017-source-du-besoin-github-ou-jira-au-choix-par-pr
 - Tests : `skills/project-bootstrap/assets/modules/gitlab/tests/gitlab.test.mjs`, tests du catalogue pour `requiresAny` et `forge`, combinaisons de la matrice (`tests/matrix.test.mjs`).
 
 Voir [ARCH-018](../adrs/ARCH-018-gitlab-comme-forge-d-h-bergement-seulement.md), [ARCH-017](../adrs/ARCH-017-source-du-besoin-github-ou-jira-au-choix-par-projet.md) et [ARCH-010](../adrs/ARCH-010-modules-auto-decrits.md).
+
+## Briques liées à la mise à jour des fichiers générés
+
+- `skills/project-bootstrap/scripts/scaffold.mjs` (`--update`) : applique à chaque fichier du modèle, dans l'ordre, les règles `keep` ou `owned`, absent, identique, resté tel que généré, `customized`, fusion à trois voies, fusion par lignes ou JSON, `--adopt` et conflit. Il consigne pour chaque fichier, dans `.bootstrap/manifest.json`, `sha256` (fichier du projet), `generated` (empreinte du modèle ; pour un fichier dans `keep`, ni `owned` ni fusionné par lignes ou JSON, empreinte figée de sa base) et le statut, et écrit la base dans `.bootstrap/base/<chemin>.base`. Une entrée `kept` hors `keep` rejoint les règles des fichiers modifiés si sa base existe.
+- `skills/project-bootstrap/references/versioning.md` : tableau des situations, base et fusion à trois voies, réparation d'un manifeste dérivé ; `tests/scaffold.test.mjs` couvre ces cas (section de la fusion à trois voies).
+
+Voir [ARCH-006](../adrs/ARCH-006-strategie-de-mise-a-jour-des-fichiers-generes.md) et le concept « Base de fusion et `keep` » de la [section 8](08-concepts-transverses.md) ; changement OpenSpec `170-keep-removed-reconcile` (issue #170).
