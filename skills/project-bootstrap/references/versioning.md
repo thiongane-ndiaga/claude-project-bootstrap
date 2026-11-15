@@ -17,7 +17,7 @@ Un changement de **modèle** (`assets/modules/<module>/templates*/`), du **catal
 | fichier partagé (`.gitignore`, `.gitattributes`, `settings.json`, `.archgate/config.json`) | fusionné |
 | fichier modifié, modèle inchangé | laissé tel quel (`customized`) |
 | fichier modifié, modèle changé, base valide | **fusion à trois voies** : sans conflit, écrite et consignée `reconciled` ; avec conflit, rien n'est écrit et la proposition avec marqueurs est dans `diffs` (`--diff`) |
-| fichier modifié, modèle changé, base absente ou invalide | **conflit** : diff proposé, jamais écrasé (`baseInvalid` si la base est altérée) |
+| fichier modifié, modèle changé, base absente ou invalide | **conflit** : diff proposé, jamais écrasé (`baseInvalid` si la base est altérée, ou si le manifeste est dérivé) |
 | fichier listé dans `keep` | conservé tel quel (`kept`) ; sa base et son empreinte `generated` ne bougent pas |
 | fichier retiré de `keep` | traité comme un fichier modifié : fusion à trois voies à partir de sa base d'avant `keep` ; sans base, conflit jusqu'à `--adopt` |
 | fichier que le modèle ne produit plus | signalé (`retired`), jamais supprimé |
@@ -41,6 +41,13 @@ Un manifeste écrit par une version qui réécrivait `generated` pendant `keep` 
 - **(b) modèle changé depuis le dernier passage de la version qui dérivait, sans (a)** : `baseInvalid` et conflit ; fusionner à la main avec le diff (`--diff`), puis relancer avec `--adopt` ;
 - **(c) modèle inchangé depuis ce dernier passage, sans (a)** : la base est réancrée sur le modèle actuel sans `baseInvalid`. Les changements du modèle depuis la base d'origine sont abandonnés, et une fusion ultérieure ne porte que les changements postérieurs à ce passage, sans perte du contenu du projet. C'est la conséquence acceptée de ne rien faire.
 
+Reconnaître la cause d'un `baseInvalid` : l'historique du `.base` et du manifeste (`git log -p -- .bootstrap/base/<fichier>.base .bootstrap/manifest.json`) la désigne. Un `git diff` de la base ne suffit pas : il ne voit pas une altération déjà committée.
+- **base altérée** : un commit change le `.base` sans que `generated` du manifeste prenne son empreinte. Restaurer la version du `.base` dont l'empreinte (sha256 du contenu en LF) égale `generated`.
+- **manifeste dérivé** : un commit change `generated` pendant `keep` sans que le `.base` change. Conserver la base, c'est le seul ancêtre récupérable, et suivre (a), (b) ou (c).
+- **sans historique git, ou sans version qui convienne** : `--update --dry-run --diff`, fusion à la main, puis `--adopt`. Ce repli ne dépend pas de la validité de la base.
+
+Le raccourci de (a) par le sha256 du `.base` valide une base altérée : il n'est sûr que si la base ne l'a pas été.
+
 Calcul du sha256 du `.base` en LF :
 
 ```
@@ -55,7 +62,7 @@ Le dépôt du plugin est concerné : `ARCH-005` y est dans le même cas que `doc
 Une entrée de `files` d'un descripteur de module (`assets/modules/<module>/module.json`) marquée `"owned": true` est créée à la première génération, puis appartient au projet : jamais remplacée, fusionnée ni signalée en conflit, consignée `kept` dans le manifeste. C'est le cas de `.bootstrap/checks.json` (commandes de tests et systèmes de la CI). Pas besoin de la lister dans `keep`.
 
 ## Audit d'un projet
-`scripts/audit.mjs --target <dépôt>` inspecte un projet généré en lecture seule et propose une correction pour chaque écart (voir `SKILL.md`, phase 3). Il réutilise `scaffold.mjs --update --dry-run` pour la mise à jour en attente et les bases invalides, et `plan()` de **toutes** les migrations applicables (avec `--forge`), consignées ou non : une migration consignée dont la forge a dérivé depuis apparaît comme un écart. Codes de sortie : 0 aucun écart, 1 au moins un écart, 2 erreur d'usage (les autres scripts n'ont pas de rapport). À lancer après chaque mise à jour du projet.
+`scripts/audit.mjs --target <dépôt>` inspecte un projet généré en lecture seule et propose une correction pour chaque écart (voir `SKILL.md`, phase 3). Il réutilise `scaffold.mjs --update --dry-run` pour la mise à jour en attente et les bases invalides, et `plan()` de **toutes** les migrations applicables (avec `--forge`), consignées ou non : une migration consignée dont la forge a dérivé depuis apparaît comme un écart. Le conseil de l'écart `bases` dépend du statut de l'entrée du manifeste : hors `kept`, restaurer la version de la base dont l'empreinte égale `generated` ; `kept` ou entrée absente, cause ambiguë (base altérée ou manifeste dérivé), conserver la base et suivre « Manifeste dérivé par une version antérieure ». Il ne conseille jamais de supprimer une base : sans base, un fichier modifié dont le modèle a changé reste en conflit jusqu'à `--adopt`. Codes de sortie : 0 aucun écart, 1 au moins un écart, 2 erreur d'usage (les autres scripts n'ont pas de rapport). À lancer après chaque mise à jour du projet.
 
 ## Chaîne d'outils de la CI : `project-setup`
 `ci.yml` est entièrement géré par le plugin. L'installation de la chaîne d'outils du projet (langage, dépendances) se place dans `.github/actions/project-setup/action.yml`, une action composite locale créée une seule fois (`owned`) et appelée par `ci.yml` avant les commandes de `.bootstrap/checks.json`. Les noms des jobs et des checks ne changent pas. L'action utilise `bash` (exécuteurs hébergés) ; une installation qui change la version de Node doit garder Node ≥ 20.19, nécessaire à `run-checks.mjs`.
