@@ -1446,6 +1446,37 @@ check("visibilité invalide refusée", run({ ...base, visibility: "internal", mo
     check("audit : merged, retired et manifest:updated ne sont pas des écarts", by(rn, "mise-a-jour")?.statut === "ok" && /x\.md/.test(by(rn, "mise-a-jour").message));
     const rb = await audit(healthy, { scaffold: canned({ report: { baseInvalid: ["CLAUDE.md"] } }) });
     check("piège : base de fusion altérée -> écart", by(rb, "bases")?.statut === "ecart");
+    // écart des bases : la correction dépend du statut de l'entrée du manifeste ; un fichier en base invalide est aussi en conflit
+    const withEntries = (spec) => {
+      const d = mkProject();
+      const m = JSON.parse(read(d, ".bootstrap/manifest.json"));
+      for (const [file, status] of Object.entries(spec)) {
+        if (status === null) delete m.files[file];
+        else m.files[file] = { ...m.files[file], status };
+      }
+      writeFileSync(path.join(d, ".bootstrap", "manifest.json"), JSON.stringify(m, null, 2));
+      return d;
+    };
+    const invalid = (...files) => canned({ status: 3, report: { conflicts: files, baseInvalid: files } });
+    const baseOf = (f) => `.bootstrap/base/${f}.base`;
+    const noDelete = (s) => !/supprim|reconstitu/i.test(s);
+    const rAlt = await audit(withEntries({ "CLAUDE.md": "created" }), { scaffold: invalid("CLAUDE.md") });
+    check("bases : base altérée (entrée created) -> deux écarts, fichier nommé, restauration depuis l'historique, repli --adopt", ecarts(rAlt).includes("mise-a-jour") && by(rAlt, "bases")?.statut === "ecart" && by(rAlt, "bases").message === "bases de fusion invalides : CLAUDE.md" && by(rAlt, "bases").correction.includes(`base altérée (empreinte différente de generated) pour ${baseOf("CLAUDE.md")} : restaurer`) && by(rAlt, "bases").correction.includes(`git log -p -- ${baseOf("CLAUDE.md")}`) && by(rAlt, "bases").correction.includes("--diff, fusion à la main, puis --adopt") && !by(rAlt, "bases").correction.includes("versioning.md") && noDelete(by(rAlt, "bases").correction), JSON.stringify(by(rAlt, "bases")));
+    const rKept = await audit(withEntries({ "CLAUDE.md": "kept" }), { scaffold: invalid("CLAUDE.md") });
+    const keptFix = by(rKept, "bases")?.correction ?? "";
+    check("bases : manifeste dérivé (entrée kept) -> deux écarts, les deux causes, versioning.md et sa section, repli --adopt, aucune suppression", ecarts(rKept).includes("mise-a-jour") && by(rKept, "bases")?.statut === "ecart" && keptFix.includes(`${baseOf("CLAUDE.md")} (entrée « kept » ou absente du manifeste) : base altérée, ou manifeste dérivé par une version antérieure du plugin`) && keptFix.includes("conserver la base") && keptFix.includes("skills/project-bootstrap/references/versioning.md") && keptFix.includes("« Manifeste dérivé par une version antérieure »") && keptFix.includes("--diff, fusion à la main, puis --adopt") && !keptFix.includes("restaurer .bootstrap/base") && noDelete(keptFix), keptFix);
+    const rAbs = await audit(withEntries({ "CLAUDE.md": null }), { scaffold: invalid("CLAUDE.md") });
+    check("bases : entrée absente du manifeste -> correction d'une entrée kept", ecarts(rAbs).includes("mise-a-jour") && by(rAbs, "bases")?.statut === "ecart" && by(rAbs, "bases").correction === keptFix && keptFix.includes("entrée « kept » ou absente du manifeste") && keptFix.includes("versioning.md"), JSON.stringify(by(rAbs, "bases")));
+    const rMix = await audit(withEntries({ "CLAUDE.md": "created", ".gitattributes": "kept" }), { scaffold: invalid("CLAUDE.md", ".gitattributes") });
+    const mixFix = by(rMix, "bases")?.correction ?? "";
+    const mixClauses = mixFix.split(" | ");
+    check("bases : deux natures -> un seul écart bases, deux clauses séparées par ' | ' (altérée puis kept), chacune nommant son fichier", rMix.results.filter((x) => x.id === "bases").length === 1 && by(rMix, "bases").statut === "ecart" && by(rMix, "bases").message === "bases de fusion invalides : CLAUDE.md, .gitattributes" && mixClauses.length === 2 && mixClauses[0].startsWith("base altérée") && mixClauses[0].includes(baseOf("CLAUDE.md")) && !mixClauses[0].includes(baseOf(".gitattributes")) && mixClauses[1].includes(baseOf(".gitattributes")) && !mixClauses[1].includes(baseOf("CLAUDE.md")) && mixClauses[1].includes("versioning.md") && noDelete(mixFix), mixFix);
+    const rMany = await audit(withEntries({ "CLAUDE.md": "created", ".gitattributes": "created" }), { scaffold: invalid("CLAUDE.md", ".gitattributes") });
+    const manyFix = by(rMany, "bases")?.correction ?? "";
+    check("bases : plusieurs bases de même nature -> une clause, chemins séparés par ', ', et par des espaces dans la commande git", manyFix.split(" | ").length === 1 && manyFix.includes(`pour ${baseOf("CLAUDE.md")}, ${baseOf(".gitattributes")} :`) && manyFix.includes(`git log -p -- ${baseOf("CLAUDE.md")} ${baseOf(".gitattributes")})`), manyFix);
+    const rNone = await audit(withEntries({ "CLAUDE.md": "created" }), { scaffold: canned({ status: 3, report: { conflicts: ["CLAUDE.md"] } }) });
+    check("bases : aucune base invalide (modèle inchangé) -> bases ok, même avec un conflit", by(rNone, "bases")?.statut === "ok" && by(rNone, "bases").correction === undefined);
+    check("bases : sorties --json et lisible portent la correction", keptFix.includes("versioning.md") && JSON.parse(JSON.stringify(rKept)).results.find((x) => x.id === "bases").correction === keptFix && formatReport(rKept).split("\n").some((l, i, a) => /^ECART +bases — /.test(l) && a[i + 1] === `       correction : ${keptFix}`));
     const re = await audit(healthy, { scaffold: res(1, "", "erreur") });
     check("audit : scaffold en erreur (sortie 1) -> non vérifiable", by(re, "mise-a-jour")?.statut === "non-verifiable");
 
