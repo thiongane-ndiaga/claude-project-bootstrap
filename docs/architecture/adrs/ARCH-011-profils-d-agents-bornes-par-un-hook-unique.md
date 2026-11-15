@@ -62,7 +62,7 @@ Le module `agent-profiles` génère des profils d'agents (`.claude/agents/*.md`)
 - Un profil peut écrire un fichier exécutable dans son périmètre puis le faire exécuter : `qa-engineer` écrit `tests/x.test.mjs` puis lance `node .bootstrap/run-checks.mjs` ; `architect` écrit une règle `*.rules.ts` puis lance `archgate check`. Le bornage ne l'empêche pas ; la relecture humaine des changements reste la garantie.
 - Un teammate nommé autrement, ou le profil intégré `Explore` (qui reçoit tout l'outillage en équipe), n'est pas borné ; documenté dans `pitfalls.md`.
 - Un teammate isolé dans un worktree écrit sous `.claude/worktrees/<nom>/` : ses écritures légitimes sont refusées, car le chemin est calculé depuis `CLAUDE_PROJECT_DIR`.
-- La casse compte : `Tests/` est refusé, y compris sous Windows (refus à tort, sans risque). Les liens et jonctions ne sont pas résolus.
+- Les listes `write` comparent le chemin réel en tenant compte de la casse : `Tests/` est refusé sous Linux ; sous Windows, il passe si `tests/` existe (casse réelle reprise) et est refusé sinon, sans risque. Les liens et jonctions dont la cible existe sont résolus : une cible hors du projet, ou dans un dossier de gouvernance pour `developer`, est refusée ; un lien sans cible existante n'est pas résolu.
 - Retirer le module `agent-profiles` ne supprime ni le hook déjà déclaré dans `settings.json` ni les fichiers générés ; sans la table, le hook ne borne plus rien.
 - Un changement futur du contenu de `agent_type` casserait la correspondance : les tests de contrat du module la vérifient.
 
