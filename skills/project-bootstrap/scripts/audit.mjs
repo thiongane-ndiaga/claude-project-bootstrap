@@ -229,8 +229,8 @@ function checkUpdate(ctx) {
 // Correction de l'écart des bases d'après le statut de l'entrée du manifeste : hors « kept », la base a été altérée ;
 // « kept » ou entrée absente, la base est altérée ou le manifeste dérivé par une version antérieure du plugin.
 function baseAdvice(invalid, files) {
-  const fallback = "scaffold.mjs --update --dry-run --diff, fusion à la main, puis --adopt";
-  const altered = invalid.filter((file) => files?.[file] && files[file].status !== "kept");
+  const fallback = "node scaffold.mjs --update --target <dépôt> --dry-run --diff, fusion à la main, puis --adopt";
+  const altered = invalid.filter((file) => Object.hasOwn(files ?? {}, file) && files[file]?.status && files[file].status !== "kept");
   const ambiguous = invalid.filter((file) => !altered.includes(file));
   const basesOf = (list) => list.map((file) => `.bootstrap/base/${file}.base`);
   const clauses = [];
@@ -240,7 +240,7 @@ function baseAdvice(invalid, files) {
   }
   if (ambiguous.length) {
     const bases = basesOf(ambiguous);
-    clauses.push(`${bases.join(", ")} (entrée « kept » ou absente du manifeste) : base altérée, ou manifeste dérivé par une version antérieure du plugin (generated plus récent que la base) ; conserver la base (pour un manifeste dérivé, c'est le seul ancêtre récupérable) ; chercher dans l'historique (git log -p -- ${bases.join(" ")}) un commit où le .base change sans que generated prenne son empreinte (base altérée : restaurer la version dont l'empreinte égale generated), ou un commit où generated change pendant keep sans que le .base change (manifeste dérivé) ; puis suivre skills/project-bootstrap/references/versioning.md, section « Manifeste dérivé par une version antérieure » ; sans git : ${fallback}`);
+    clauses.push(`${bases.join(", ")} (entrée « kept » ou absente du manifeste) : base altérée, ou manifeste dérivé par une version antérieure du plugin (generated plus récent que la base) ; conserver la base (pour un manifeste dérivé, c'est le seul ancêtre récupérable) ; chercher dans l'historique (git log -p -- ${bases.join(" ")} .bootstrap/manifest.json) un commit où le .base change sans que generated prenne son empreinte (base altérée : restaurer la version dont l'empreinte égale generated), ou un commit où generated change pendant keep sans que le .base change (manifeste dérivé) ; puis suivre skills/project-bootstrap/references/versioning.md, section « Manifeste dérivé par une version antérieure » ; sans git : ${fallback}`);
   }
   return clauses.join(" | ");
 }
