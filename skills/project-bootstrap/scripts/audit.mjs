@@ -221,9 +221,28 @@ function checkUpdate(ctx) {
   } else {
     results.push(ok("mise-a-jour", report.retired?.length ? `rien en attente (fichiers retirés du modèle, non supprimés : ${report.retired.join(", ")})` : "rien en attente"));
   }
-  if (report.baseInvalid?.length) results.push(ecart("bases", `bases de fusion invalides : ${report.baseInvalid.join(", ")}`, "restaurer .bootstrap/base depuis git, ou supprimer la base (le prochain --update la reconstitue)"));
+  if (report.baseInvalid?.length) results.push(ecart("bases", `bases de fusion invalides : ${report.baseInvalid.join(", ")}`, baseAdvice(report.baseInvalid, ctx.manifest.files)));
   else results.push(ok("bases", "bases de fusion valides"));
   return results;
+}
+
+// Correction de l'écart des bases d'après le statut de l'entrée du manifeste : hors « kept », la base a été altérée ;
+// « kept » ou entrée absente, la base est altérée ou le manifeste dérivé par une version antérieure du plugin.
+function baseAdvice(invalid, files) {
+  const fallback = "scaffold.mjs --update --dry-run --diff, fusion à la main, puis --adopt";
+  const altered = invalid.filter((file) => files?.[file] && files[file].status !== "kept");
+  const ambiguous = invalid.filter((file) => !altered.includes(file));
+  const basesOf = (list) => list.map((file) => `.bootstrap/base/${file}.base`);
+  const clauses = [];
+  if (altered.length) {
+    const bases = basesOf(altered);
+    clauses.push(`base altérée (empreinte différente de generated) pour ${bases.join(", ")} : restaurer la version dont l'empreinte (sha256 du contenu en LF) égale generated, retrouvée dans l'historique (git log -p -- ${bases.join(" ")}) ; sans cette version ou sans git : ${fallback}`);
+  }
+  if (ambiguous.length) {
+    const bases = basesOf(ambiguous);
+    clauses.push(`${bases.join(", ")} (entrée « kept » ou absente du manifeste) : base altérée, ou manifeste dérivé par une version antérieure du plugin (generated plus récent que la base) ; conserver la base (pour un manifeste dérivé, c'est le seul ancêtre récupérable) ; chercher dans l'historique (git log -p -- ${bases.join(" ")}) un commit où le .base change sans que generated prenne son empreinte (base altérée : restaurer la version dont l'empreinte égale generated), ou un commit où generated change pendant keep sans que le .base change (manifeste dérivé) ; puis suivre skills/project-bootstrap/references/versioning.md, section « Manifeste dérivé par une version antérieure » ; sans git : ${fallback}`);
+  }
+  return clauses.join(" | ");
 }
 
 function checkGithooks(ctx) {
