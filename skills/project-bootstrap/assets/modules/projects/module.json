@@ -1,5 +1,8 @@
 {
-  "description": "Tableau GitHub Projects (Todo, In Progress, In Review, Done) lié au dépôt",
+  "description": "Tableau GitHub Projects (Todo, In Progress, In Review, Done) lié au dépôt ; avec les issues GitHub comme source, workflow project-status.yml qui pose In Progress (branche créée) et In Review (PR prête), inactif tant que le secret PROJECT_TOKEN et la variable PROJECT_NUMBER n'existent pas (créés par l'utilisateur, jamais par le plugin)",
   "requires": ["github"],
-  "default": true
+  "default": true,
+  "files": [
+    {"path": ".github/workflows/project-status.yml", "when": ["issue-source"]}
+  ]
 }

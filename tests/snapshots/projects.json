@@ -10,9 +10,10 @@
   ".github/labels.json": "cbf6e8d6f5d28507afabf573bb4d0b5c7e6b75ee2c9e3083d4a849bf2df74e32",
   ".github/pull_request_template.md": "7d3abab1facc615ce0f64ceb809376c218c69158b0c93beb7566744367460ea7",
   ".github/workflows/ci.yml": "ef910db84d10b639646e6789e5018e3b1dec2f3fbd6dc901836579300f821e16",
+  ".github/workflows/project-status.yml": "082907361a4715de3bf18169fcefba24618e85d038e8427dd306a865e15d177a",
   ".gitignore": "bbb7a6669f4e6557474827de0d4e0bb38586aea32f0a639aeb9f82a7cec7e717",
   "CLAUDE.md": "e7a3b61229308354225cd001c4bf471f353c096f1dd8ec374fec28468afbfaeb",
-  "docs/workflow.md": "e3190e22f2fda7efc24eb9ccd625073caa46938e81fe62228fa88d99839c0468",
+  "docs/workflow.md": "6023da21520ac3ef8c2d3dd28909d842245defaa5f9e5b30eb38174625bfca23",
   "scripts/check-pr-title.mjs": "6bd4d1a35fc2ad9c483c7ae09361b8061d8c3681e4c744528e219f9f2f61c401",
   "scripts/sync-labels.mjs": "fec29054527bad66276014e15548ce0913ee9e923d14a30881f2b4a3d73e33b6"
 }

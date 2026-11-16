@@ -95,7 +95,7 @@ for (const c of cases) {
   const files = walk(out);
   const leftovers = files.filter((f) => /@@module|@@end|\{\{[A-Z0-9_]+\}\}/.test(readFileSync(f, "utf8")));
   check(`${c.name} : aucun marqueur ni paramètre restant`, leftovers.length === 0, leftovers.join(", "));
-  const active = new Set(["core", ...c.modules, ...(c.modules.includes("github") || c.modules.includes("gitlab") ? ["forge"] : []), ...(c.modules.includes("agent-profiles") ? [] : ["legacy-agents"])]);
+  const active = new Set(["core", "issue-source", ...c.modules, ...(c.modules.includes("github") || c.modules.includes("gitlab") ? ["forge"] : []), ...(c.modules.includes("agent-profiles") ? [] : ["legacy-agents"])]);
   const expected = manifest.files.filter((f) => f.when.every((m) => active.has(m))).length + (active.has("claude") ? 1 : 0);
   check(`${c.name} : ${expected} fichiers`, report.created.length === expected, `${report.created.length} créés`);
   if (active.has("claude")) {

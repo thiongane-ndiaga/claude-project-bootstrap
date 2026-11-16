@@ -97,6 +97,16 @@ Voir [ARCH-007](../adrs/ARCH-007-installation-des-cli-d-outillage.md) et [ARCH-0
 
 Voir [ARCH-004](../adrs/ARCH-004-github-comme-forge-avec-actions-et-releases.md) et [ARCH-010](../adrs/ARCH-010-modules-auto-decrits.md).
 
+## Briques liées au statut du Project
+
+- Module `projects` (`requires: github`, `default: true`) : apporte `.github/workflows/project-status.yml` (`templates{,.en}/`), déclaré avec `when: ["issue-source"]`. Le fichier est absent en mode `jiraSource: jira` ; avec `gitlab`, le module est refusé (code 1). Aucune clé de configuration ni paramètre `{{…}}` ; `scaffold.mjs --update` crée le fichier dans un projet existant.
+- Workflow `project-status.yml` : un job `status` sans `uses:`, qui passe par `gh` (`gh project view`, `gh project field-list`, `gh pr list`, `gh api graphql`) et lit à l'exécution le secret `PROJECT_TOKEN` et les variables `PROJECT_NUMBER` et `PROJECT_OWNER` (voir la [section 8](08-concepts-transverses.md)).
+- Blocs imbriqués `@@module:projects` et `@@module:issue-source` (variante `jira-source` : statuts à la main) dans `docs/workflow.md` (module `core`) et dans la ligne Projects d'ARCH-004 généré (module `archgate`).
+- Tests : `skills/project-bootstrap/assets/modules/projects/tests/projects.test.mjs` (présence selon `issue-source`, `jira-source` et `gitlab`, déclencheurs, droits, concurrence, portée de `GH_TOKEN`) ; `tests/matrix.test.mjs` refuse les six préfixes de jeton GitHub (`ghp_`, `gho_`, `ghu_`, `ghs_`, `ghr_`, `github_pat_`) dans les fichiers générés de chaque combinaison, bases de fusion comprises, en nommant le fichier (`invariants()`).
+- Documentation du skill : `references/github-setup.md` (étape 4), `references/pitfalls.md`, `SKILL.md` (secret et variables dans ce qui reste manuel).
+
+Voir [ARCH-019](../adrs/ARCH-019-statuts-in-progress-et-in-review-du-project-par-une-action-optionnelle.md), [ARCH-004](../adrs/ARCH-004-github-comme-forge-avec-actions-et-releases.md) et [ARCH-010](../adrs/ARCH-010-modules-auto-decrits.md) ; changement OpenSpec `175-project-status-action` (issue #175).
+
 ## Briques liées à Jira
 
 - Module `jira` (`requiresAny: ["github", "jenkins"]`, `default: false`) : apporte `scripts/check-jira-key.mjs`, `docs/jira.md` (avec la table de lecture ; variante GitLab) et le champ facultatif « Clé Jira » des formulaires d'issues (`.github/` ou `.gitlab/issue_templates/`). Le Jira lui-même est externe.
