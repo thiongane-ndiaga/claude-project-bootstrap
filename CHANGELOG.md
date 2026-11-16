@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.22](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.21...v0.1.22) (2026-11-15)
+
+
+### Bug Fixes
+
+* **skill:** give the audit bases advice a cause-dependent correction ([#179](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/179)) ([10dc472](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/10dc4721929871f764af69597b644dc0c832c339))
+* **skill:** list every developer governance entry in the workflow table ([#178](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/178)) ([430a7b8](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/430a7b81cd04c4b482e0f70edf9ed41d22b3e8ff))
+* **skill:** reconcile a file removed from keep with the merge base ([#173](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/173)) ([c767db0](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/c767db0b8f0d838999045704ba9b63a7b95772d5))
+
 ## [0.1.21](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.20...v0.1.21) (2026-11-14)
 
 
