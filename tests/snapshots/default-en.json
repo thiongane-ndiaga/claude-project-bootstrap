@@ -22,7 +22,7 @@
   ".github/labels.json": "be8b8a5e231bc7551bb7d159ce9abfaa20c49824c663f90d1e14c9082bd93675",
   ".github/pull_request_template.md": "d556d524ae9831174d2ab7d09c19910e9b96bfa8155caba5d32c846cb05fa41f",
   ".github/workflows/ci.yml": "75417b30c9187c20d19fcaeeed102a53262196b5c89f162108a04c39b032a6fa",
-  ".github/workflows/project-status.yml": "6dc1b1c1dab747454b12b77a1ce1274a767bd44bfad6aab6e54cebbec7f1f65b",
+  ".github/workflows/project-status.yml": "cbb6e9a5c68477a2308114344dbb64b5e5cc4c1c3d1adfcfde306634748f4a59",
   ".github/workflows/release.yml": "b00b35281a6ea5585e1f404ba63d178374514e0581f4de3ecd1dffd060bf8aa6",
   ".gitignore": "db9ce31d2734b734e6fb2d8a6092ff08f5620f2edbf27aa0a4e7923c284fa8a3",
   ".release-please-manifest.json": "b9c66e0126774ab9fa34536f15972438356e7035724a2c0f0ca3b125967e6399",
