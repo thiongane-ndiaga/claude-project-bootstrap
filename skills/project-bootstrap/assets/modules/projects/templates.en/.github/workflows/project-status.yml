@@ -1,0 +1,125 @@
+name: Project statuses
+
+# Moves the card of the issue named by the branch to "In Progress" (branch created) then to "In Review" (PR ready for review).
+# Inactive until the PROJECT_TOKEN secret and the PROJECT_NUMBER variable exist: creating the secret counts as agreement.
+# "Done" stays with the built-in workflows of the Project. Details: docs/workflow.md.
+on:
+  create:
+  pull_request:
+    types: [opened, reopened, ready_for_review, converted_to_draft, closed]
+
+# GITHUB_TOKEN is not used: only PROJECT_TOKEN (classic PAT, scopes project and repo) writes to the Project.
+permissions: {}
+
+concurrency:
+  group: project-status-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  status:
+    # a branch being created (not a tag), or a PR that is not merged (the merge belongs to the built-in workflow)
+    if: >-
+      (github.event_name == 'create' && github.ref_type == 'branch') ||
+      (github.event_name == 'pull_request' && (github.event.action != 'closed' || github.event.pull_request.merged == false))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+      PROJECT_NUMBER: ${{ vars.PROJECT_NUMBER }}
+      PROJECT_OWNER: ${{ vars.PROJECT_OWNER || github.repository_owner }}
+      GH_REPO: ${{ github.repository }}
+      BRANCH: ${{ github.head_ref || github.ref_name }}
+    steps:
+      - name: Project statuses inactive (secret or variable missing)
+        if: env.PROJECT_TOKEN == '' || env.PROJECT_NUMBER == ''
+        run: |
+          if [[ -z "$PROJECT_TOKEN" ]]; then
+            echo "::notice::Project statuses inactive: PROJECT_TOKEN secret missing"
+          else
+            echo "::notice::Project statuses inactive: PROJECT_NUMBER variable missing"
+          fi
+      - name: Update the card status
+        if: env.PROJECT_TOKEN != '' && env.PROJECT_NUMBER != ''
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+        run: |
+          # skip: configuration case, notice and success; fail: visible failure
+          skip() { echo "::notice::$1"; exit 0; }
+          fail() { echo "::error::$1"; exit 1; }
+          # gh call: output in $out; a rejected token fails the step, any other error returns 1 to the caller
+          gh_call() {
+            if out=$("$@" 2>&1); then return 0; fi
+            case "$out" in
+              *"Bad credentials"*|*"401"*|*"403"*|*"scope"*|*"expired"*|*"Resource not accessible"*|*"Could not resolve to a Repository"*)
+                fail "The PROJECT_TOKEN secret token is rejected, expired or without access: it must be a classic PAT with the project and repo scopes (API response: ${out//$'\n'/ })" ;;
+            esac
+            return 1
+          }
+          # any other gh error: the API message and a reminder of the configuration
+          fail_api() {
+            fail "GitHub call failed: ${out//$'\n'/ } (check PROJECT_TOKEN, PROJECT_NUMBER and PROJECT_OWNER)"
+          }
+
+          # target: the issue whose number follows the type in the branch name
+          case "$BRANCH" in
+            dependabot/*|release-please--*) skip "Branch without issue: no status to set" ;;
+          esac
+          [[ $BRANCH =~ ^[a-z]+/([0-9]+)- ]] || skip "Branch without issue number: no status to set"
+          NUMBER="${BASH_REMATCH[1]}"
+
+          # Project
+          gh_call gh project view "$PROJECT_NUMBER" --owner "$PROJECT_OWNER" --format json --jq .id || fail_api
+          PROJECT_ID="$out"
+
+          # issue (state) then the card of that issue in the Project (identifier and status)
+          gh_call gh api graphql -f owner="${GH_REPO%%/*}" -f repo="${GH_REPO#*/}" -F number="$NUMBER" -f query='
+            query($owner: String!, $repo: String!, $number: Int!) {
+              repository(owner: $owner, name: $repo) {
+                issue(number: $number) {
+                  state
+                  projectItems(first: 20) {
+                    nodes {
+                      id
+                      project { id }
+                      fieldValueByName(name: "Status") {
+                        ... on ProjectV2ItemFieldSingleSelectValue { name }
+                      }
+                    }
+                  }
+                }
+              }
+            }' --jq '.data.repository.issue | .state, (.projectItems.nodes[] | [.project.id, .id, (.fieldValueByName.name // "")] | join("|"))' || {
+            [[ "$out" == *"Could not resolve to an Issue"* ]] && skip "Issue not found (no such number, or a PR number): no status to set"
+            fail_api
+          }
+          STATE="" ITEM="" CURRENT=""
+          while IFS='|' read -r first second third; do
+            if [[ -z "$STATE" ]]; then STATE="$first"; elif [[ "$first" == "$PROJECT_ID" ]]; then ITEM="$second"; CURRENT="$third"; fi
+          done <<< "$out"
+          [[ "$STATE" == "OPEN" ]] || skip "Issue closed: no status to set"
+          [[ -n "$ITEM" ]] || skip "Issue not in the Project: no status to set"
+          [[ "$CURRENT" != "Done" ]] || skip "Card in Done: no status to set"
+
+          # open PR, not a draft, from the current repository, with this branch as head
+          gh_call gh pr list --head "$BRANCH" --state open --json isDraft,isCrossRepository --jq '[.[] | select(.isCrossRepository == false and .isDraft == false)] | length' || fail_api
+          TARGET="In Progress"
+          [[ "$out" == "0" ]] || TARGET="In Review"
+          [[ "$CURRENT" != "$TARGET" ]] || skip "Card already in $TARGET: nothing to write"
+
+          # Status field and target option
+          gh_call gh project field-list "$PROJECT_NUMBER" --owner "$PROJECT_OWNER" --format json --jq '.fields[] | select(.name == "Status") | .id, (.options[] | [.name, .id] | join("|"))' || fail_api
+          FIELD="" OPTION=""
+          while IFS='|' read -r first second; do
+            if [[ -z "$FIELD" ]]; then FIELD="$first"; elif [[ "$first" == "$TARGET" ]]; then OPTION="$second"; fi
+          done <<< "$out"
+          [[ -n "$FIELD" ]] || skip "Status field missing from the Project: no status to set"
+          [[ -n "$OPTION" ]] || skip "Option $TARGET missing from the Status field: no status to set"
+
+          # write
+          gh_call gh api graphql -f project="$PROJECT_ID" -f item="$ITEM" -f field="$FIELD" -f option="$OPTION" -f query='
+            mutation($project: ID!, $item: ID!, $field: ID!, $option: String!) {
+              updateProjectV2ItemFieldValue(input: {projectId: $project, itemId: $item, fieldId: $field, value: {singleSelectOptionId: $option}}) {
+                projectV2Item { id }
+              }
+            }' || fail_api
+          echo "Card of issue $NUMBER: ${CURRENT:-no status} -> $TARGET"

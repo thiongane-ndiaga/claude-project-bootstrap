@@ -1,0 +1,125 @@
+name: Statuts du Project
+
+# Fait passer la carte de l'issue nommée par la branche en « In Progress » (branche créée) puis en « In Review » (PR prête pour la revue).
+# Inactif tant que le secret PROJECT_TOKEN et la variable PROJECT_NUMBER n'existent pas : la création du secret vaut accord.
+# « Done » reste assuré par les workflows intégrés du Project. Détail : docs/workflow.md.
+on:
+  create:
+  pull_request:
+    types: [opened, reopened, ready_for_review, converted_to_draft, closed]
+
+# GITHUB_TOKEN n'est pas utilisé : seul PROJECT_TOKEN (PAT classique, scopes project et repo) écrit dans le Project.
+permissions: {}
+
+concurrency:
+  group: project-status-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  status:
+    # une branche créée (pas une étiquette), ou une PR non fusionnée (la fusion relève du workflow intégré)
+    if: >-
+      (github.event_name == 'create' && github.ref_type == 'branch') ||
+      (github.event_name == 'pull_request' && (github.event.action != 'closed' || github.event.pull_request.merged == false))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+      PROJECT_NUMBER: ${{ vars.PROJECT_NUMBER }}
+      PROJECT_OWNER: ${{ vars.PROJECT_OWNER || github.repository_owner }}
+      GH_REPO: ${{ github.repository }}
+      BRANCH: ${{ github.head_ref || github.ref_name }}
+    steps:
+      - name: Statuts du Project inactifs (secret ou variable absents)
+        if: env.PROJECT_TOKEN == '' || env.PROJECT_NUMBER == ''
+        run: |
+          if [[ -z "$PROJECT_TOKEN" ]]; then
+            echo "::notice::Statuts du Project inactifs : secret PROJECT_TOKEN absent"
+          else
+            echo "::notice::Statuts du Project inactifs : variable PROJECT_NUMBER absente"
+          fi
+      - name: Mettre à jour le statut de la carte
+        if: env.PROJECT_TOKEN != '' && env.PROJECT_NUMBER != ''
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+        run: |
+          # skip : cas de configuration, notice et succès ; fail : échec visible
+          skip() { echo "::notice::$1"; exit 0; }
+          fail() { echo "::error::$1"; exit 1; }
+          # appel de gh : sortie dans $out ; un refus du jeton fait échouer l'étape, toute autre erreur renvoie 1 à l'appelant
+          gh_call() {
+            if out=$("$@" 2>&1); then return 0; fi
+            case "$out" in
+              *"Bad credentials"*|*"401"*|*"403"*|*"scope"*|*"expired"*|*"Resource not accessible"*|*"Could not resolve to a Repository"*)
+                fail "Le jeton du secret PROJECT_TOKEN est refusé, expiré ou sans accès : il doit être un PAT classique avec les scopes project et repo (réponse de l'API : ${out//$'\n'/ })" ;;
+            esac
+            return 1
+          }
+          # autre erreur de gh : le message de l'API et un rappel de la configuration
+          fail_api() {
+            fail "Appel à GitHub en échec : ${out//$'\n'/ } (vérifier PROJECT_TOKEN, PROJECT_NUMBER et PROJECT_OWNER)"
+          }
+
+          # cible : l'issue dont le numéro suit le type dans le nom de la branche
+          case "$BRANCH" in
+            dependabot/*|release-please--*) skip "Branche sans issue : aucun statut à poser" ;;
+          esac
+          [[ $BRANCH =~ ^[a-z]+/([0-9]+)- ]] || skip "Branche sans numéro d'issue : aucun statut à poser"
+          NUMBER="${BASH_REMATCH[1]}"
+
+          # Project
+          gh_call gh project view "$PROJECT_NUMBER" --owner "$PROJECT_OWNER" --format json --jq .id || fail_api
+          PROJECT_ID="$out"
+
+          # issue (état) puis carte de cette issue dans le Project (identifiant et statut)
+          gh_call gh api graphql -f owner="${GH_REPO%%/*}" -f repo="${GH_REPO#*/}" -F number="$NUMBER" -f query='
+            query($owner: String!, $repo: String!, $number: Int!) {
+              repository(owner: $owner, name: $repo) {
+                issue(number: $number) {
+                  state
+                  projectItems(first: 20) {
+                    nodes {
+                      id
+                      project { id }
+                      fieldValueByName(name: "Status") {
+                        ... on ProjectV2ItemFieldSingleSelectValue { name }
+                      }
+                    }
+                  }
+                }
+              }
+            }' --jq '.data.repository.issue | .state, (.projectItems.nodes[] | [.project.id, .id, (.fieldValueByName.name // "")] | join("|"))' || {
+            [[ "$out" == *"Could not resolve to an Issue"* ]] && skip "Issue introuvable (numéro inexistant ou numéro de PR) : aucun statut à poser"
+            fail_api
+          }
+          STATE="" ITEM="" CURRENT=""
+          while IFS='|' read -r first second third; do
+            if [[ -z "$STATE" ]]; then STATE="$first"; elif [[ "$first" == "$PROJECT_ID" ]]; then ITEM="$second"; CURRENT="$third"; fi
+          done <<< "$out"
+          [[ "$STATE" == "OPEN" ]] || skip "Issue fermée : aucun statut à poser"
+          [[ -n "$ITEM" ]] || skip "Issue absente du Project : aucun statut à poser"
+          [[ "$CURRENT" != "Done" ]] || skip "Carte en Done : aucun statut à poser"
+
+          # PR ouverte, hors brouillon, du dépôt courant, qui a cette branche pour tête
+          gh_call gh pr list --head "$BRANCH" --state open --json isDraft,isCrossRepository --jq '[.[] | select(.isCrossRepository == false and .isDraft == false)] | length' || fail_api
+          TARGET="In Progress"
+          [[ "$out" == "0" ]] || TARGET="In Review"
+          [[ "$CURRENT" != "$TARGET" ]] || skip "Carte déjà en $TARGET : rien à écrire"
+
+          # champ Status et option visée
+          gh_call gh project field-list "$PROJECT_NUMBER" --owner "$PROJECT_OWNER" --format json --jq '.fields[] | select(.name == "Status") | .id, (.options[] | [.name, .id] | join("|"))' || fail_api
+          FIELD="" OPTION=""
+          while IFS='|' read -r first second; do
+            if [[ -z "$FIELD" ]]; then FIELD="$first"; elif [[ "$first" == "$TARGET" ]]; then OPTION="$second"; fi
+          done <<< "$out"
+          [[ -n "$FIELD" ]] || skip "Champ Status absent du Project : aucun statut à poser"
+          [[ -n "$OPTION" ]] || skip "Option $TARGET absente du champ Status : aucun statut à poser"
+
+          # écriture
+          gh_call gh api graphql -f project="$PROJECT_ID" -f item="$ITEM" -f field="$FIELD" -f option="$OPTION" -f query='
+            mutation($project: ID!, $item: ID!, $field: ID!, $option: String!) {
+              updateProjectV2ItemFieldValue(input: {projectId: $project, itemId: $item, fieldId: $field, value: {singleSelectOptionId: $option}}) {
+                projectV2Item { id }
+              }
+            }' || fail_api
+          echo "Carte de l'issue $NUMBER : ${CURRENT:-sans statut} -> $TARGET"

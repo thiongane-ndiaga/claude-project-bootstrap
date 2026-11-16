@@ -30,7 +30,12 @@ Chaque couche a un rôle :
 - **Issue** via un gabarit : *Fonctionnalité*, *Bug* ou *Décision d'architecture* (label posé par le gabarit : `bug`, `enhancement` ou `adr`).
 @@end
 @@module:projects
-  Elle arrive dans le Project en *Todo* (auto-add) ; la carte passe en *In Progress* à la création de la branche, en *In Review* à l'ouverture de la PR.
+@@module:issue-source
+  Elle arrive dans le Project en *Todo* (auto-add) ; la carte passe en *In Progress* à la création de la branche sur GitHub, en *In Review* à l'ouverture de la PR, automatiques avec le secret, manuels sans (secret Actions `PROJECT_TOKEN`).
+@@end
+@@module:jira-source
+  Les statuts *In Progress* et *In Review* du Project se règlent à la main : aucun workflow n'est généré en mode `jira`.
+@@end
 @@end
 @@module:archgate
 @@module:legacy-agents
