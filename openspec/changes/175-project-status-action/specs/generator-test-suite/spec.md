@@ -3,12 +3,12 @@
 ## ADDED Requirements
 
 ### Requirement: Aucun jeton dans les fichiers générés
-Pour chaque combinaison de la matrice, la suite SHALL parcourir tous les fichiers générés (bases de fusion comprises) et échouer, en nommant le fichier, si l'un contient `ghp_` ou `github_pat_`.
+Pour chaque combinaison de la matrice, la suite SHALL parcourir tous les fichiers générés (bases de fusion comprises) et échouer, en nommant le fichier, si l'un contient un préfixe de jeton GitHub : `ghp_`, `gho_`, `ghu_`, `ghs_`, `ghr_` ou `github_pat_`.
 
 #### Scenario: Jeton dans un fichier
-- **WHEN** la fonction des invariants reçoit un fichier dont le contenu inclut `ghp_x` ou `github_pat_x`
+- **WHEN** la fonction des invariants reçoit un fichier dont le contenu inclut l'un de ces préfixes suivi de `x`, par exemple `ghp_x` ou `github_pat_x`
 - **THEN** elle signale un problème qui nomme le fichier
 
 #### Scenario: Génération saine
 - **WHEN** les combinaisons de la matrice sont générées à partir des modèles du dépôt
-- **THEN** aucun fichier généré ne contient `ghp_` ni `github_pat_`
+- **THEN** aucun fichier généré ne contient l'un de ces préfixes

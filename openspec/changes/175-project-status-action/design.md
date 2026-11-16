@@ -100,9 +100,9 @@ Le script ne lit que des variables d'environnement (`BRANCH`, `GH_REPO`, `PROJEC
 | Issue sans carte dans le Project | notice, succès |
 | Option visée absente du champ Status (dont `In Review`) | notice, succès |
 | Jeton refusé (401, « Bad credentials »), expiré, scope insuffisant, dépôt inaccessible au jeton (« Could not resolve to a Repository » ; par exemple un PAT sans `repo` sur un dépôt privé) | échec, message qui nomme `PROJECT_TOKEN` et ses scopes `project` et `repo` |
-| Toute autre erreur de `gh`, dont un Project introuvable | échec, message de l'API plus un rappel de `PROJECT_TOKEN`, `PROJECT_NUMBER` et `PROJECT_OWNER` |
+| Toute autre erreur de `gh`, dont un Project introuvable | échec, message fixe qui rappelle `PROJECT_TOKEN`, `PROJECT_NUMBER` et `PROJECT_OWNER` ; la réponse de l'API n'est pas écrite |
 
-La classification lit le texte de l'erreur : les messages exacts de l'API ne sont pas établis et se confirment à l'essai manuel ; tout message non reconnu tombe dans la dernière ligne (échec). Écart avec ARCH-019 : ce classement fait échouer un jeton refusé ou expiré, alors que la ligne « Expiration du PAT » des Risques d'ARCH-019 dit « notice » ; le motif est qu'un jeton configuré qui ne marche pas doit se voir et que l'essai du scope `repo` ne doit pas être masqué. Décision du chef de projet ; l'ADR est à aligner par `architect` (tâche 4.5).
+La classification lit le texte de l'erreur, capturé dans `$out`, sans jamais l'écrire dans le journal (`fail` et `fail_api` ont un texte fixe, qui renvoie à `github-setup.md`) ; le test du module refuse `${out` dans une ligne `echo`, `printf`, `fail`, `fail_api` ou `skip`. Pour diagnostiquer, rejouer l'appel de `gh` en local. Les messages exacts de l'API ne sont pas établis et se confirment à l'essai manuel ; tout message non reconnu tombe dans la dernière ligne (échec). Écart avec ARCH-019 : ce classement fait échouer un jeton refusé ou expiré, alors que la ligne « Expiration du PAT » des Risques d'ARCH-019 dit « notice » ; le motif est qu'un jeton configuré qui ne marche pas doit se voir et que l'essai du scope `repo` ne doit pas être masqué. Décision du chef de projet ; l'ADR est à aligner par `architect` (tâche 4.5).
 
 ### D4. Cas limites
 
@@ -123,7 +123,7 @@ La classification lit le texte de l'erreur : les messages exacts de l'API ne son
 
 ### D5. Textes localisés et parité
 
-Seuls les `name:`, les commentaires et les chaînes entre guillemets sont traduits ; le script bash est identique mot pour mot dans les deux modèles, hors chaînes entre guillemets. Les notices et messages d'échec sont des `echo "::notice::…"` ou `echo "::error::…"` à texte fixe, sans nom de branche ni autre donnée d'événement (le message de l'API, lui, peut être repris dans le message d'échec). Les noms `Status`, `In Progress`, `In Review` et `Done` sont des littéraux identiques dans les deux langues.
+Seuls les `name:`, les commentaires et les chaînes entre guillemets sont traduits ; le script bash est identique mot pour mot dans les deux modèles, hors chaînes entre guillemets. Les notices et messages d'échec sont des `echo "::notice::…"` ou `echo "::error::…"` à texte fixe, sans nom de branche, sans donnée d'événement et sans réponse de l'API. Les noms `Status`, `In Progress`, `In Review` et `Done` sont des littéraux identiques dans les deux langues.
 
 ### D6. `docs/workflow.md` (blocs)
 
@@ -163,7 +163,7 @@ La ligne Projects du bloc `@@module:projects` (français et anglais) ajoute : *I
   - `--update` : le fichier et l'entrée du manifeste sont retirés pour imiter un projet antérieur, puis `--update` rapporte le fichier créé et un second `--update` ne change rien ;
   - `docs/workflow.md` et ARCH-004 dans les deux langues, avec et sans `projects`, avec `jiraSource: jira`.
 - La syntaxe bash du script n'est pas contrôlée par la suite (le script vit dans le YAML, aucune extraction n'existe) ; elle l'est à l'essai manuel. Un contrôle `bash -n` sur le script extrait reste possible mais ajoute une dépendance à bash dans une suite lancée aussi sous Windows : non retenu.
-- `tests/matrix.test.mjs` : le refus de `ghp_` et `github_pat_` entre dans `invariants()` (donc dans chaque combinaison, fichiers générés seulement), avec une ligne d'autocontrôle (tampon synthétique).
+- `tests/matrix.test.mjs` : le refus des six préfixes de jeton GitHub (`ghp_`, `gho_`, `ghu_`, `ghs_`, `ghr_`, `github_pat_`) entre dans `invariants()` (donc dans chaque combinaison, fichiers générés seulement), avec une ligne d'autocontrôle (tampon synthétique).
 - Instantanés relus après `UPDATE_SNAPSHOTS=1` : les dix combinaisons qui contiennent `projects` (`projects`, `default`, `default-stack`, `default-cli-user`, `default-cli-local`, `default-en`, `full`, `full-en`, `full-public`, `full-legacy`) gagnent `project-status.yml` et changent `docs/workflow.md` ; ARCH-004 change dans celles qui ont aussi `archgate` (`default*`, `full*`). `jira-source` ne change pas : elle ne contient pas `projects`.
 - Essai manuel (hors suite, tâche 6.1) : voir Risques.
 

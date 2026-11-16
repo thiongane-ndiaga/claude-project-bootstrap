@@ -168,7 +168,7 @@ Le workflow SHALL réussir en émettant une notice, sans modifier de carte, quan
 - **THEN** une notice le dit, le workflow réussit et aucune carte n'est modifiée
 
 ### Requirement: Échec d'un jeton inutilisable
-Le workflow SHALL faire échouer l'étape de mise à jour, avec un message qui nomme `PROJECT_TOKEN` et ses scopes `project` et `repo`, quand le jeton est refusé, expiré, de scope insuffisant ou sans accès au dépôt. Toute autre erreur de `gh` MUST aussi la faire échouer avec le message de l'API. Chaque appel de `gh` est contrôlé, jamais abandonné sans message.
+Le workflow SHALL faire échouer l'étape de mise à jour, avec un message qui nomme `PROJECT_TOKEN` et ses scopes `project` et `repo`, quand le jeton est refusé, expiré, de scope insuffisant ou sans accès au dépôt. Toute autre erreur de `gh` MUST aussi la faire échouer, avec un message fixe qui nomme `PROJECT_TOKEN`, `PROJECT_NUMBER` et `PROJECT_OWNER`. Chaque appel de `gh` est contrôlé, jamais abandonné sans message.
 
 #### Scenario: Jeton refusé ou expiré
 - **WHEN** l'API refuse `PROJECT_TOKEN`
@@ -180,7 +180,14 @@ Le workflow SHALL faire échouer l'étape de mise à jour, avec un message qui n
 
 #### Scenario: Autre erreur de l'API
 - **WHEN** un appel de `gh` échoue pour une autre cause, par exemple un Project introuvable
-- **THEN** l'étape échoue en reprenant le message de l'API
+- **THEN** l'étape échoue avec un message fixe qui nomme `PROJECT_TOKEN`, `PROJECT_NUMBER` et `PROJECT_OWNER`
+
+### Requirement: Journal sans réponse brute de l'API
+Le workflow SHALL lire la réponse capturée de `gh` pour classer l'erreur et MUST NOT l'écrire dans le journal : les messages d'échec sont fixes et renvoient à `github-setup.md`.
+
+#### Scenario: Réponse de l'API hors du journal
+- **WHEN** les scripts `run:` du workflow généré sont lus
+- **THEN** aucune ligne `echo`, `printf`, `fail`, `fail_api` ou `skip` n'écrit la réponse capturée de `gh`
 
 ### Requirement: Noms de branche hors du shell
 Le workflow SHALL passer le nom de branche et toute valeur issue d'un événement par des variables d'environnement, jamais par une expression `${{ … }}` écrite dans un script `run:`.
