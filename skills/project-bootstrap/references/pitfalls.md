@@ -63,7 +63,7 @@ Constatés lors de la mise en place de référence (Claude Code 2.1.31x, OpenSpe
   - Une branche créée seulement en local (`git switch -c` sans envoi) ne déclenche rien ; une branche créée alors que le workflow n'existe pas encore dans le dépôt exécute le workflow qu'elle contient, donc aucun : statuts à la main pour elle.
   - Une issue absente du Project (auto-add pas encore passé) donne une notice ; l'événement suivant rattrape.
   - Le workflow intégré *Pull request linked to issue* est à désactiver avec le secret : sans cela il remet la carte en *In Progress* après l'ouverture de la PR, et l'Action ne corrige qu'à l'événement suivant.
-  - La classification des erreurs lit le texte des messages de `gh` (`Bad credentials`, `Could not resolve to an Issue`, `Could not resolve to a Repository`) ; ces messages ne sont pas établis, un message inconnu fait échouer l'étape.
+  - La classification des erreurs lit le texte des messages de `gh` (`Bad credentials`, `Could not resolve to an Issue`, `Could not resolve to a Repository`) ; ces messages ne sont pas établis, un message inconnu fait échouer l'étape. La réponse de l'API n'est jamais écrite dans le journal (message d'échec fixe) : pour diagnostiquer, rejouer l'appel de `gh` en local avec le même jeton.
 - `git update-index --chmod=+x .githooks/pre-push` ne change que l'index : si le fichier est en 644 sur disque, git ignore le hook (« le crochet a été ignoré parce qu'il n'est pas marqué comme exécutable ») et un `git commit -a` n'enregistre pas le mode. → Faire aussi `chmod +x .githooks/pre-push` avant le premier push, puis vérifier avec `git ls-tree HEAD .githooks/` (100755).
 
 ## release-please
