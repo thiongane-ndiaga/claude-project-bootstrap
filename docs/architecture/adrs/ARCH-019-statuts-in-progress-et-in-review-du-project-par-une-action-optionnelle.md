@@ -100,7 +100,7 @@ Le précédent est le secret optionnel `SONAR_TOKEN` (ARCH-004) : job inactif sa
 
 ## Compliance and Enforcement
 
-Tests du module `projects` (`assets/modules/projects/tests/`) : présence du workflow avec `projects` et `issue-source`, absence sans l'un d'eux, dont le mode `jiraSource: jira` ; déclencheurs attendus ; `permissions: {}` ; groupe de concurrence ; absence de `pull_request_target`, `synchronize`, `push` et `workflow_dispatch`. Instantanés de la matrice (`full`, `full-en`). Un test parcourt les fichiers générés et refuse toute valeur de jeton (`ghp_`, `github_pat_`). La règle `actions-pinned-to-sha` d'ARCH-004 couvre l'épinglage. Pas de règle Archgate propre : le sujet est du contenu de modèles.
+Tests du module `projects` (`assets/modules/projects/tests/`) : présence du workflow avec `projects` et `issue-source`, absence sans l'un d'eux, dont le mode `jiraSource: jira` ; déclencheurs attendus ; `permissions: {}` ; groupe de concurrence ; absence de `pull_request_target`, `synchronize`, `push` et `workflow_dispatch`. Instantanés de la matrice (`full`, `full-en`). Un test parcourt les fichiers générés de chaque combinaison, bases de fusion comprises, et refuse, en nommant le fichier, les six préfixes de jeton GitHub (`ghp_`, `gho_`, `ghu_`, `ghs_`, `ghr_`, `github_pat_`). La règle `actions-pinned-to-sha` d'ARCH-004 couvre l'épinglage. Pas de règle Archgate propre : le sujet est du contenu de modèles.
 
 Le changement OpenSpec `175-project-status-action` aligne aussi :
 
