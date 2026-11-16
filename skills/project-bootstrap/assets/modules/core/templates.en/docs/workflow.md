@@ -31,7 +31,7 @@ Each layer has a role:
 @@end
 @@module:projects
 @@module:issue-source
-  It lands in the Project in *Todo* (auto-add); the card moves to *In Progress* when the branch is created on GitHub, to *In Review* when the PR is opened, automatic with the secret, manual without (Actions secret `PROJECT_TOKEN`).
+  It lands in the Project in *Todo* (auto-add); the card moves to *In Progress* when the branch is created on GitHub, to *In Review* when the PR is opened, automatic with the secret, manual without (Actions secret `PROJECT_TOKEN` and variable `PROJECT_NUMBER`, both required).
 @@end
 @@module:jira-source
   The Project's *In Progress* and *In Review* statuses are set by hand: no workflow is generated in `jira` mode.

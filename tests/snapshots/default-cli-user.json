@@ -32,7 +32,7 @@
   "docs/architecture/adrs/ARCH-002-workflow-spec-driven-avec-openspec.md": "e73fb0dfd7b7197dcc1d28b618cd76b97dc058118ff69b46164293e14f67ee49",
   "docs/architecture/adrs/ARCH-003-emplacement-et-format-des-adr.md": "8c29d2f24d5e701dd795c5ad88826b99625e0097b5c49dd7114dc29ac81ad32d",
   "docs/architecture/adrs/ARCH-003-emplacement-et-format-des-adr.rules.ts": "8b27b675ab5f10c5964038a986200194e5e405913f92a04353c54c6aebbea041",
-  "docs/architecture/adrs/ARCH-004-github-comme-forge-avec-actions-et-releases.md": "7ef8cdfa677b6aca1caa9082fa544f594fe34e42bb6b44b77edfe16d20f94574",
+  "docs/architecture/adrs/ARCH-004-github-comme-forge-avec-actions-et-releases.md": "07f578c404ab8bc6ddb11e49eea7ab78bae37747bba92f6d976a87affd434da4",
   "docs/architecture/adrs/ARCH-004-github-comme-forge-avec-actions-et-releases.rules.ts": "c75cc4829c87a5c5a2e81db9b5b38cb514ea0d3f4d00944d6f49ae3b543202e9",
   "docs/architecture/adrs/ARCH-005-conventions-de-branches-commits-et-versionnement.md": "928d6c3023614d62543cc501004da6df0beab5ad29d8f80f291d1cb243c22d8f",
   "docs/architecture/arc42/01-introduction-et-objectifs.md": "0791077be56cb9985611351529f4040e3d44ec99221250fcabe1c24b77d89526",
@@ -47,7 +47,7 @@
   "docs/architecture/arc42/10-exigences-de-qualite.md": "fa484a5dff8a8ec4b73630376a8cf50bd4a96de365429ae683ca621722780c87",
   "docs/architecture/arc42/11-risques-et-dette-technique.md": "881b3fb55998e5c575dfdda25a71cecf4e764066a3291f64d9f8eb6b00f54041",
   "docs/architecture/arc42/12-glossaire.md": "83d031c21025254f642f9b4affb6687e4f9d7e3143051354aade49cf29834dab",
-  "docs/workflow.md": "48947f3129bf50757bf90c36be9b35bd07dff4f4c7019c224a35c4246841d8c3",
+  "docs/workflow.md": "f3bde4a59af1219c60e2a645cf0cddef1342f86db3bcf728b0bed162b545e42b",
   "release-please-config.json": "c4a900e93d479b4264ac754c5925c6a699cb08272b864af8d0bc0986f27a8e27",
   "scripts/check-pr-title.mjs": "6bd4d1a35fc2ad9c483c7ae09361b8061d8c3681e4c744528e219f9f2f61c401",
   "scripts/sync-labels.mjs": "fec29054527bad66276014e15548ce0913ee9e923d14a30881f2b4a3d73e33b6"

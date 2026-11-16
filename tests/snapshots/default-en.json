@@ -32,7 +32,7 @@
   "docs/architecture/adrs/ARCH-002-workflow-spec-driven-avec-openspec.md": "47c3fd5bdfe6110b7ca2670c443e2ee4ba2d63926cf355fa9adbb6b40b735328",
   "docs/architecture/adrs/ARCH-003-emplacement-et-format-des-adr.md": "8a00112d49ecb3ab15b6b8fd26a39a49c9496eabe50854fb004246acd7e1e3ed",
   "docs/architecture/adrs/ARCH-003-emplacement-et-format-des-adr.rules.ts": "b6422f6901022ef717c36596f627a4269cf36fcd1e566b7d845c15856ba9e820",
-  "docs/architecture/adrs/ARCH-004-github-comme-forge-avec-actions-et-releases.md": "ec4fe09863627a354c7296ecf9e955a2fe534f2925cace9ff017b0d45d0d3c21",
+  "docs/architecture/adrs/ARCH-004-github-comme-forge-avec-actions-et-releases.md": "a6493e6664ecd204e46e5171328f70c0fb2b5134a871afa91f129eb51ee9dd02",
   "docs/architecture/adrs/ARCH-004-github-comme-forge-avec-actions-et-releases.rules.ts": "7c841e5bd4a32d9baff5591990ea6b75a07fb4801fc9b0e43c7a882e4214b7f6",
   "docs/architecture/adrs/ARCH-005-conventions-de-branches-commits-et-versionnement.md": "71d511da43e06b7d879f0820c56957a566fc55cde61918c0333e47b63bd4f1d7",
   "docs/architecture/arc42/01-introduction-et-objectifs.md": "a702ba5ddd6850468e9d3ba776408304e7856a911e41324452fd55acca9cd549",
@@ -47,7 +47,7 @@
   "docs/architecture/arc42/10-exigences-de-qualite.md": "f300e85b2da429bae8126f88bc616b8fb9cdde711077d6d45ee35ba72a243377",
   "docs/architecture/arc42/11-risques-et-dette-technique.md": "9bdb3bbf598ca92c4763fcaacda2acfdc08568a5013d64e4e16f65dcacfa4f6e",
   "docs/architecture/arc42/12-glossaire.md": "1678f3b3e6d4fdb2857aa6ea0d0a5efc92362f8336adecd7e7db282b4322d535",
-  "docs/workflow.md": "96f96914f32d51237abdf740cd99765063c563e64ca5e8408126a32662f50bf5",
+  "docs/workflow.md": "129b1b3fc0d3a01d312803f230d4d8962c6b9b83e7caa613c2d2614669144a4d",
   "release-please-config.json": "c4a900e93d479b4264ac754c5925c6a699cb08272b864af8d0bc0986f27a8e27",
   "scripts/check-pr-title.mjs": "e0f383242e70d05da533f58473393d34178a843ff9a73170d8b5a269296b583f",
   "scripts/sync-labels.mjs": "8478be6e2aad6011c472d491567934d9cea9036c4ab9a82dec3e0bb82e4fb22b"

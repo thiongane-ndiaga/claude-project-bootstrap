@@ -31,7 +31,7 @@ Chaque couche a un rôle :
 @@end
 @@module:projects
 @@module:issue-source
-  Elle arrive dans le Project en *Todo* (auto-add) ; la carte passe en *In Progress* à la création de la branche sur GitHub, en *In Review* à l'ouverture de la PR, automatiques avec le secret, manuels sans (secret Actions `PROJECT_TOKEN`).
+  Elle arrive dans le Project en *Todo* (auto-add) ; la carte passe en *In Progress* à la création de la branche sur GitHub, en *In Review* à l'ouverture de la PR, automatiques avec le secret, manuels sans (secret Actions `PROJECT_TOKEN` et variable `PROJECT_NUMBER`, tous deux requis).
 @@end
 @@module:jira-source
   Les statuts *In Progress* et *In Review* du Project se règlent à la main : aucun workflow n'est généré en mode `jira`.

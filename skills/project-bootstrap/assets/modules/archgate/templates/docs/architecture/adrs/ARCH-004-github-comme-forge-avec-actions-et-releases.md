@@ -40,7 +40,7 @@ Le projet a besoin de tout le cycle — ticket, suivi, revue, CI, livraison — 
 @@module:projects
 - **Projects** : colonnes Todo, In Progress, In Review, Done ; automatisations natives (auto-add, item closed et PR merged → Done).
 @@module:issue-source
-  *In Progress* et *In Review* sont posés par le workflow `.github/workflows/project-status.yml` (appels à l'API GitHub par `gh`), inactif tant que le secret `PROJECT_TOKEN` n'existe pas, ce qui vaut accord explicite pour ces appels.
+  *In Progress* et *In Review* sont posés par le workflow `.github/workflows/project-status.yml` (appels à l'API GitHub par `gh`), inactif tant que le secret `PROJECT_TOKEN` et la variable `PROJECT_NUMBER` n'existent pas ; la création du secret vaut accord explicite pour ces appels.
 @@end
 @@end
 - **CI** (`.github/workflows/ci.yml`) : {{CI_OS_TEXT}}.
