@@ -7,7 +7,7 @@ description: Met en place, dans un dépôt neuf ou déjà existant, un outillage
 
 Recrée l'outillage d'un projet piloté par Claude Code : la stack applicative n'est **jamais** choisie ici (ce sera l'objet d'ADR du projet) ; Node.js n'est qu'un prérequis d'outillage.
 
-Travaille en phases et arrête-toi à chaque **[STOP]** pour obtenir une validation explicite. L'utilisateur garde la main sur tout ce qui est global à sa machine ou visible à l'extérieur (installations globales, `archgate login`, toute écriture sur GitHub).
+Travaille en phases et arrête-toi à chaque **[STOP]** pour obtenir une validation explicite. L'utilisateur garde la main sur tout ce qui est global à sa machine ou visible à l'extérieur (installations globales, `archgate login`, toute écriture sur GitHub). Demande l'accord avant chaque action globale ou GitHub.
 
 Lis `references/pitfalls.md` avant la phase 2 : chaque piège qui y figure a coûté du temps.
 
@@ -77,7 +77,7 @@ Sans `agent-profiles`, les agents générés dépendent des modules : `spec-revi
 
 ## Phase 2 — Mise en place
 
-Un commit Conventional Commits par étape (anglais). Demande l'accord avant chaque action globale ou GitHub.
+Un commit Conventional Commits par étape (anglais).
 
 1. **git** : `git init -b main` si besoin ; vérifie `user.name`/`user.email` (ne les invente pas : demande ; si l'utilisateur te demande de les régler globalement, consigne `state.mjs effect --kind git-config-global --key user.name --value <v>`). Avant d'installer `gh` (winget ou gestionnaire de paquets), consigne `--kind custom --do "winget install GitHub.cli"`.
 2. **CLI** (accord requis ; consigne chaque installation globale avec `state.mjs effect --kind npm-global --package <nom> --version <v> [--prefix ~/.local]`, puis `--done <id>`), selon `cliInstall` : `global` : `npm install -g @fission-ai/openspec@<v> archgate@<v>` aux versions de `bootstrap.json` ; `user` : la même commande avec `--prefix ~/.local`, après avoir vérifié que `~/.local/bin` est dans le `PATH` (sinon, indique la ligne à ajouter au profil du shell, sans la modifier toi-même) ; `local` : rien à installer avant la génération (l'étape 3 crée `package.json`), puis `npm install --package-lock-only` pour créer le lockfile, **à committer avant le premier push** (`npm ci` et le cache `setup-node` échouent sans lui), puis `npm ci`. Si un `package.json` existe déjà, il est conservé (`kept`) : ajoute les `devDependencies` à la main (`npm install --save-dev --save-exact @fission-ai/openspec@<v> archgate@<v>`). Ne lance jamais `sudo` sans demande explicite de l'utilisateur. `gh` s'installe avec winget (élévation requise sous Windows) ou le gestionnaire de paquets Linux.
