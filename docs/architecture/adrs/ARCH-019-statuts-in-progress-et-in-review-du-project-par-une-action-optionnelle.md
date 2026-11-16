@@ -10,7 +10,7 @@ files: ["skills/project-bootstrap/assets/modules/projects/**", "skills/project-b
 
 ## Statut
 
-Proposé.
+Accepté. Complète ARCH-004.
 
 ## Context
 
