@@ -32,6 +32,20 @@ Sources : changements OpenSpec `24-jenkins-module` (issue #24) et `147-audit-jen
 
 Source : changement OpenSpec `22-sonar-module` (issue #22). Voir [ARCH-004](../adrs/ARCH-004-github-comme-forge-avec-actions-et-releases.md) et [ARCH-006](../adrs/ARCH-006-strategie-de-mise-a-jour-des-fichiers-generes.md).
 
+## Statut du Project par une Action optionnelle
+
+- Répartition : *Todo* et *Done* reviennent aux workflows intégrés du Project (auto-add, *Item added*, *Item closed*, *Pull request merged*) ; *In Progress* et *In Review* au workflow `project-status.yml` du module `projects`. Aucun workflow intégré ne réagit à la création d'une branche, et `GITHUB_TOKEN` n'accède pas aux Projects.
+- Valeurs lues à l'exécution, jamais à la génération : secret `PROJECT_TOKEN` (PAT classique, scope `project`, et `repo` selon l'essai ; un PAT fine-grained n'accède pas aux Projects d'un compte personnel), variable `PROJECT_NUMBER`, variable facultative `PROJECT_OWNER` avec repli sur `github.repository_owner`. Le plugin n'écrit aucun jeton : la création du secret par l'utilisateur vaut accord explicite au sens d'ARCH-004, comme `SONAR_TOKEN`.
+- Même motif que le job `sonar` : présence testée par `env` dans une condition d'étape, jamais dans un `if` de job ; `GH_TOKEN` posé sur la seule étape de mise à jour ; `permissions: {}` ; nom de branche passé par l'environnement, aucun `${{` dans un bloc `run:`.
+- Déclencheurs : `create` d'une branche (premier push ou création distante) et `pull_request` (`opened`, `reopened`, `ready_for_review`, `converted_to_draft`, `closed` sans merge) ; ni `push`, ni `synchronize`, ni `pull_request_target`, ni `workflow_dispatch`.
+- Cible dérivée de l'état : l'issue lue dans la branche (`^[a-z]+/([0-9]+)-`) ; issue fermée ou carte en *Done*, rien ; PR ouverte hors brouillon, du dépôt et non d'un fork, qui a cette branche pour tête, *In Review* ; sinon *In Progress* ; aucune écriture si la carte a déjà ce statut. L'écriture passe par la seule mutation GraphQL `updateProjectV2ItemFieldValue`.
+- Concurrence : groupe `project-status-${{ github.head_ref || github.ref_name }}`, sans annulation. Il met en file sans garantir l'ordre ; c'est la lecture de l'état à chaque exécution qui rend l'ordre des événements sans effet.
+- Erreurs : une configuration absente (secret, `PROJECT_NUMBER`, issue introuvable, carte ou option *In Review* absente) donne une notice et un succès ; un jeton configuré mais inopérant (refusé, expiré, scope insuffisant, dépôt inaccessible) ou toute autre erreur de `gh` fait échouer l'étape avec un message qui nomme `PROJECT_TOKEN` et ses scopes.
+- Sans secret : workflows intégrés seuls, *In Progress* et *In Review* à la main. Avec le secret : option *In Review* à ajouter au champ Status et workflow intégré « Pull request linked to issue » à désactiver à la main (`references/github-setup.md`, étape 4).
+- Périmètre : Projects de comptes personnels ; les organisations (GitHub App) relèvent d'une version suivante.
+
+Source : changement OpenSpec `175-project-status-action` (issue #175). Voir [ARCH-019](../adrs/ARCH-019-statuts-in-progress-et-in-review-du-project-par-une-action-optionnelle.md) et [ARCH-004](../adrs/ARCH-004-github-comme-forge-avec-actions-et-releases.md).
+
 ## Source du besoin : GitHub ou Jira
 
 - Le projet choisit sa source du besoin (`jiraSource`, `github` par défaut). En `jira`, la branche est `<type>/<CLE-N>-<slug>`, le corps de PR dit `Refs CLE-N` (le ticket se ferme dans Jira) et `proposal.md` porte `Ticket: CLE-N`. Le moteur de blocs n'ayant pas de négation, deux pseudo-modules complémentaires (`jira-source`, `issue-source`) sélectionnent la variante d'un modèle.
@@ -62,7 +76,7 @@ Sources : changements OpenSpec `25-gitlab-module` (premier lot) et `25-gitlab-so
 
 ## Réglage de squash du dépôt GitHub
 
-- Le squash du dépôt prend le titre de la PR seul (`squash_merge_commit_title=PR_TITLE`, `squash_merge_commit_message=BLANK`) : le titre de la PR, déjà contrôlé comme Conventional Commit, est le commit de squash. Sinon un `Closes #N` d'un commit était copié dans le commit de squash puis dans la PR de release-please, que GitHub comptait comme seconde PR fermante et qui remettait la carte du Project en « In Progress ».
+- Le squash du dépôt prend le titre de la PR seul (`squash_merge_commit_title=PR_TITLE`, `squash_merge_commit_message=BLANK`) : le titre de la PR, déjà contrôlé comme Conventional Commit, est le commit de squash. Sans ce réglage, un `Closes #N` d'un commit est copié dans le commit de squash puis dans la PR de release-please, que GitHub compte comme seconde PR fermante, et un workflow intégré du Project remet la carte en « In Progress ».
 - Convention : `Closes #N` s'écrit dans le corps de la PR, jamais dans un commit ; les commits portent `Refs #N`. `docs/workflow.md` et ARCH-005 générés (avec `github`) et ceux du plugin le disent. En mode `jira`, la clé doit figurer dans le titre de la PR, car les `Refs` des commits n'arrivent pas sur `main`.
 - Application : le skill règle le squash à la mise en place GitHub (`references/github-setup.md`, avec accord) ; la migration `0004-squash-title-only` et l'audit `--forge` rattrapent un dépôt existant. L'audit signale l'écart, le déclare non vérifiable si les champs de squash sont absents de la réponse (droits insuffisants) et note un squash désactivé (`allow_squash_merge: false`).
 - Migration consignée : `migrate.mjs` ne rejoue pas une migration déjà consignée alors que l'audit la recalcule ; la correction de l'audit cite donc aussi la commande directe (`gh api -X PATCH`) de chaque action, pour toutes les migrations.
