@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.23](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.22...v0.1.23) (2026-11-16)
+
+
+### Features
+
+* **skill:** set the project statuses with an optional action ([#184](https://github.com/thiongane-ndiaga/claude-project-bootstrap/issues/184)) ([7f1ff72](https://github.com/thiongane-ndiaga/claude-project-bootstrap/commit/7f1ff7226598ad7578eb4b10365719973741e94e))
+
 ## [0.1.22](https://github.com/thiongane-ndiaga/claude-project-bootstrap/compare/v0.1.21...v0.1.22) (2026-11-15)
 
 
