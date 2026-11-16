@@ -74,23 +74,45 @@ function blockAfter(t, openRe) {
   }
   return out;
 }
-// blocs `run:` : les lignes de script de chaque `run: |` et la valeur d'un `run:` sur une ligne
+// blocs `run:` : { body, ok, from, to } ; ok vaut false quand le corps n'est pas reconnu (valeur vide, en-tête de scalaire inconnu)
+const SCALAR_HEADER = /^\s*[|>][0-9]?[+-]?\s*$/;
 function runBlocks(t) {
   const all = lines(t);
   const blocks = [];
   all.forEach((l, i) => {
     const m = /^(\s*)(?:- )?run:(.*)$/.exec(l);
     if (!m) return;
-    if (/^\s*[|>][+-]?\s*$/.test(m[2])) {
+    if (SCALAR_HEADER.test(m[2])) {
       const body = [];
       for (let j = i + 1; j < all.length; j++) {
         if (all[j].trim() !== "" && indentOf(all[j]) <= m[1].length) break;
         body.push(all[j]);
       }
-      blocks.push(body.join("\n"));
-    } else blocks.push(m[2]);
+      blocks.push({ body: body.join("\n"), ok: true, from: i + 1, to: i + body.length });
+    } else if (/^\s*[^\s|>&*!'"#]/.test(m[2])) blocks.push({ body: m[2], ok: true, from: i, to: i });
+    else blocks.push({ body: "", ok: false, from: i, to: i });
   });
   return blocks;
+}
+// lignes où une expression ${{ … }} peut figurer : groupe de concurrence, condition (job ou étape), affectation d'une clé d'environnement
+const EXPRESSION_LINE = [/^group: /, /^(?:- )?if: /, /^[A-Z][A-Z0-9_]*: \$\{\{ .* \}\}$/];
+// problèmes de portée des expressions et des journaux d'un workflow (texte) : liste vide si le workflow est sain
+function workflowProblems(t) {
+  const problems = [];
+  const all = lines(t);
+  const blocks = runBlocks(t);
+  const withRun = steps(t).filter((s) => /^\s+(?:- )?run:/m.test(s)).length;
+  if (blocks.length !== withRun) problems.push(`${blocks.length} bloc(s) run trouvé(s) pour ${withRun} étape(s) avec run`);
+  if (blocks.some((b) => !b.ok)) problems.push("corps de run non reconnu");
+  const inScript = new Set();
+  for (const b of blocks) for (let i = b.from; i <= b.to; i++) inScript.add(i);
+  all.forEach((l, i) => {
+    if (!l.includes("${{")) return;
+    if (inScript.has(i)) problems.push(`expression dans un script (ligne ${i + 1})`);
+    else if (!EXPRESSION_LINE.some((re) => re.test(l.trim()))) problems.push(`expression hors concurrency, if ou env (ligne ${i + 1})`);
+  });
+  if (blocks.some((b) => /\b(?:echo|printf|fail|fail_api|skip)\b[^\n]*\$\{?out\b|\$\{out/.test(b.body))) problems.push("réponse brute de l'API écrite dans le journal");
+  return problems;
 }
 // étapes du job : texte de chaque élément de `steps:`
 function steps(t) {
@@ -116,6 +138,8 @@ function jobCondition(t) {
 }
 
 const EXPECTED_TYPES = ["closed", "converted_to_draft", "opened", "ready_for_review", "reopened"];
+// préfixes de jeton GitHub : personnel (classique), OAuth, utilisateur vers serveur, serveur vers serveur, actualisation, fine-grained
+const TOKEN_PREFIX = /(?:ghp|gho|ghu|ghs|ghr|github_pat)_/;
 const VALUE_RE = /^\$\{\{ (?:secrets|vars)\.[A-Z_]+(?: \|\| github\.repository_owner)? \}\}$/;
 
 // --- génération : présence, absence, refus
@@ -177,13 +201,15 @@ for (const lang of ["fr", "en"]) {
 
   // scripts : aucune expression, aucun set -e, aucune action non épinglée
   const blocks = runBlocks(t);
-  check(`${tag} : aucun bloc run ne contient d'expression`, blocks.length >= 2 && blocks.every((b) => !b.includes("${{")), blocks.filter((b) => b.includes("${{")).join(" | ").slice(0, 160));
+  const flaws = workflowProblems(t);
+  check(`${tag} : un bloc run par étape avec run, tous reconnus`, blocks.length === 2 && blocks.every((b) => b.ok), `${blocks.length} bloc(s)`);
+  check(`${tag} : aucune expression dans un script, chaque expression sur une ligne concurrency, if ou env, aucune réponse brute de l'API dans le journal`, flaws.length === 0, flaws.join(" ; "));
   const uses = lines(t).filter((l) => /^\s*(?:- )?uses:/.test(l));
   check(`${tag} : aucune action, ou chaque action épinglée sur un SHA de quarante caractères`, uses.every((l) => /@[0-9a-f]{40}\b/.test(l)), uses.join(" ; "));
   check(`${tag} : aucun set -e, aucun item-edit, une seule mutation`, !/set -e/.test(t) && !t.includes("item-edit") && (t.match(/updateProjectV2ItemFieldValue/g) ?? []).length === 1);
 
   // cible et classement des erreurs
-  const script = apply.length === 1 ? runBlocks(apply[0]).join("\n") : "";
+  const script = apply.length === 1 ? runBlocks(apply[0]).map((b) => b.body).join("\n") : "";
   check(`${tag} : cible lue par ^[a-z]+/([0-9]+)- avec exclusion de dependabot/ et release-please--`, script.includes("^[a-z]+/([0-9]+)-") && script.includes("dependabot/*") && script.includes("release-please--*"));
   check(`${tag} : l'échec nomme PROJECT_TOKEN et ses scopes project et repo`, script.split("\n").some((l) => l.includes("PROJECT_TOKEN") && /\bproject\b/.test(l.replace(/PROJECT_TOKEN/g, "")) && /\brepo\b/.test(l)));
   check(`${tag} : notice et échec classés par skip et fail, chaque appel de gh contrôlé`, /^\s*skip\(\)/m.test(script) && /^\s*fail\(\)/m.test(script) && script.includes("::notice::") && script.includes("::error::") && script.includes("Could not resolve to an Issue") && script.includes("Bad credentials"));
@@ -191,8 +217,27 @@ for (const lang of ["fr", "en"]) {
   // noms exacts
   for (const name of ["Status", "In Progress", "In Review", "Done"]) check(`${tag} : littéral ${name}`, t.includes(name));
   check(`${tag} : aucun marqueur ni paramètre non résolu`, !unresolved(t));
-  check(`${tag} : aucun jeton réel ni préfixe de jeton`, !/ghp_|github_pat_/.test(t));
+  check(`${tag} : aucun jeton réel ni préfixe de jeton`, !TOKEN_PREFIX.test(t));
 }
+
+// --- autocontrôle : les contrôles de portée détectent chaque altération
+{
+  const sample = on.read(WORKFLOW);
+  const alter = (from, to) => {
+    if (!sample.includes(from)) throw new Error(`autocontrôle : motif absent du modèle : ${from}`);
+    return sample.replace(from, () => to);
+  };
+  const header = "        run: |\n          if [[";
+  check("autocontrôle : le workflow généré n'a aucun problème de portée", sample !== "" && workflowProblems(sample).length === 0, workflowProblems(sample).join(" ; "));
+  check("autocontrôle : expression dans le corps d'un script détectée", workflowProblems(alter('NUMBER="${BASH_REMATCH[1]}"', 'NUMBER="${{ github.head_ref }}"')).some((x) => /dans un script/.test(x)));
+  check("autocontrôle : expression dans un run d'une ligne détectée", workflowProblems(alter(header, '        run: echo "${{ github.head_ref }}"\n          if [[')).some((x) => /dans un script/.test(x)));
+  check("autocontrôle : corps de run non reconnu détecté", workflowProblems(alter(header, "        run:\n          if [[")).some((x) => /non reconnu/.test(x)));
+  check("autocontrôle : en-tête de scalaire avec indicateur d'indentation reconnu", workflowProblems(alter(header, "        run: |2-\n          if [[")).length === 0);
+  check("autocontrôle : expression hors concurrency, if et env détectée", workflowProblems(alter("      GH_REPO:", "      EXTRA: a ${{ github.head_ref }}\n      GH_REPO:")).some((x) => /hors concurrency/.test(x)));
+  check("autocontrôle : réponse brute de l'API dans le journal détectée", workflowProblems(alter('PROJECT_ID="$out"', 'PROJECT_ID="$out"; echo "$out"')).some((x) => /journal/.test(x)));
+  check("autocontrôle : chacun des six préfixes de jeton GitHub est détecté", ["ghp", "gho", "ghu", "ghs", "ghr", "github_pat"].every((x) => TOKEN_PREFIX.test(`${x}_x`)) && !TOKEN_PREFIX.test("GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}"));
+}
+
 
 // --- docs/workflow.md : statuts du Project
 for (const lang of ["fr", "en"]) {

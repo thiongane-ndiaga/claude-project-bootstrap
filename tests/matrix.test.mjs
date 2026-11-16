@@ -106,6 +106,9 @@ export function readTree(dir) {
 // Fichiers sans base de fusion, par construction : partagés (fusion par lignes ou JSON), propres au projet (owned), réglages Claude
 const NO_BASE = new Set([...catalog.files.filter((f) => f.merge || f.owned).map((f) => f.path), ".claude/settings.json"]);
 
+// préfixes des jetons GitHub : personnel (classique), OAuth, utilisateur vers serveur, serveur vers serveur, actualisation, fine-grained
+const TOKEN_PREFIX = /(?:ghp|gho|ghu|ghs|ghr|github_pat)_/;
+
 // --- invariants : renvoie la liste des problèmes ------------------------------------------------------------------------------
 export function invariants(files) {
   const problems = [];
@@ -114,7 +117,7 @@ export function invariants(files) {
     if (/\{\{[A-Z0-9_]+\}\}/.test(text)) problems.push(`${rel} : paramètre non remplacé`);
     if (/@@(module:[\w|-]+|end)/.test(text)) problems.push(`${rel} : marqueur de module restant`);
     if (buf.includes(Buffer.from("\r\n"))) problems.push(`${rel} : fins de ligne CRLF`);
-    if (/ghp_|github_pat_/.test(text)) problems.push(`${rel} : jeton GitHub (préfixe ghp_ ou github_pat_)`);
+    if (TOKEN_PREFIX.test(text)) problems.push(`${rel} : jeton GitHub (préfixe ghp_, gho_, ghu_, ghs_, ghr_ ou github_pat_)`);
     if (rel.endsWith(".json")) {
       try {
         JSON.parse(text);
@@ -194,7 +197,7 @@ check("matrice : un module est généré avec la chaîne de ses dépendances", r
   check("invariants : paramètre non remplacé détecté", invariants(mk({ "a.txt": Buffer.from("{{PROJECT_NAME}}") })).some((p) => /paramètre/.test(p)));
   check("invariants : expression GitHub Actions légitime non confondue avec un paramètre", invariants(mk({ "a.txt": Buffer.from("${{ matrix.os }}") })).length === 0);
   check("invariants : marqueur de module restant détecté", invariants(mk({ "a.txt": Buffer.from("# @@end") })).some((p) => /marqueur/.test(p)));
-  check("invariants : jeton GitHub détecté, fichier nommé ; expression secrets légitime non confondue", ["ghp_x", "github_pat_x"].every((t) => invariants(mk({ "a.txt": Buffer.from(`jeton ${t}\n`) })).some((p) => /^a\.txt : jeton/.test(p))) && invariants(mk({ "a.txt": Buffer.from("PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}\n") })).length === 0);
+  check("invariants : jeton GitHub détecté, fichier nommé ; expression secrets légitime non confondue", ["ghp", "gho", "ghu", "ghs", "ghr", "github_pat"].map((x) => `${x}_x`).every((t) => invariants(mk({ "a.txt": Buffer.from(`jeton ${t}\n`) })).some((p) => /^a\.txt : jeton/.test(p))) && invariants(mk({ "a.txt": Buffer.from("PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}\n") })).length === 0);
   check("invariants : CRLF détecté", invariants(mk({ "a.txt": Buffer.from("a\r\nb") })).some((p) => /CRLF/.test(p)));
   check("invariants : JSON invalide détecté", invariants(mk({ "x.json": Buffer.from("{") })).some((p) => /JSON/.test(p)));
   check("invariants : antislash dans une clé du manifeste et fichier absent détectés", (() => { const p = invariants(mk({}, { files: { "a\\b.txt": {} } })); return p.some((x) => /antislash/.test(x)) && p.some((x) => /absent/.test(x)); })());
