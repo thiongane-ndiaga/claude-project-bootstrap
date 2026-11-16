@@ -46,18 +46,18 @@ jobs:
           # skip: configuration case, notice and success; fail: visible failure
           skip() { echo "::notice::$1"; exit 0; }
           fail() { echo "::error::$1"; exit 1; }
-          # gh call: output in $out; a rejected token fails the step, any other error returns 1 to the caller
+          # gh call: output in $out, read to classify the error and never written to the log; a rejected token fails the step, any other error returns 1 to the caller
           gh_call() {
             if out=$("$@" 2>&1); then return 0; fi
             case "$out" in
               *"Bad credentials"*|*"401"*|*"403"*|*"scope"*|*"expired"*|*"Resource not accessible"*|*"Could not resolve to a Repository"*)
-                fail "The PROJECT_TOKEN secret token is rejected, expired or without access: it must be a classic PAT with the project and repo scopes (API response: ${out//$'\n'/ })" ;;
+                fail "The PROJECT_TOKEN secret token is rejected, expired or without access: it must be a classic PAT with the project and repo scopes (see github-setup.md of the project-bootstrap skill, step 4)" ;;
             esac
             return 1
           }
-          # any other gh error: the API message and a reminder of the configuration
+          # any other gh error: a reminder of the configuration, without the API response
           fail_api() {
-            fail "GitHub call failed: ${out//$'\n'/ } (check PROJECT_TOKEN, PROJECT_NUMBER and PROJECT_OWNER)"
+            fail "GitHub call failed, response not reproduced in the log: check PROJECT_TOKEN, PROJECT_NUMBER and PROJECT_OWNER (see github-setup.md of the project-bootstrap skill, step 4)"
           }
 
           # target: the issue whose number follows the type in the branch name

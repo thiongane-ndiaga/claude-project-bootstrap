@@ -46,18 +46,18 @@ jobs:
           # skip : cas de configuration, notice et succès ; fail : échec visible
           skip() { echo "::notice::$1"; exit 0; }
           fail() { echo "::error::$1"; exit 1; }
-          # appel de gh : sortie dans $out ; un refus du jeton fait échouer l'étape, toute autre erreur renvoie 1 à l'appelant
+          # appel de gh : sortie dans $out, lue pour classer l'erreur et jamais écrite dans le journal ; un refus du jeton fait échouer l'étape, toute autre erreur renvoie 1 à l'appelant
           gh_call() {
             if out=$("$@" 2>&1); then return 0; fi
             case "$out" in
               *"Bad credentials"*|*"401"*|*"403"*|*"scope"*|*"expired"*|*"Resource not accessible"*|*"Could not resolve to a Repository"*)
-                fail "Le jeton du secret PROJECT_TOKEN est refusé, expiré ou sans accès : il doit être un PAT classique avec les scopes project et repo (réponse de l'API : ${out//$'\n'/ })" ;;
+                fail "Le jeton du secret PROJECT_TOKEN est refusé, expiré ou sans accès : il doit être un PAT classique avec les scopes project et repo (voir github-setup.md du skill project-bootstrap, étape 4)" ;;
             esac
             return 1
           }
-          # autre erreur de gh : le message de l'API et un rappel de la configuration
+          # autre erreur de gh : un rappel de la configuration, sans la réponse de l'API
           fail_api() {
-            fail "Appel à GitHub en échec : ${out//$'\n'/ } (vérifier PROJECT_TOKEN, PROJECT_NUMBER et PROJECT_OWNER)"
+            fail "Appel à GitHub en échec, réponse non reproduite dans le journal : vérifier PROJECT_TOKEN, PROJECT_NUMBER et PROJECT_OWNER (voir github-setup.md du skill project-bootstrap, étape 4)"
           }
 
           # cible : l'issue dont le numéro suit le type dans le nom de la branche
