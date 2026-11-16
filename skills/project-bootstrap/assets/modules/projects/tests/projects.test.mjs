@@ -138,6 +138,22 @@ function jobCondition(t) {
 }
 
 const EXPECTED_TYPES = ["closed", "converted_to_draft", "opened", "ready_for_review", "reopened"];
+// classification d'une réponse de gh par les motifs du case de gh_call (sous-chaînes) : liste des cas mal classés
+const TOKEN_CASES = [
+  ["gh: Bad credentials (HTTP 401)", true],
+  ["HTTP 401: Bad credentials (https://api.github.com/graphql)", true],
+  ["Your token has not been granted the required scopes to execute this query.", true],
+  ["Resource not accessible by personal access token (HTTP 403)", true],
+  ["gh: Could not resolve to a Repository with the name 'proprietaire/depot'. (repository)", true],
+  ["gh: Could not resolve to an Issue with the number of 1403. (repository.issue)", false],
+  ["gh: Could not resolve to an Issue with the number of 401. (repository.issue)", false],
+  ["GraphQL: Could not resolve to a ProjectV2 with the number 403", false],
+  ["GraphQL: Could not resolve to a ProjectV2 with the number 4010", false],
+];
+function tokenClassification(patterns) {
+  const re = new RegExp(patterns.map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"));
+  return TOKEN_CASES.filter(([message, isToken]) => re.test(message) !== isToken).map(([message, isToken]) => `« ${message} » ${isToken ? "devrait être" : "ne devrait pas être"} classé jeton refusé`);
+}
 // préfixes de jeton GitHub : personnel (classique), OAuth, utilisateur vers serveur, serveur vers serveur, actualisation, fine-grained
 const TOKEN_PREFIX = /(?:ghp|gho|ghu|ghs|ghr|github_pat)_/;
 const VALUE_RE = /^\$\{\{ (?:secrets|vars)\.[A-Z_]+(?: \|\| github\.repository_owner)? \}\}$/;
@@ -211,7 +227,15 @@ for (const lang of ["fr", "en"]) {
   // cible et classement des erreurs
   const script = apply.length === 1 ? runBlocks(apply[0]).map((b) => b.body).join("\n") : "";
   check(`${tag} : cible lue par ^[a-z]+/([0-9]+)- avec exclusion de dependabot/ et release-please--`, script.includes("^[a-z]+/([0-9]+)-") && script.includes("dependabot/*") && script.includes("release-please--*"));
-  check(`${tag} : l'échec nomme PROJECT_TOKEN et ses scopes project et repo`, script.split("\n").some((l) => l.includes("PROJECT_TOKEN") && /\bproject\b/.test(l.replace(/PROJECT_TOKEN/g, "")) && /\brepo\b/.test(l)));
+  const scopes = lang === "fr" ? "scopes project et repo" : "project and repo scopes";
+  check(`${tag} : l'échec nomme PROJECT_TOKEN et ses scopes (« ${scopes} »)`, script.split("\n").some((l) => /^\s*fail "/.test(l) && l.includes("PROJECT_TOKEN") && l.includes(scopes)));
+  // chaque appel de gh (api, project, pr) passe par gh_call, jamais directement
+  const ghLines = script.split("\n").filter((l) => !/^\s*#/.test(l) && /\bgh (?:api|project|pr)\b/.test(l));
+  check(`${tag} : chaque appel de gh passe par gh_call`, ghLines.length >= 5 && ghLines.every((l) => /^\s*gh_call gh /.test(l)), ghLines.filter((l) => !/^\s*gh_call gh /.test(l)).join(" | "));
+  // classification du jeton : l'alternance du case de gh_call, convertie en expression régulière
+  const alternation = script.split("\n").find((l) => /^\s*\*"[^"]+"\*(?:\|\*"[^"]+"\*)*\)\s*$/.test(l)) ?? "";
+  const patterns = [...alternation.matchAll(/\*"([^"]+)"\*/g)].map((m) => m[1]);
+  check(`${tag} : classification du jeton refusé : cas du jeton et cas qui n'en sont pas`, patterns.length > 0 && tokenClassification(patterns).length === 0, tokenClassification(patterns).join(" ; "));
   check(`${tag} : notice et échec classés par skip et fail, chaque appel de gh contrôlé`, /^\s*skip\(\)/m.test(script) && /^\s*fail\(\)/m.test(script) && script.includes("::notice::") && script.includes("::error::") && script.includes("Could not resolve to an Issue") && script.includes("Bad credentials"));
 
   // noms exacts
@@ -236,6 +260,10 @@ for (const lang of ["fr", "en"]) {
   check("autocontrôle : expression hors concurrency, if et env détectée", workflowProblems(alter("      GH_REPO:", "      EXTRA: a ${{ github.head_ref }}\n      GH_REPO:")).some((x) => /hors concurrency/.test(x)));
   check("autocontrôle : réponse brute de l'API dans le journal détectée", workflowProblems(alter('PROJECT_ID="$out"', 'PROJECT_ID="$out"; echo "$out"')).some((x) => /journal/.test(x)));
   check("autocontrôle : chacun des six préfixes de jeton GitHub est détecté", ["ghp", "gho", "ghu", "ghs", "ghr", "github_pat"].every((x) => TOKEN_PREFIX.test(`${x}_x`)) && !TOKEN_PREFIX.test("GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}"));
+  const oldPatterns = ["Bad credentials", "401", "403", "scope", "expired", "Resource not accessible", "Could not resolve to a Repository"];
+  const newPatterns = ["Bad credentials", "HTTP 401", "HTTP 403", "required scopes", "Resource not accessible", "Could not resolve to a Repository"];
+  check("autocontrôle : la classification du jeton rejette les motifs nus 401, 403 et scope", tokenClassification(oldPatterns).some((x) => /1403/.test(x)) && tokenClassification(oldPatterns).some((x) => /number 403/.test(x)), tokenClassification(oldPatterns).join(" ; "));
+  check("autocontrôle : la classification du jeton accepte les motifs précis", tokenClassification(newPatterns).length === 0, tokenClassification(newPatterns).join(" ; "));
 }
 
 
@@ -245,11 +273,11 @@ for (const lang of ["fr", "en"]) {
   const manual = lang === "fr" ? "se règlent à la main" : "are set by hand";
   const g = run({ ...base, docLanguage: lang });
   const d = g.read("docs/workflow.md");
-  check(`workflow.md (${lang}, issue-source) : phrase des statuts, secret PROJECT_TOKEN, branche sur GitHub et PR`, d.includes(phrase) && d.includes("PROJECT_TOKEN") && d.includes("*In Progress*") && d.includes("*In Review*") && (lang === "fr" ? d.includes("à la création de la branche sur GitHub") && d.includes("à l'ouverture de la PR") : d.includes("when the branch is created on GitHub") && d.includes("when the PR is opened")), d.slice(d.indexOf("Issue")).slice(0, 400));
+  check(`workflow.md (${lang}, issue-source) : phrase des statuts, secret PROJECT_TOKEN, branche sur GitHub et PR`, d.includes(phrase) && d.includes("PROJECT_TOKEN") && d.includes("PROJECT_NUMBER") && d.includes("*In Progress*") && d.includes("*In Review*") && (lang === "fr" ? d.includes("à la création de la branche sur GitHub") && d.includes("à l'ouverture de la PR") : d.includes("when the branch is created on GitHub") && d.includes("when the PR is opened")), d.slice(d.indexOf("Issue")).slice(0, 400));
   const j = run({ ...base, modules: ["claude", "github", "projects", "jira"], jiraSource: "jira", docLanguage: lang }).read("docs/workflow.md");
-  check(`workflow.md (${lang}, jira) : statuts à la main, ni PROJECT_TOKEN ni auto-add`, j.includes(manual) && j.includes("*In Progress*") && !j.includes("PROJECT_TOKEN") && !j.includes("auto-add"), j.slice(j.indexOf("Issue")).slice(0, 400));
+  check(`workflow.md (${lang}, jira) : statuts à la main, ni PROJECT_TOKEN ni auto-add`, j.includes(manual) && j.includes("*In Progress*") && !j.includes("PROJECT_TOKEN") && !j.includes("PROJECT_NUMBER") && !j.includes("auto-add"), j.slice(j.indexOf("Issue")).slice(0, 400));
   const o = run({ ...base, modules: ["claude", "github"], docLanguage: lang }).read("docs/workflow.md");
-  check(`workflow.md (${lang}, sans projects) : ni In Progress, ni In Review, ni PROJECT_TOKEN`, !/In Progress|In Review|PROJECT_TOKEN/.test(o));
+  check(`workflow.md (${lang}, sans projects) : ni In Progress, ni In Review, ni PROJECT_TOKEN`, !/In Progress|In Review|PROJECT_TOKEN|PROJECT_NUMBER/.test(o));
 }
 
 // --- ARCH-004 généré
@@ -259,7 +287,7 @@ for (const lang of ["fr", "en"]) {
   const without = arch004(run({ ...base, modules: ["claude", "github", "archgate"], docLanguage: lang }));
   const jira = arch004(run({ ...base, modules: [...mods, "jira"], jiraSource: "jira", docLanguage: lang }));
   const agreement = lang === "fr" ? "vaut accord explicite" : "counts as explicit agreement";
-  check(`ARCH-004 (${lang}, avec projects) : project-status.yml, PROJECT_TOKEN optionnel dont la création vaut accord`, withModule.includes("project-status.yml") && withModule.includes("PROJECT_TOKEN") && withModule.includes(agreement), withModule.slice(withModule.indexOf("Projects")).slice(0, 400));
+  check(`ARCH-004 (${lang}, avec projects) : project-status.yml, PROJECT_TOKEN optionnel dont la création vaut accord`, withModule.includes("project-status.yml") && withModule.includes("PROJECT_TOKEN") && withModule.includes("PROJECT_NUMBER") && withModule.includes(agreement), withModule.slice(withModule.indexOf("Projects")).slice(0, 400));
   check(`ARCH-004 (${lang}, sans projects) : ni PROJECT_TOKEN ni project-status.yml`, without !== "" && !without.includes("PROJECT_TOKEN") && !without.includes("project-status.yml"));
   check(`ARCH-004 (${lang}, jira) : ni PROJECT_TOKEN ni project-status.yml`, jira !== "" && !jira.includes("PROJECT_TOKEN") && !jira.includes("project-status.yml"));
 }
