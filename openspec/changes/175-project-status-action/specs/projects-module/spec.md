@@ -211,11 +211,11 @@ Les modèles français et anglais du workflow SHALL avoir la même structure : l
 - **THEN** leurs squelettes YAML sont identiques
 
 ### Requirement: Alignement de l'ADR ARCH-004 généré
-Avec `archgate`, `projects` et `issue-source`, l'ADR ARCH-004 généré SHALL, en français et en anglais, dire que le statut automatique est assuré par le workflow `project-status.yml`, inactif tant que le secret `PROJECT_TOKEN` n'existe pas, et que sa création vaut accord. Sans `projects` ou en mode `jira`, ces mentions MUST NOT apparaître.
+Avec `archgate`, `projects` et `issue-source`, l'ADR ARCH-004 généré SHALL, en français et en anglais, dire que le statut automatique est assuré par le workflow `project-status.yml`, inactif tant que le secret `PROJECT_TOKEN` et la variable `PROJECT_NUMBER` n'existent pas, et que la création du secret vaut accord. Sans `projects` ou en mode `jira`, ces mentions MUST NOT apparaître.
 
 #### Scenario: ARCH-004 avec le module
 - **WHEN** un projet est généré avec `github`, `projects` et `archgate`, en français puis en anglais
-- **THEN** la ligne Projects d'ARCH-004 cite `project-status.yml` et `PROJECT_TOKEN` comme secret optionnel dont la création vaut accord
+- **THEN** la ligne Projects d'ARCH-004 cite `project-status.yml`, `PROJECT_TOKEN` comme secret optionnel dont la création vaut accord, et `PROJECT_NUMBER`
 
 #### Scenario: ARCH-004 sans le module
 - **WHEN** un projet est généré avec `archgate` sans `projects`
