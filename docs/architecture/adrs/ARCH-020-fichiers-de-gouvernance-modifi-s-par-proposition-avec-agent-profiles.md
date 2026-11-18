@@ -40,7 +40,7 @@ Ce que protège chaque fichier de gouvernance :
 | `CLAUDE.md`, `AGENTS.md`, `docs/workflow.md` | les instructions de tous les agents et l'échelle d'arbitrage (ARCH-013 décision 6) |
 | `.bootstrap/` | le manifeste et les bases de fusion (ARCH-006) |
 
-Options comparées (rapport d'`architect` sur l'issue #172) :
+Options comparées (rapport d'`architect`, consigné dans un commentaire de l'issue #172) :
 
 1. **Statu quo documenté** : aucune modification de la table, mais aucune procédure ; l'utilisateur rédige, et la consigne de la ligne 8 pousse au contournement observé.
 2. **Profil `maintainer`** borné à une liste de chemins : moins d'effort ; mais s'il écrit `.claude/hooks/` ou `.claude/settings.json`, il réécrit sa propre table, et sans eux ces chemins restent sans rédacteur ; un `maintainer.md` livré par `--update` à un projet dont `profile-guard.mjs` est en `keep` n'est pas borné (lignes 186-187, ARCH-014). Reporté, limité aux fichiers documentaires.
@@ -48,6 +48,14 @@ Options comparées (rapport d'`architect` sur l'issue #172) :
 4. **Shell de `developer` borné** : un profil qui écrit du code puis lance des tests écrit où il veut (ARCH-011, risque « écrire puis exécuter ») ; contraire à ARCH-012 décision 5 et à ARCH-014 décision 4 (pile non choisie). Rejeté.
 5. **Édition proposée** : l'agent prépare, l'utilisateur relit et applique ; aucune modification de la table. `.bootstrap/local/` est exclu (`writeExcept` ; réservé au générateur, `CONTRIBUTING.md` ligne 47) et le dossier temporaire du système est hors du projet (ligne 208). Retenue.
 6. **Contrôle de détection** des fichiers de gouvernance modifiés dans la branche : seul moyen de voir aussi le passage par le shell ; il n'empêche rien. Retenu en complément.
+
+Précisions apportées à l'instruction de l'utilisateur :
+
+1. `.proposals/` est ignoré par une ligne du `.gitignore` racine, et non par un `.gitignore` interne réduit à `*` : un tel fichier s'ignore lui-même et n'est jamais commité.
+2. `migrate.mjs --apply` n'entre pas dans l'exception de la phase 5 : il écrit sur la forge et peut supprimer des labels.
+3. `git apply --check` précède `git apply --stat` et `git apply`.
+4. La proposition est un patch écrit par `developer` seul ; le contenu des autres profils lui arrive par le brief de `project-lead`.
+5. L'exception de la phase 5 couvre `scaffold.mjs --update`, `--config <copie>` et `--update --adopt`, confirmée par l'utilisateur.
 
 ## Decision
 
@@ -128,7 +136,7 @@ Ce dépôt a le module `agent-profiles` (manifeste en version 0.1.21) et `"agent
 
 ## References
 
-- Issue #172 (décisions de l'utilisateur) ; rapport d'`architect` sur l'issue #172 ; relecture de l'ADR par `qa-engineer`
+- Issue #172 : décisions de l'utilisateur dans un commentaire de l'issue ; rapport d'`architect` et acceptation de l'ADR consignés dans un commentaire de l'issue #172 ; relecture de l'ADR par `qa-engineer`
 - [ARCH-011](./ARCH-011-profils-d-agents-bornes-par-un-hook-unique.md), [ARCH-012](./ARCH-012-agents-skills-et-commandes-lancables-par-un-profil.md), [ARCH-013](./ARCH-013-chef-de-projet-comme-agent-principal-active-par-mainagent.md), [ARCH-014](./ARCH-014-profils-optionnels-choisis-par-la-cle-profiles.md), [ARCH-016](./ARCH-016-les-profils-absorbent-les-agents-historiques.md) (cité, non modifié), [ARCH-006](./ARCH-006-strategie-de-mise-a-jour-des-fichiers-generes.md)
 - Spec `openspec/specs/agent-profiles/spec.md`
 - `.claude/hooks/profile-guard.mjs`, `.claude/agents/project-lead.md`, `.claude/agents/developer.md`, `skills/project-bootstrap/assets/modules/core/module.json`, `skills/project-bootstrap/scripts/merge.mjs`
