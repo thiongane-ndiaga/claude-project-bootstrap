@@ -12,6 +12,8 @@ files: ["skills/project-bootstrap/assets/modules/agent-profiles/**"]
 
 Accepté. Complète ARCH-011 pour les outils `Agent`, `Skill` et pour les commandes de shell. ARCH-014 ajoute à la table les profils optionnels.
 
+Complété par [ARCH-020](./ARCH-020-fichiers-de-gouvernance-modifi-s-par-proposition-avec-agent-profiles.md) (modification des fichiers de gouvernance par proposition) pour la décision 5.
+
 ## Context
 
 Les profils de `agent-profiles` (ARCH-011) sont bornés par un hook unique qui lit `agent_type`. Un agent lancé par un profil porte son propre `agent_type` et sort donc de la table du profil. Les essais de l'issue #113 (Claude Code 2.1.316) établissent :
