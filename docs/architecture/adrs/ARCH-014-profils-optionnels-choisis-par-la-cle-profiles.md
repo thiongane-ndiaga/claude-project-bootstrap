@@ -12,6 +12,8 @@ files: ["skills/project-bootstrap/assets/modules/agent-profiles/**", "skills/pro
 
 Accepté.
 
+Complété par [ARCH-020](./ARCH-020-fichiers-de-gouvernance-modifi-s-par-proposition-avec-agent-profiles.md) (modification des fichiers de gouvernance par proposition) pour le risque du shell de `developer`.
+
 ## Context
 
 Le module `agent-profiles` livre quatre profils par défaut (`architect`, `qa-engineer`, `developer`, `project-lead`). D'autres rôles sont utiles selon le projet mais ne doivent exister que s'ils sont choisis. Le format de module (ARCH-010) décrit un fichier par module ; il n'a pas de sélection par fichier.

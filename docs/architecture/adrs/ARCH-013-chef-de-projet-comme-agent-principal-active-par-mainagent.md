@@ -12,6 +12,8 @@ files: ["skills/project-bootstrap/assets/modules/agent-profiles/**"]
 
 Accepté.
 
+Complété par [ARCH-020](./ARCH-020-fichiers-de-gouvernance-modifi-s-par-proposition-avec-agent-profiles.md) (modification des fichiers de gouvernance par proposition) pour la décision 4.
+
 ## Context
 
 Le module `agent-profiles` (ARCH-011, ARCH-012) génère des profils bornés. Le chef de projet `project-lead` orchestre : dialogue avec l'utilisateur, brief, délégation, arbitrage. Pour agir, il doit être l'agent principal de la session (`"agent": "project-lead"` dans `.claude/settings.json`). Les essais de #32 et #35 (Claude Code 2.1.316) établissent :
